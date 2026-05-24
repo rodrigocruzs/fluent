@@ -1,13 +1,6 @@
 {
-    "experimentalServices": {
-        "frontend": {
-            "routePrefix": "/",
-            "root": "website",
-            "entrypoint": "index.html"
-        },
-        "backend": {
-            "root": "backend",
-            "routePrefix": "/_/backend"
-        }
-    }
+    "outputDirectory": "website",
+    "rewrites": [
+        { "source": "/api/(.*)", "destination": "/api/index.py" }
+    ]
 }
