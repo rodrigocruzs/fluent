@@ -1,5 +1,12 @@
 {
     "outputDirectory": "website",
+    "builds": [
+        {
+            "src": "api/index.py",
+            "use": "@vercel/python",
+            "config": { "requirementsFile": "api/requirements.txt" }
+        }
+    ],
     "rewrites": [
         { "source": "/api/(.*)", "destination": "/api/index.py" }
     ]
