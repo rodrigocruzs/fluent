@@ -1,0 +1,59 @@
+{
+  "" : {
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/Fluent-primary.dia",
+    "emit-module-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/Fluent-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/Fluent-primary-emit-module.dia",
+    "pch" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/Fluent-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/Fluent-primary.swiftdeps"
+  },
+  "/Users/rodrigocruzsouza/fluent/fluent/Fluent/AppDelegate.swift" : {
+    "const-values" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.d",
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.dia",
+    "index-unit-output-path" : "/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.o",
+    "llvm-bc" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.bc",
+    "object" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.o",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate.swiftdeps",
+    "swiftmodule" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/AppDelegate~partial.swiftmodule"
+  },
+  "/Users/rodrigocruzsouza/fluent/fluent/Fluent/DarwinNotificationBridge.swift" : {
+    "const-values" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.swiftconstvalues",
+    "dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.d",
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.dia",
+    "index-unit-output-path" : "/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.o",
+    "llvm-bc" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.bc",
+    "object" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.o",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge.swiftdeps",
+    "swiftmodule" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/DarwinNotificationBridge~partial.swiftmodule"
+  },
+  "/Users/rodrigocruzsouza/fluent/fluent/Fluent/ReportWindowController.swift" : {
+    "const-values" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.swiftconstvalues",
+    "dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.d",
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.dia",
+    "index-unit-output-path" : "/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.o",
+    "llvm-bc" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.bc",
+    "object" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.o",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController.swiftdeps",
+    "swiftmodule" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/ReportWindowController~partial.swiftmodule"
+  },
+  "/Users/rodrigocruzsouza/fluent/fluent/Fluent/WebViewController.swift" : {
+    "const-values" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.swiftconstvalues",
+    "dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.d",
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.dia",
+    "index-unit-output-path" : "/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.o",
+    "llvm-bc" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.bc",
+    "object" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.o",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController.swiftdeps",
+    "swiftmodule" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/WebViewController~partial.swiftmodule"
+  },
+  "/Users/rodrigocruzsouza/fluent/fluent/Fluent/main.swift" : {
+    "const-values" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.swiftconstvalues",
+    "dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.d",
+    "diagnostics" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.dia",
+    "index-unit-output-path" : "/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.o",
+    "llvm-bc" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.bc",
+    "object" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.o",
+    "swift-dependencies" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main.swiftdeps",
+    "swiftmodule" : "/Users/rodrigocruzsouza/fluent/fluent/build/Build/Intermediates.noindex/Fluent.build/Debug/Fluent.build/Objects-normal/arm64/main~partial.swiftmodule"
+  }
+}
