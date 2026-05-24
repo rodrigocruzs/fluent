@@ -1,7 +1,9 @@
 {
     "experimentalServices": {
         "frontend": {
-            "routePrefix": "/"
+            "routePrefix": "/",
+            "framework": null,
+            "outputDirectory": "website"
         },
         "backend": {
             "root": "backend",
