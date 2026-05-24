@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Database
+backend/fluent.db
+*.db
+
+# macOS
+.DS_Store
+
+# Xcode / Swift
+fluent/build/
+fluent/fluent/build/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Secrets
+.env
+.env.*
+
+# DMG
+website/Fluent.dmg
