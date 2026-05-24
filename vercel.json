@@ -1,13 +1,18 @@
 {
-    "outputDirectory": "website",
     "builds": [
+        {
+            "src": "website/**",
+            "use": "@vercel/static"
+        },
         {
             "src": "api/index.py",
             "use": "@vercel/python",
             "config": { "requirementsFile": "api/requirements.txt" }
         }
     ],
-    "rewrites": [
-        { "source": "/api/(.*)", "destination": "/api/index.py" }
+    "routes": [
+        { "src": "/api/(.*)", "dest": "/api/index.py" },
+        { "src": "/sample-report.html", "dest": "/website/sample-report.html" },
+        { "src": "/(.*)", "dest": "/website/$1" }
     ]
 }
