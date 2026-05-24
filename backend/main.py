@@ -17,8 +17,12 @@ from pydantic import BaseModel, EmailStr
 import json
 from anthropic import Anthropic
 
-from backend.database import init_db, create_user, get_user_by_email, get_user_by_id
-from backend.auth import hash_password, verify_password, create_token, decode_token
+try:
+    from backend.database import init_db, create_user, get_user_by_email, get_user_by_id
+    from backend.auth import hash_password, verify_password, create_token, decode_token
+except ImportError:
+    from database import init_db, create_user, get_user_by_email, get_user_by_id
+    from auth import hash_password, verify_password, create_token, decode_token
 
 app = FastAPI(title="Fluent API")
 _bearer = HTTPBearer()
