@@ -3,7 +3,7 @@
         "frontend": {
             "routePrefix": "/",
             "framework": null,
-            "outputDirectory": "website"
+            "root": "website"
         },
         "backend": {
             "root": "backend",
