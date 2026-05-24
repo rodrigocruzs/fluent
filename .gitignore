@@ -24,7 +24,8 @@ DerivedData/
 
 # Secrets
 .env
-.env.*
+.env.local
+.env.production
 
 # DMG
 website/Fluent.dmg
