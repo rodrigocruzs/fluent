@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluent — A quiet English coach for your real calls</title>
+<style>
+  :root {
+    --ink:        #1a1a1a;
+    --ink-2:      #2a2a2a;
+    --gray-1:     #555555;
+    --gray-2:     #8a8a8a;
+    --gray-3:     #b5b5b5;
+    --gray-4:     #d8d8d6;
+    --rule:       #e8e8e6;
+    --bg:         #ffffff;
+    --bg-soft:    #fafaf9;
+    --accent:     #C96442;
+    --accent-hover:#b85737;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv11", "kern";
+    text-rendering: optimizeLegibility;
+    line-height: 1.55;
+  }
+
+  a { color: inherit; }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 48px;
+  }
+
+  /* ── Top bar ────────────────────────────────────────── */
+  .topbar {
+    padding: 28px 0 0;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    font-size: 16px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  /* ── Section rhythm ─────────────────────────────────── */
+  section { padding: 96px 0; border-top: 1px solid var(--rule); }
+  section:first-of-type { border-top: none; padding-top: 64px; }
+
+  .section-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gray-3);
+    font-weight: 500;
+    margin-bottom: 28px;
+  }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 32px 0 24px;
+    max-width: 16ch;
+    text-wrap: balance;
+  }
+
+  .hero .lede {
+    font-size: 20px;
+    line-height: 1.5;
+    color: var(--gray-1);
+    margin: 0 0 40px;
+    max-width: 46ch;
+    letter-spacing: -0.005em;
+  }
+
+  /* ── Buttons ────────────────────────────────────────── */
+  .download {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px 14px 18px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 140ms ease, transform 140ms ease;
+  }
+  .download:hover  { background: var(--accent-hover); }
+  .download:active { transform: translateY(1px); }
+
+  .download svg { display: block; }
+
+  .cta-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .cta-note {
+    font-size: 13px;
+    color: var(--gray-2);
+  }
+
+  /* ── Problem / lede prose ───────────────────────────── */
+  .prose {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    max-width: 56ch;
+    letter-spacing: -0.005em;
+  }
+  .prose p + p { margin-top: 1.1em; }
+  .prose .quiet { color: var(--gray-1); }
+
+  /* ── How it works ───────────────────────────────────── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 56px;
+  }
+  .step .num {
+    font-size: 12px;
+    color: var(--gray-3);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+  .step h3 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .step p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--gray-1);
+    line-height: 1.55;
+    max-width: 30ch;
+  }
+
+  /* ── Sample / preview ───────────────────────────────── */
+  .sample {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 32px 0;
+    margin-top: 8px;
+  }
+
+  .sample-row {
+    display: grid;
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+    padding: 24px 0;
+  }
+  .sample-row + .sample-row { border-top: 1px solid var(--rule); }
+
+  .sample-note .note-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .sample-note .num {
+    font-size: 11px;
+    color: var(--gray-3);
+    font-weight: 500;
+    min-width: 12px;
+  }
+  .sample-note .cat {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gray-2);
+    font-weight: 500;
+  }
+  .sample-note .try {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--accent);
+    font-weight: 500;
+    margin: 0 0 6px;
+    padding-left: 22px;
+    letter-spacing: -0.005em;
+  }
+  .sample-note .explain {
+    font-size: 13px;
+    color: var(--gray-2);
+    line-height: 1.55;
+    margin: 0;
+    padding-left: 22px;
+  }
+
+  .sample-transcript {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink-2);
+  }
+  .sample-transcript mark {
+    background: transparent;
+    color: inherit;
+    border-bottom: 1px solid var(--gray-4);
+    padding-bottom: 1px;
+  }
+  .sample-transcript mark .num {
+    font-size: 10px;
+    color: var(--gray-2);
+    vertical-align: super;
+    line-height: 0;
+    margin-left: 3px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  /* ── Pricing ────────────────────────────────────────── */
+  .pricing {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 48px;
+    align-items: end;
+  }
+  .price-amount {
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .price-amount .unit {
+    font-size: 18px;
+    color: var(--gray-2);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    margin-left: 6px;
+  }
+  .price-meta {
+    margin-top: 16px;
+    font-size: 16px;
+    color: var(--gray-1);
+    max-width: 36ch;
+    line-height: 1.5;
+  }
+  .price-meta .accent {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ── Footer ─────────────────────────────────────────── */
+  footer {
+    padding: 40px 0 56px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--gray-2);
+    font-size: 13px;
+  }
+  footer a {
+    color: var(--gray-2);
+    text-decoration: none;
+    transition: color 120ms ease;
+  }
+  footer a:hover { color: var(--ink-2); }
+  footer nav { display: flex; gap: 24px; }
+
+  /* ── Narrow ─────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .container { padding: 0 24px; }
+    section { padding: 64px 0; }
+    .hero h1 { font-size: 40px; }
+    .hero .lede { font-size: 18px; }
+    .steps { grid-template-columns: 1fr; gap: 32px; }
+    .sample-row { grid-template-columns: 1fr; gap: 16px; }
+    .pricing { grid-template-columns: 1fr; align-items: start; }
+    .price-amount { font-size: 48px; }
+    footer { flex-direction: column; gap: 16px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container">
+    <a class="brand" href="#">
+      <span class="logo" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+          <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+        </svg>
+      </span>
+      <span class="wordmark">Fluent</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Hero ─────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <h1>A quiet English coach for your real conversations.</h1>
+      <p class="lede">
+        Fluent listens to the meetings you&rsquo;re already in and, after each one,
+        sends you a short editor&rsquo;s report &mdash; what you said, what to try,
+        and why.
+      </p>
+      <div class="cta-row">
+        <a class="download" href="#download">
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12.99 9.51c-.01-2.06 1.69-3.05 1.77-3.1-.97-1.42-2.47-1.61-3-1.63-1.27-.13-2.49.75-3.13.75-.66 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.46 2.53-.37 6.27 1.05 8.32.69 1 1.5 2.13 2.57 2.09 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.6.67 2.7.65 1.11-.02 1.82-1.02 2.5-2.03.79-1.16 1.12-2.3 1.13-2.35-.02-.01-2.17-.83-2.19-3.29zM10.91 3.46c.58-.7.97-1.67.86-2.64-.83.03-1.84.55-2.44 1.24-.54.62-1.01 1.6-.88 2.55.93.07 1.88-.47 2.46-1.15z"/>
+          </svg>
+          Download for macOS
+        </a>
+        <span class="cta-note">Free for 7 days &middot; macOS 13 or later</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── The problem ──────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-label">The problem</div>
+      <div class="prose">
+        <p>
+          If English isn&rsquo;t your first language, you already speak it every day &mdash;
+          in standups, in customer calls, with the doctor. You make small mistakes,
+          and almost no one corrects them.
+        </p>
+        <p class="quiet">
+          Self-study apps don&rsquo;t help here. They teach you English in the abstract,
+          not the English you actually use.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── How it works ─────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-label">How it works</div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">01</div>
+          <h3>Install on your Mac</h3>
+          <p>One small menubar app. No accounts, no setup.</p>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <h3>Let it listen during calls</h3>
+          <p>Fluent runs quietly in the background while you talk &mdash; on Zoom, Meet, Teams, or in person.</p>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <h3>Read the report after</h3>
+          <p>A few minutes later, a calm document with the moments worth revisiting &mdash; nothing more.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── What you get ─────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-label">What a report looks like</div>
+      <div class="prose">
+        <p class="quiet" style="margin-bottom: 32px;">
+          Each suggestion is pinned to where it appeared in your speech. No grades,
+          no streaks, no progress bars &mdash; just the moments that are worth a second look.
+        </p>
+      </div>
+
+      <div class="sample">
+
+        <div class="sample-row">
+          <div class="sample-note">
+            <div class="note-head">
+              <span class="num">1</span>
+              <span class="cat">Grammar</span>
+            </div>
+            <p class="try">his eyes are irritated</p>
+            <p class="explain">English places the adjective before the noun and expresses possession with &ldquo;his,&rdquo; not a verb.</p>
+          </div>
+          <div class="sample-transcript">
+            &hellip; <mark>he has eyes irritated<span class="num">1</span></mark>
+            and he kept rubbing them, and I wasn&rsquo;t sure if it was allergies &hellip;
+          </div>
+        </div>
+
+        <div class="sample-row">
+          <div class="sample-note">
+            <div class="note-head">
+              <span class="num">2</span>
+              <span class="cat">Phrasing</span>
+            </div>
+            <p class="try">it could be sinusitis</p>
+            <p class="explain">Medical conditions like &ldquo;sinusitis&rdquo; take no article in English, where Portuguese would use one.</p>
+          </div>
+          <div class="sample-transcript">
+            &hellip; she said <mark>that could be a sinusitis<span class="num">2</span></mark>.
+            I think that might be the reason &hellip;
+          </div>
+        </div>
+
+      </div>
+
+      <p style="margin-top: 24px;">
+        <a href="Coaching Report.html" style="font-size: 14px; color: var(--gray-1); text-decoration: none; border-bottom: 1px solid var(--gray-4); padding-bottom: 1px;">See a full report &rarr;</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Pricing ──────────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-label">Pricing</div>
+      <div class="pricing">
+        <div>
+          <div class="price-amount">$10<span class="unit">/ month</span></div>
+          <p class="price-meta">
+            <span class="accent">Free for the first 7 days.</span>
+            Cancel anytime from the app &mdash; no questions, no email.
+          </p>
+        </div>
+        <a class="download" href="#download" id="download">
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12.99 9.51c-.01-2.06 1.69-3.05 1.77-3.1-.97-1.42-2.47-1.61-3-1.63-1.27-.13-2.49.75-3.13.75-.66 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.46 2.53-.37 6.27 1.05 8.32.69 1 1.5 2.13 2.57 2.09 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.6.67 2.7.65 1.11-.02 1.82-1.02 2.5-2.03.79-1.16 1.12-2.3 1.13-2.35-.02-.01-2.17-.83-2.19-3.29zM10.91 3.46c.58-.7.97-1.67.86-2.64-.83.03-1.84.55-2.44 1.24-.54.62-1.01 1.6-.88 2.55.93.07 1.88-.47 2.46-1.15z"/>
+          </svg>
+          Start free trial
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <div>&copy; 2026 Fluent</div>
+    <nav>
+      <a href="mailto:hello@fluent.app">Contact</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
