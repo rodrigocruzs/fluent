@@ -242,13 +242,211 @@
     });
   };
 
+  window.showOnboarding = function () {
+    const page         = document.getElementById('page');
+    const sessionsPage = document.getElementById('sessions-page');
+    const onboarding   = document.getElementById('onboarding');
+    const authPage     = document.getElementById('auth-page');
+    if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
+    if (sessionsPage)   sessionsPage.style.display = 'none';
+    if (onboarding)     onboarding.style.display = 'none';
+    if (authPage)       authPage.style.display = '';
+  };
+
+  // ── Auth page logic ───────────────────────────────────────────────────────
+
+  const BACKEND_URL = 'https://fluent-lemon.vercel.app/api';
+
+  function _token() { return localStorage.getItem('fluent_token'); }
+  function _saveToken(t) { localStorage.setItem('fluent_token', t); }
+  function _clearToken() { localStorage.removeItem('fluent_token'); }
+
+  (function initAuth() {
+    const authPage  = document.getElementById('auth-page');
+    if (!authPage) return;
+
+    const heading   = document.getElementById('auth-heading');
+    const subhead   = document.getElementById('auth-subhead');
+    const submitBtn = document.getElementById('auth-submit');
+    const errorEl   = document.getElementById('auth-error');
+    const password  = document.getElementById('auth-password');
+
+    const copy = {
+      signin: { heading: 'Welcome back.', subhead: 'Sign in to see your coaching reports.', submit: 'Sign in', passAuto: 'current-password', passPlaceholder: 'Your password' },
+      signup: { heading: 'Create your account.', subhead: 'Seven days free. Cancel anytime from the app.', submit: 'Start free trial', passAuto: 'new-password', passPlaceholder: 'At least 8 characters' },
+    };
+
+    let currentMode = 'signin';
+
+    function setMode(mode) {
+      currentMode = mode;
+      authPage.classList.toggle('mode-signin', mode === 'signin');
+      authPage.classList.toggle('mode-signup', mode === 'signup');
+      const c = copy[mode];
+      heading.textContent  = c.heading;
+      subhead.textContent  = c.subhead;
+      submitBtn.textContent = c.submit;
+      password.setAttribute('autocomplete', c.passAuto);
+      password.setAttribute('placeholder', c.passPlaceholder);
+      errorEl.textContent = '';
+      authPage.querySelectorAll('.mode-toggle button').forEach(b => {
+        const on = b.dataset.mode === mode;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+    }
+
+    authPage.querySelectorAll('[data-mode]').forEach(btn => {
+      btn.addEventListener('click', () => setMode(btn.dataset.mode));
+    });
+
+    setMode('signin');
+
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const pw    = document.getElementById('auth-password').value;
+      errorEl.textContent = '';
+
+      if (!email || !email.includes('@')) { errorEl.textContent = 'Please enter a valid email.'; return; }
+      if (pw.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; return; }
+
+      submitBtn.disabled = true;
+      const endpoint = currentMode === 'signin' ? '/auth/login' : '/auth/register';
+      try {
+        const res = await fetch(BACKEND_URL + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pw }),
+        });
+        const data = await res.json();
+        if (!res.ok) { errorEl.textContent = data.detail || 'Something went wrong.'; return; }
+        _saveToken(data.token);
+        authPage.style.display = 'none';
+        // Tell Swift the user is now signed in so it can load sessions
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.authComplete) {
+          window.webkit.messageHandlers.authComplete.postMessage(data.token);
+        }
+      } catch (err) {
+        errorEl.textContent = 'Could not connect: ' + err.message + ' (url: ' + BACKEND_URL + ')';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  })();
+
   window.showSessions = function () {
     const page         = document.getElementById('page');
     const sessionsPage = document.getElementById('sessions-page');
+    const settingsPage = document.getElementById('settings-page');
     page.classList.remove('visible');
     page.innerHTML = '';
+    if (settingsPage) settingsPage.style.display = 'none';
     if (sessionsPage) sessionsPage.style.display = '';
   };
+
+  window.showSettings = function () {
+    const page         = document.getElementById('page');
+    const sessionsPage = document.getElementById('sessions-page');
+    const onboarding   = document.getElementById('onboarding');
+    const authPage     = document.getElementById('auth-page');
+    const settingsPage = document.getElementById('settings-page');
+    if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
+    if (sessionsPage)   sessionsPage.style.display = 'none';
+    if (onboarding)     onboarding.style.display = 'none';
+    if (authPage)       authPage.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = '';
+
+    // Populate email from stored token
+    const token = localStorage.getItem('fluent_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const emailEl = document.getElementById('settings-email');
+        if (emailEl && payload.email) emailEl.textContent = payload.email;
+      } catch (_) {}
+    }
+  };
+
+  // ── Settings page wiring ──────────────────────────────────────────────────
+
+  (function initSettings() {
+    const backBtn   = document.getElementById('settings-back');
+    const pwForm    = document.getElementById('settings-pw-form');
+    const pwError   = document.getElementById('settings-pw-error');
+    const pwCancel  = document.getElementById('settings-pw-cancel');
+    const signoutBtn = document.getElementById('settings-signout-btn');
+    const deleteBtn  = document.getElementById('settings-delete-btn');
+
+    if (backBtn) backBtn.addEventListener('click', () => window.showSessions && window.showSessions());
+
+    if (pwCancel) pwCancel.addEventListener('click', () => {
+      const details = pwCancel.closest('details');
+      if (details) details.open = false;
+    });
+
+    if (pwForm) pwForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (pwError) pwError.textContent = '';
+      const current = document.getElementById('settings-current-pw').value;
+      const next    = document.getElementById('settings-new-pw').value;
+      if (next.length < 8) {
+        if (pwError) pwError.textContent = 'New password must be at least 8 characters.';
+        return;
+      }
+      const token = localStorage.getItem('fluent_token');
+      if (!token) { if (pwError) pwError.textContent = 'Not signed in.'; return; }
+      const submitBtn = pwForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const res = await fetch(BACKEND_URL + '/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ current_password: current, new_password: next }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (pwError) pwError.textContent = data.detail || 'Could not update password.';
+        } else {
+          pwForm.reset();
+          const details = pwForm.closest('details');
+          if (details) details.open = false;
+        }
+      } catch (err) {
+        if (pwError) pwError.textContent = 'Could not connect: ' + err.message;
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+
+    if (signoutBtn) signoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('fluent_token');
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.signOut) {
+        window.webkit.messageHandlers.signOut.postMessage(null);
+      } else {
+        fetch('http://127.0.0.1:2788/signout', { method: 'POST' }).catch(() => {});
+        window.showOnboarding && window.showOnboarding();
+      }
+    });
+
+    if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Delete your account? All data will be removed within 24 hours. This cannot be undone.')) return;
+      const token = localStorage.getItem('fluent_token');
+      if (!token) { window.showOnboarding && window.showOnboarding(); return; }
+      try {
+        await fetch(BACKEND_URL + '/auth/delete-account', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+      } catch (_) {}
+      localStorage.removeItem('fluent_token');
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.signOut) {
+        window.webkit.messageHandlers.signOut.postMessage(null);
+      } else {
+        window.showOnboarding && window.showOnboarding();
+      }
+    });
+  })();
 
   window.addEventListener('resize', align);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(align);
@@ -330,12 +528,26 @@
     }
   }
 
-  // Reset controls when report arrives
+  // Reset controls when report arrives, then refresh sessions list
   const _origLoadReport = window.loadReport;
   window.loadReport = function(data) {
     setRecordingState(false);
     resetRecLabel();
     if (_origLoadReport) _origLoadReport(data);
+    // Refresh sessions data in background without navigating away from the report
+    const token = localStorage.getItem('fluent_token');
+    if (token) {
+      fetch(BACKEND_URL + '/sessions', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => r.ok ? r.json() : [])
+        .then(sessions => {
+          // Only update the list if the report page is not currently visible
+          const page = document.getElementById('page');
+          if (!page || !page.classList.contains('visible')) {
+            if (window.loadSessions) window.loadSessions(sessions);
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   async function pollStatus() {

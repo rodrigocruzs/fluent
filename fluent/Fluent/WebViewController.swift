@@ -1,10 +1,12 @@
 import Cocoa
 import WebKit
+import Security
 
 class WebViewController: NSViewController, WKScriptMessageHandler {
 
     private var webView: WKWebView!
     private var pendingReportJSON: String?
+    private var pendingShowSettings = false
 
     private let reportsDir: URL = {
         FileManager.default.homeDirectoryForCurrentUser
@@ -14,11 +16,17 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     override func loadView() {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        config.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         // Allow JS on the page to call back into Swift to open a specific session
         config.userContentController.add(self, name: "openSession")
+        config.userContentController.add(self, name: "authComplete")
+        config.userContentController.add(self, name: "signOut")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
+        if #available(macOS 13.3, *) {
+            webView.isInspectable = true
+        }
         view = webView
     }
 
@@ -30,57 +38,120 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     // MARK: - HTML loading
 
     private func loadHTML() {
-        if let url = Bundle.main.url(
-            forResource: "report",
-            withExtension: "html",
-            subdirectory: "frontend"
-        ) {
+        if let url = Bundle.main.url(forResource: "report", withExtension: "html") {
             print("[Fluent] loading from bundle: \(url.path)")
             webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
             return
         }
 
-        // In dev, the executable lives at: .../fluent/fluent/build/Build/Products/Debug/Fluent.app/Contents/MacOS/Fluent
-        // Walk up to repo root: MacOS/ → Contents/ → Fluent.app/ → Debug/ → Products/ → Build/ → build/ → fluent/ → repo root
-        // Exe: .../fluent/fluent/build/Build/Products/Debug/Fluent.app/Contents/MacOS/Fluent
-        let exe = URL(fileURLWithPath: CommandLine.arguments[0]).standardized
-        let repoRoot = exe
-            .deletingLastPathComponent()  // MacOS/
-            .deletingLastPathComponent()  // Contents/
-            .deletingLastPathComponent()  // Fluent.app/
-            .deletingLastPathComponent()  // Debug/
-            .deletingLastPathComponent()  // Products/
-            .deletingLastPathComponent()  // Build/
-            .deletingLastPathComponent()  // build/
-            .deletingLastPathComponent()  // fluent/ (inner Xcode project dir)
-            .deletingLastPathComponent()  // fluent/ (repo root)
-        let devURL = repoRoot.appendingPathComponent("frontend/report.html")
-
-        print("[Fluent] trying dev path: \(devURL.path)")
-        print("[Fluent] trying dev path: \(devURL.path)")
-        if FileManager.default.fileExists(atPath: devURL.path) {
-            webView.loadFileURL(devURL, allowingReadAccessTo: devURL.deletingLastPathComponent())
-        } else {
-            print("[Fluent] report.html not found — loading inline fallback")
-            webView.loadHTMLString("<html><body style='font-family:system-ui;padding:40px'><h1>Fluent</h1><p style=\"color:#888\">frontend/report.html not found at: \(devURL.path)</p></body></html>", baseURL: nil)
+        // Try to locate frontend/ by walking up from the .app bundle or exe path.
+        // Handles both: repo build/ layout and Xcode DerivedData layout.
+        let candidates: [URL] = {
+            var urls: [URL] = []
+            // Walk up from the .app bundle
+            var dir = Bundle.main.bundleURL
+            for _ in 0..<10 {
+                dir = dir.deletingLastPathComponent()
+                urls.append(dir.appendingPathComponent("frontend/report.html"))
+            }
+            // Also try known repo location as fallback
+            urls.append(URL(fileURLWithPath: "/Users/rodrigocruzsouza/fluent/frontend/report.html"))
+            return urls
+        }()
+        guard let devURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
+            print("[Fluent] report.html not found in any candidate path")
+            webView.loadHTMLString("<html><body style='font-family:system-ui;padding:40px'><h1>Fluent</h1><p style='color:#888'>frontend/report.html not found.</p></body></html>", baseURL: nil)
+            return
         }
+
+        print("[Fluent] loading dev path: \(devURL.path)")
+        webView.loadFileURL(devURL, allowingReadAccessTo: devURL.deletingLastPathComponent())
     }
 
     // MARK: - Sessions list (shown on startup)
 
+    private func getToken() -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "fluent",
+            kSecAttrAccount as String: "jwt_token",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let token = String(data: data, encoding: .utf8)
+        else { return nil }
+        return token
+    }
+
     private func injectSessions() {
-        let sessionsURL = reportsDir.appendingPathComponent("sessions.json")
-        guard
-            let data = try? Data(contentsOf: sessionsURL),
-            let json = String(data: data, encoding: .utf8)
-        else {
-            // No sessions yet — show onboarding
+        // First try the keychain token (set by the Python engine after sign-in)
+        // Fall back to localStorage token (set by the JS frontend)
+        // If neither exists, show the sign-in screen
+        let keychainToken = getToken()
+
+        if keychainToken == nil {
+            // Check if the JS frontend has a token in localStorage
+            webView.evaluateJavaScript("localStorage.getItem('fluent_token')") { [weak self] result, _ in
+                if let token = result as? String, !token.isEmpty {
+                    self?.fetchAndInjectSessions(token: token)
+                } else {
+                    self?.webView.evaluateJavaScript("window.showOnboarding && window.showOnboarding();")
+                }
+            }
             return
         }
-        let js = "window.loadSessions(\(json));"
-        webView.evaluateJavaScript(js) { _, error in
-            if let error { print("[Fluent WebView] loadSessions error:", error) }
+
+        fetchAndInjectSessions(token: keychainToken!)
+    }
+
+    private func fetchAndInjectSessions(token: String) {
+        var req = URLRequest(url: URL(string: "https://fluent-lemon.vercel.app/api/sessions")!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let json = String(data: data, encoding: .utf8),
+                      (response as? HTTPURLResponse)?.statusCode == 200
+                else {
+                    self?.webView.evaluateJavaScript("window.loadSessions([]);")
+                    return
+                }
+                self?.webView.evaluateJavaScript("window.loadSessions(\(json));") { _, error in
+                    if let error { print("[Fluent WebView] loadSessions error:", error) }
+                }
+            }
+        }.resume()
+    }
+
+    private func saveTokenToEngine(_ token: String) {
+        guard let url = URL(string: "http://127.0.0.1:2788/signin"),
+              let body = try? JSONSerialization.data(withJSONObject: ["token": token]) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        URLSession.shared.dataTask(with: req) { _, _, error in
+            if let error { print("[Fluent] saveTokenToEngine error:", error) }
+        }.resume()
+    }
+
+    func showOnboarding() {
+        webView.evaluateJavaScript("window.showOnboarding && window.showOnboarding();")
+    }
+
+    func clearTokenAndShowOnboarding() {
+        webView.evaluateJavaScript("localStorage.removeItem('fluent_token'); window.showOnboarding && window.showOnboarding();")
+    }
+
+    func showSettings() {
+        guard !webView.isLoading, webView.url != nil else {
+            pendingShowSettings = true
+            return
         }
+        webView.evaluateJavaScript("window.showSettings && window.showSettings();")
     }
 
     // MARK: - Report injection (latest or specific)
@@ -103,6 +174,20 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     // MARK: - WKScriptMessageHandler (JS → Swift: open a specific session)
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "authComplete" {
+            if let token = message.body as? String, !token.isEmpty {
+                saveTokenToEngine(token)
+            }
+            injectSessions()
+            return
+        }
+        if message.name == "signOut" {
+            var req = URLRequest(url: URL(string: "http://127.0.0.1:2788/signout")!)
+            req.httpMethod = "POST"
+            URLSession.shared.dataTask(with: req) { _, _, _ in }.resume()
+            DispatchQueue.main.async { self.clearTokenAndShowOnboarding() }
+            return
+        }
         guard message.name == "openSession", let slug = message.body as? String else { return }
         let sessionURL = reportsDir.appendingPathComponent("\(slug).json")
         guard
@@ -120,7 +205,10 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
 extension WebViewController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         print("[Fluent] webView didFinish: \(webView.url?.absoluteString ?? "nil")")
-        if let json = pendingReportJSON {
+        if pendingShowSettings {
+            pendingShowSettings = false
+            webView.evaluateJavaScript("window.showSettings && window.showSettings();")
+        } else if let json = pendingReportJSON {
             pendingReportJSON = nil
             injectReport(json: json)
         } else {
