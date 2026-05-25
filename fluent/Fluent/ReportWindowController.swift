@@ -26,4 +26,16 @@ class ReportWindowController: NSWindowController {
     func loadReportJSON(_ json: String) {
         webViewController?.loadReportJSON(json)
     }
+
+    func showOnboarding() {
+        webViewController?.showOnboarding()
+    }
+
+    func clearTokenAndShowOnboarding() {
+        webViewController?.clearTokenAndShowOnboarding()
+    }
+
+    func showSettings() {
+        webViewController?.showSettings()
+    }
 }
