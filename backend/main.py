@@ -2,28 +2,48 @@
 Fluent backend — FastAPI app.
 
 Endpoints:
-  POST /auth/register   { email, password }  → { token }
-  POST /auth/login      { email, password }  → { token }
-  POST /coach           { transcript, native_language, job_context }  → [issues]
+  POST /auth/register         { email, password }  → { token }
+  POST /auth/login            { email, password }  → { token }
+  GET  /auth/me               → { email, created_at }
+  POST /auth/change-password  { current_password, new_password }
+  DELETE /auth/delete-account
+  POST /coach                 { transcript, native_language, job_context }  → [issues]
+  GET  /billing/status        → { plan_status, trial_ends_at, current_period_end }
+  POST /billing/checkout      → { url }
+  POST /billing/portal        → { url }
+  POST /billing/webhook       (Stripe webhook)
 
 Run locally:
   ANTHROPIC_API_KEY=sk-ant-... uvicorn backend.main:app --reload --port 8000
 """
 
 import os
+import time
 from dotenv import load_dotenv
 load_dotenv(".env.local")
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 import json
+import stripe
 from anthropic import Anthropic
 
 from backend.database import (
     init_db, create_user, get_user_by_email, get_user_by_id,
     save_session, get_sessions, get_session_with_issues,
+    update_user_password, delete_user,
+    update_user_billing, get_user_by_stripe_customer,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
+
+STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "")         # $10/mo price ID
+STRIPE_TRIAL_DAYS      = 7
+FRONTEND_URL           = os.environ.get("FRONTEND_URL", "https://fluent-lemon.vercel.app")
+
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 app = FastAPI(title="Fluent API")
 _bearer = HTTPBearer()
@@ -99,6 +119,166 @@ def _current_user_id(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> 
     if not get_user_by_id(user_id):
         raise HTTPException(401, "User not found.")
     return user_id
+
+
+def _current_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> dict:
+    user_id = decode_token(creds.credentials)
+    if user_id is None:
+        raise HTTPException(401, "Invalid or expired token.")
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(401, "User not found.")
+    return user
+
+
+# ── Account management ────────────────────────────────────────────────────────
+
+@app.get("/auth/me")
+def get_me(user: dict = Depends(_current_user)):
+    return {"email": user["email"], "created_at": user["created_at"]}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@app.post("/auth/change-password")
+def change_password(req: ChangePasswordRequest, user: dict = Depends(_current_user)):
+    if not verify_password(req.current_password, user["hashed_password"]):
+        raise HTTPException(400, "Current password is incorrect.")
+    if len(req.new_password) < 8:
+        raise HTTPException(400, "New password must be at least 8 characters.")
+    update_user_password(user["id"], hash_password(req.new_password))
+    return {"ok": True}
+
+
+@app.delete("/auth/delete-account")
+def delete_account(user: dict = Depends(_current_user)):
+    # Cancel Stripe subscription if active
+    if STRIPE_SECRET_KEY and user.get("stripe_subscription_id"):
+        try:
+            stripe.Subscription.cancel(user["stripe_subscription_id"])
+        except stripe.StripeError:
+            pass
+    delete_user(user["id"])
+    return {"ok": True}
+
+
+# ── Billing ───────────────────────────────────────────────────────────────────
+
+@app.get("/billing/status")
+def billing_status(user: dict = Depends(_current_user)):
+    return {
+        "plan_status":        user.get("plan_status", "trial"),
+        "trial_ends_at":      user.get("trial_ends_at"),
+        "current_period_end": user.get("current_period_end"),
+    }
+
+
+class CheckoutRequest(BaseModel):
+    success_url: str | None = None
+    cancel_url:  str | None = None
+
+
+@app.post("/billing/checkout")
+def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
+    if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
+        raise HTTPException(503, "Billing not configured.")
+
+    success_url = req.success_url or f"{FRONTEND_URL}?checkout=success"
+    cancel_url  = req.cancel_url  or f"{FRONTEND_URL}?checkout=cancel"
+
+    # Create or reuse Stripe customer
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        customer = stripe.Customer.create(email=user["email"])
+        customer_id = customer.id
+        update_user_billing(user["id"], stripe_customer_id=customer_id)
+
+    session = stripe.checkout.Session.create(
+        customer=customer_id,
+        payment_method_types=["card"],
+        line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+        mode="subscription",
+        subscription_data={"trial_period_days": STRIPE_TRIAL_DAYS},
+        success_url=success_url,
+        cancel_url=cancel_url,
+    )
+    return {"url": session.url}
+
+
+@app.post("/billing/portal")
+def billing_portal(user: dict = Depends(_current_user)):
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(503, "Billing not configured.")
+
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        raise HTTPException(400, "No billing account found.")
+
+    session = stripe.billing_portal.Session.create(
+        customer=customer_id,
+        return_url=f"{FRONTEND_URL}",
+    )
+    return {"url": session.url}
+
+
+@app.post("/billing/webhook")
+async def stripe_webhook(request: Request):
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(503, "Webhook not configured.")
+
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+    except stripe.SignatureVerificationError:
+        raise HTTPException(400, "Invalid webhook signature.")
+
+    obj = event["data"]["object"]
+
+    if event["type"] == "checkout.session.completed":
+        customer_id = obj.get("customer")
+        sub_id      = obj.get("subscription")
+        user = get_user_by_stripe_customer(customer_id)
+        if user:
+            update_user_billing(user["id"],
+                stripe_subscription_id=sub_id,
+                plan_status="trial",
+                trial_ends_at=time.time() + STRIPE_TRIAL_DAYS * 86400,
+            )
+
+    elif event["type"] == "customer.subscription.updated":
+        customer_id = obj.get("customer")
+        user = get_user_by_stripe_customer(customer_id)
+        if user:
+            status = obj.get("status")
+            plan_status = "active" if status == "active" else \
+                          "trial"  if status == "trialing" else \
+                          "canceled"
+            update_user_billing(user["id"],
+                plan_status=plan_status,
+                trial_ends_at=obj.get("trial_end"),
+                current_period_end=obj["current_period_end"],
+            )
+
+    elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
+        customer_id = obj.get("customer")
+        user = get_user_by_stripe_customer(customer_id)
+        if user:
+            update_user_billing(user["id"],
+                plan_status="canceled",
+                current_period_end=obj.get("current_period_end"),
+            )
+
+    elif event["type"] == "invoice.paid":
+        customer_id = obj.get("customer")
+        user = get_user_by_stripe_customer(customer_id)
+        if user:
+            update_user_billing(user["id"], plan_status="active")
+
+    return {"ok": True}
 
 
 # ── Coach ────────────────────────────────────────────────────────────────────

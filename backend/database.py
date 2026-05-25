@@ -1,7 +1,8 @@
 """
 Postgres user store via psycopg2, backed by Neon.
 Reads DATABASE_URL from the environment.
-Schema: users(id, email, hashed_password, created_at)
+Schema: users(id, email, hashed_password, created_at, stripe_customer_id,
+              stripe_subscription_id, plan_status, trial_ends_at, current_period_end)
 """
 
 import os
@@ -30,12 +31,28 @@ def init_db():
         with conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
-                    id              SERIAL PRIMARY KEY,
-                    email           TEXT   UNIQUE NOT NULL,
-                    hashed_password TEXT   NOT NULL,
-                    created_at      FLOAT  NOT NULL
+                    id                     SERIAL PRIMARY KEY,
+                    email                  TEXT   UNIQUE NOT NULL,
+                    hashed_password        TEXT   NOT NULL,
+                    created_at             FLOAT  NOT NULL,
+                    stripe_customer_id     TEXT,
+                    stripe_subscription_id TEXT,
+                    plan_status            TEXT   NOT NULL DEFAULT 'trial',
+                    trial_ends_at          FLOAT,
+                    current_period_end     FLOAT
                 )
             """)
+            # Migrate existing tables that lack billing columns
+            for col, definition in [
+                ("stripe_customer_id",     "TEXT"),
+                ("stripe_subscription_id", "TEXT"),
+                ("plan_status",            "TEXT NOT NULL DEFAULT 'trial'"),
+                ("trial_ends_at",          "FLOAT"),
+                ("current_period_end",     "FLOAT"),
+            ]:
+                cur.execute(f"""
+                    ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {definition}
+                """)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     id          SERIAL PRIMARY KEY,
@@ -141,6 +158,49 @@ def get_sessions(user_id: int) -> list[dict]:
                 ORDER BY s.created_at DESC
             """, (user_id,))
             return cur.fetchall()
+
+
+def update_user_password(user_id: int, hashed_password: str) -> None:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET hashed_password = %s WHERE id = %s",
+                (hashed_password, user_id),
+            )
+        conn.commit()
+
+
+def delete_user(user_id: int) -> None:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+
+
+def update_user_billing(user_id: int, **fields) -> None:
+    allowed = {"stripe_customer_id", "stripe_subscription_id", "plan_status",
+                "trial_ends_at", "current_period_end"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return
+    cols = ", ".join(f"{k} = %s" for k in updates)
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE users SET {cols} WHERE id = %s",
+                (*updates.values(), user_id),
+            )
+        conn.commit()
+
+
+def get_user_by_stripe_customer(customer_id: str) -> dict | None:
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT * FROM users WHERE stripe_customer_id = %s",
+                (customer_id,),
+            )
+            return cur.fetchone()
 
 
 def get_session_with_issues(user_id: int, slug: str) -> dict | None:

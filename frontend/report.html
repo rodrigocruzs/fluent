@@ -240,6 +240,77 @@
     </div>
   </section>
 
+  <!-- Plan -->
+  <section class="settings-section" id="settings-plan-section" style="display:none">
+    <div class="settings-grid">
+      <div class="settings-section-head">
+        <h2>Plan</h2>
+        <p>Your subscription and renewal date.</p>
+      </div>
+      <div class="settings-body">
+
+        <!-- Trial state -->
+        <div id="settings-plan-trial" style="display:none" class="settings-plan-row">
+          <div>
+            <div class="settings-plan-name">Fluent</div>
+            <div class="settings-plan-price">$10 per month</div>
+            <div class="settings-plan-accent settings-plan-trial-meta"></div>
+            <div class="settings-plan-meta settings-plan-billing-date"></div>
+          </div>
+          <button type="button" class="settings-btn" id="settings-cancel-trial-btn">Cancel trial</button>
+        </div>
+
+        <!-- Active state -->
+        <div id="settings-plan-active" style="display:none" class="settings-plan-row">
+          <div>
+            <div class="settings-plan-name">Fluent</div>
+            <div class="settings-plan-price">$10 per month</div>
+            <div class="settings-plan-meta settings-plan-renew-date" style="margin-top:10px"></div>
+          </div>
+          <button type="button" class="settings-btn" id="settings-cancel-plan-btn">Cancel plan</button>
+        </div>
+
+        <!-- Canceled state -->
+        <div id="settings-plan-canceled" style="display:none" class="settings-plan-row">
+          <div>
+            <div class="settings-plan-name">Fluent</div>
+            <div class="settings-plan-price">$10 per month</div>
+            <div class="settings-plan-meta settings-plan-access-date"></div>
+            <div class="settings-plan-meta" style="margin-top:4px">After that, reports stay readable but no new sessions will be coached.</div>
+          </div>
+          <button type="button" class="settings-btn primary" id="settings-resume-plan-btn">Resume plan</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Billing -->
+  <section class="settings-section" id="settings-billing-section" style="display:none">
+    <div class="settings-grid">
+      <div class="settings-section-head">
+        <h2>Billing</h2>
+        <p>Payment method and past invoices.</p>
+      </div>
+      <div class="settings-body">
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Payment &amp; invoices</div>
+            <div class="settings-row-value">Manage your card and download receipts.</div>
+          </div>
+          <button type="button" class="settings-btn" id="settings-update-card-btn">Manage</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Billing email</div>
+            <div class="settings-row-value" id="settings-billing-email-val">—</div>
+          </div>
+          <button type="button" class="settings-btn" id="settings-change-billing-btn">Change</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Danger zone -->
   <section class="settings-section">
     <div class="settings-grid">

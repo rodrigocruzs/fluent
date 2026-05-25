@@ -355,28 +355,120 @@
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (onboarding)     onboarding.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
-    if (settingsPage)   settingsPage.style.display = '';
+    if (settingsPage)   settingsPage.style.display = 'block';
 
-    // Populate email from stored token
     const token = localStorage.getItem('fluent_token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!token) return;
+
+    // Fetch account info
+    fetch(BACKEND_URL + '/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
         const emailEl = document.getElementById('settings-email');
-        if (emailEl && payload.email) emailEl.textContent = payload.email;
-      } catch (_) {}
-    }
+        if (emailEl) emailEl.textContent = data.email;
+      })
+      .catch(() => {});
+
+    // Fetch billing status
+    fetch(BACKEND_URL + '/billing/status', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        renderBillingStatus(data);
+      })
+      .catch(() => {});
   };
+
+  function renderBillingStatus(data) {
+    const { plan_status, trial_ends_at, current_period_end } = data;
+
+    // Plan section
+    const planSection = document.getElementById('settings-plan-section');
+    if (planSection) planSection.style.display = 'block';
+
+    const trialEl    = document.getElementById('settings-plan-trial');
+    const activeEl   = document.getElementById('settings-plan-active');
+    const canceledEl = document.getElementById('settings-plan-canceled');
+
+    [trialEl, activeEl, canceledEl].forEach(el => { if (el) el.style.display = 'none'; });
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      return new Date(ts * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+
+    if (plan_status === 'trial' && trialEl) {
+      const daysLeft = trial_ends_at ? Math.max(0, Math.ceil((trial_ends_at * 1000 - Date.now()) / 86400000)) : 0;
+      const trialMeta = trialEl.querySelector('.settings-plan-trial-meta');
+      const trialDate = trialEl.querySelector('.settings-plan-billing-date');
+      if (trialMeta) trialMeta.textContent = `Free trial · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+      if (trialDate) trialDate.textContent = `Billing starts ${fmtDate(trial_ends_at)}.`;
+      trialEl.style.display = 'block';
+    } else if (plan_status === 'active' && activeEl) {
+      const renewDate = activeEl.querySelector('.settings-plan-renew-date');
+      if (renewDate) renewDate.textContent = `Renews ${fmtDate(current_period_end)}.`;
+      activeEl.style.display = 'block';
+    } else if (plan_status === 'canceled' && canceledEl) {
+      const accessDate = canceledEl.querySelector('.settings-plan-access-date');
+      if (accessDate) accessDate.textContent = `Canceled · access through ${fmtDate(current_period_end)}`;
+      canceledEl.style.display = 'block';
+    }
+
+    // Billing section
+    const billingSection = document.getElementById('settings-billing-section');
+    if (billingSection) billingSection.style.display = 'block';
+  }
 
   // ── Settings page wiring ──────────────────────────────────────────────────
 
   (function initSettings() {
-    const backBtn   = document.getElementById('settings-back');
-    const pwForm    = document.getElementById('settings-pw-form');
-    const pwError   = document.getElementById('settings-pw-error');
-    const pwCancel  = document.getElementById('settings-pw-cancel');
+    const backBtn    = document.getElementById('settings-back');
+    const pwForm     = document.getElementById('settings-pw-form');
+    const pwError    = document.getElementById('settings-pw-error');
+    const pwCancel   = document.getElementById('settings-pw-cancel');
     const signoutBtn = document.getElementById('settings-signout-btn');
     const deleteBtn  = document.getElementById('settings-delete-btn');
+
+    // Plan action buttons — open Stripe checkout or portal
+    async function openCheckout() {
+      const token = localStorage.getItem('fluent_token');
+      if (!token) return;
+      try {
+        const res = await fetch(BACKEND_URL + '/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.url) window.open(data.url, '_blank');
+      } catch (e) { console.warn('[Fluent] checkout error', e); }
+    }
+
+    async function openPortal() {
+      const token = localStorage.getItem('fluent_token');
+      if (!token) return;
+      try {
+        const res = await fetch(BACKEND_URL + '/billing/portal', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+        });
+        const data = await res.json();
+        if (data.url) window.open(data.url, '_blank');
+      } catch (e) { console.warn('[Fluent] portal error', e); }
+    }
+
+    const cancelTrialBtn  = document.getElementById('settings-cancel-trial-btn');
+    const cancelPlanBtn   = document.getElementById('settings-cancel-plan-btn');
+    const resumePlanBtn   = document.getElementById('settings-resume-plan-btn');
+    const updateCardBtn   = document.getElementById('settings-update-card-btn');
+    const changeBillingBtn = document.getElementById('settings-change-billing-btn');
+
+    if (cancelTrialBtn)   cancelTrialBtn.addEventListener('click', openPortal);
+    if (cancelPlanBtn)    cancelPlanBtn.addEventListener('click', openPortal);
+    if (resumePlanBtn)    resumePlanBtn.addEventListener('click', openCheckout);
+    if (updateCardBtn)    updateCardBtn.addEventListener('click', openPortal);
+    if (changeBillingBtn) changeBillingBtn.addEventListener('click', openPortal);
 
     if (backBtn) backBtn.addEventListener('click', () => window.showSessions && window.showSessions());
 
