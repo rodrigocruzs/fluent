@@ -11,13 +11,18 @@ Run locally:
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv(".env.local")
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 import json
 from anthropic import Anthropic
 
-from backend.database import init_db, create_user, get_user_by_email, get_user_by_id
+from backend.database import (
+    init_db, create_user, get_user_by_email, get_user_by_id,
+    save_session, get_sessions, get_session_with_issues,
+)
 from backend.auth import hash_password, verify_password, create_token, decode_token
 
 app = FastAPI(title="Fluent API")
@@ -132,6 +137,44 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
         return json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(500, "Model returned malformed JSON.")
+
+
+# ── Sessions ─────────────────────────────────────────────────────────────────
+
+class SessionPayload(BaseModel):
+    slug: str
+    name: str
+    date: str
+    duration: float = 0
+    transcript: str = ""
+    issues: list[dict] = []
+
+
+@app.post("/sessions")
+def create_session(payload: SessionPayload, user_id: int = Depends(_current_user_id)):
+    session_id = save_session(
+        user_id=user_id,
+        slug=payload.slug,
+        name=payload.name,
+        date=payload.date,
+        duration=payload.duration,
+        transcript=payload.transcript,
+        issues=payload.issues,
+    )
+    return {"id": session_id}
+
+
+@app.get("/sessions")
+def list_sessions(user_id: int = Depends(_current_user_id)):
+    return get_sessions(user_id)
+
+
+@app.get("/sessions/{slug}")
+def get_session(slug: str, user_id: int = Depends(_current_user_id)):
+    session = get_session_with_issues(user_id, slug)
+    if not session:
+        raise HTTPException(404, "Session not found.")
+    return session
 
 
 # ── Health ───────────────────────────────────────────────────────────────────
