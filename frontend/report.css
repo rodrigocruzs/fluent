@@ -1058,3 +1058,19 @@ mark.flag.is-active .num { color: var(--accent); }
   .settings-danger-row { grid-template-columns: 1fr; align-items: start; }
   .settings-danger-row > :last-child { justify-self: start; }
 }
+
+/* ── Settings plan / billing rows ── */
+.settings-plan-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--rule);
+}
+.settings-plan-row:first-child { border-top: none; padding-top: 0; }
+
+.settings-plan-name  { font-size: 17px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+.settings-plan-price { font-size: 14px; color: var(--gray-1); margin-top: 2px; }
+.settings-plan-accent { font-size: 13px; color: var(--accent); font-weight: 500; margin-top: 14px; }
+.settings-plan-meta  { font-size: 13px; color: var(--gray-2); margin-top: 4px; }
