@@ -186,7 +186,7 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
     if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
         raise HTTPException(503, "Billing not configured.")
 
-    success_url = req.success_url or f"{FRONTEND_URL}?checkout=success"
+    success_url = req.success_url or f"{FRONTEND_URL}/api/billing/checkout-success"
     cancel_url  = req.cancel_url  or f"{FRONTEND_URL}?checkout=cancel"
 
     # Create or reuse Stripe customer
@@ -196,16 +196,62 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
         customer_id = customer.id
         update_user_billing(user["id"], stripe_customer_id=customer_id)
 
+    # Calculate remaining trial days from account creation, minimum 0
+    trial_ends_at = user.get("trial_ends_at")
+    if trial_ends_at:
+        remaining_days = max(0, int((trial_ends_at - time.time()) / 86400))
+    else:
+        remaining_days = 0
+
+    sub_data = {"trial_period_days": remaining_days} if remaining_days > 0 else {}
+
     session = stripe.checkout.Session.create(
         customer=customer_id,
         payment_method_types=["card"],
         line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
         mode="subscription",
-        subscription_data={"trial_period_days": STRIPE_TRIAL_DAYS},
+        subscription_data=sub_data,
         success_url=success_url,
         cancel_url=cancel_url,
     )
     return {"url": session.url}
+
+
+@app.get("/billing/checkout-success")
+def checkout_success():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse("""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fluent — Subscribed</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #fff; display: flex;
+         align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .card { text-align: center; max-width: 360px; padding: 48px 32px; }
+  .logo { width: 48px; height: 48px; border-radius: 14px; background: #C96442;
+          display: inline-flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px; color: #1a1a1a; }
+  p  { font-size: 14px; color: #8a8a8a; margin: 0 0 24px; line-height: 1.5; }
+  .close { font-size: 13px; color: #b5b5b5; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 14 14" fill="none">
+      <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+      <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+    </svg>
+  </div>
+  <h1>You're all set.</h1>
+  <p>Your Fluent subscription is active. You can close this tab and go back to the app.</p>
+  <p class="close">This tab will close automatically.</p>
+</div>
+<script>setTimeout(() => window.close(), 2000);</script>
+</body>
+</html>""")
 
 
 @app.post("/billing/portal")
