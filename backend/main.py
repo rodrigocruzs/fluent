@@ -277,17 +277,17 @@ async def stripe_webhook(request: Request):
     payload = await request.body()
     sig = request.headers.get("stripe-signature", "")
     try:
-        event = stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
+        stripe.Webhook.construct_event(payload, sig, STRIPE_WEBHOOK_SECRET)
     except stripe.SignatureVerificationError:
         raise HTTPException(400, "Invalid webhook signature.")
 
-    obj = dict(event["data"]["object"])
+    event = json.loads(payload)
+    obj = event["data"]["object"]
 
     if event["type"] == "checkout.session.completed":
         customer_id    = obj.get("customer")
         sub_id         = obj.get("subscription")
-        customer_details = dict(obj.get("customer_details") or {})
-        customer_email = customer_details.get("email") or obj.get("customer_email")
+        customer_email = (obj.get("customer_details") or {}).get("email") or obj.get("customer_email")
         user = get_user_by_stripe_customer(customer_id)
         if not user and customer_email:
             user = get_user_by_email(customer_email)
@@ -311,7 +311,7 @@ async def stripe_webhook(request: Request):
             update_user_billing(user["id"],
                 plan_status=plan_status,
                 trial_ends_at=obj.get("trial_end"),
-                current_period_end=obj["current_period_end"],
+                current_period_end=obj.get("current_period_end"),
             )
 
     elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
