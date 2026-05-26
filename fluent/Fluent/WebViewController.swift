@@ -21,6 +21,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         config.userContentController.add(self, name: "openSession")
         config.userContentController.add(self, name: "authComplete")
         config.userContentController.add(self, name: "signOut")
+        config.userContentController.add(self, name: "openURL")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -112,18 +113,25 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
             DispatchQueue.main.async {
+                guard let self else { return }
                 guard let data = data,
                       let json = String(data: data, encoding: .utf8),
                       (response as? HTTPURLResponse)?.statusCode == 200
                 else {
-                    self?.webView.evaluateJavaScript("window.loadSessions([]);")
+                    self.webView.evaluateJavaScript("window.loadSessions([]);")
                     return
                 }
-                self?.webView.evaluateJavaScript("window.loadSessions(\(json));") { _, error in
+                self.webView.evaluateJavaScript("window.loadSessions(\(json));") { _, error in
                     if let error { print("[Fluent WebView] loadSessions error:", error) }
                 }
             }
         }.resume()
+    }
+
+    private func showSettingsIfPending() {
+        guard pendingShowSettings else { return }
+        pendingShowSettings = false
+        webView.evaluateJavaScript("window.showSettings && window.showSettings();")
     }
 
     private func saveTokenToEngine(_ token: String) {
@@ -186,6 +194,11 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
             req.httpMethod = "POST"
             URLSession.shared.dataTask(with: req) { _, _, _ in }.resume()
             DispatchQueue.main.async { self.clearTokenAndShowOnboarding() }
+            return
+        }
+        if message.name == "openURL", let urlString = message.body as? String,
+           let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
             return
         }
         guard message.name == "openSession", let slug = message.body as? String else { return }
