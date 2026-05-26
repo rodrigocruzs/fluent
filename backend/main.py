@@ -176,6 +176,35 @@ def billing_status(user: dict = Depends(_current_user)):
     }
 
 
+@app.post("/billing/sync")
+def billing_sync(user: dict = Depends(_current_user)):
+    """Pull live subscription state from Stripe and update the DB."""
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(503, "Billing not configured.")
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        raise HTTPException(400, "No billing account found.")
+    subs = stripe.Subscription.list(customer=customer_id, limit=1, status="all")
+    if not subs.data:
+        return {"plan_status": user.get("plan_status", "trial")}
+    sub = subs.data[0]
+    status = sub.status
+    plan_status = "active" if status == "active" else \
+                  "trial"  if status == "trialing" else \
+                  "canceled"
+    update_user_billing(user["id"],
+        stripe_subscription_id=sub.id,
+        plan_status=plan_status,
+        trial_ends_at=sub.trial_end,
+        current_period_end=sub.current_period_end,
+    )
+    return {
+        "plan_status":        plan_status,
+        "trial_ends_at":      sub.trial_end,
+        "current_period_end": sub.current_period_end,
+    }
+
+
 class CheckoutRequest(BaseModel):
     success_url: str | None = None
     cancel_url:  str | None = None

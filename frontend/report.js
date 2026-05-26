@@ -370,15 +370,19 @@
       })
       .catch(() => {});
 
-    // Fetch billing status (always fresh — never cached)
-    fetch(BACKEND_URL + '/billing/status', {
+    // Sync billing status live from Stripe, then fall back to cached status
+    fetch(BACKEND_URL + '/billing/sync', {
+      method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token },
-      cache: 'no-store',
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data) return;
-        renderBillingStatus(data);
+        if (data) { renderBillingStatus(data); return; }
+        // Fallback: use cached status from DB
+        return fetch(BACKEND_URL + '/billing/status', {
+          headers: { 'Authorization': 'Bearer ' + token },
+          cache: 'no-store',
+        }).then(r => r.ok ? r.json() : null).then(d => { if (d) renderBillingStatus(d); });
       })
       .catch(() => {});
   };
