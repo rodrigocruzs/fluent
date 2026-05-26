@@ -247,7 +247,6 @@ def checkout_success():
   </div>
   <h1>You're all set.</h1>
   <p>Your Fluent subscription is active. You can close this tab and go back to the app.</p>
-  <p class="close">This tab will close automatically.</p>
 </div>
 <script>setTimeout(() => window.close(), 2000);</script>
 </body>
