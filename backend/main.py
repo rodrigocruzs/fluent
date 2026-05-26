@@ -281,12 +281,13 @@ async def stripe_webhook(request: Request):
     except stripe.SignatureVerificationError:
         raise HTTPException(400, "Invalid webhook signature.")
 
-    obj = event["data"]["object"]
+    obj = dict(event["data"]["object"])
 
     if event["type"] == "checkout.session.completed":
         customer_id    = obj.get("customer")
         sub_id         = obj.get("subscription")
-        customer_email = obj.get("customer_details", {}).get("email") or obj.get("customer_email")
+        customer_details = dict(obj.get("customer_details") or {})
+        customer_email = customer_details.get("email") or obj.get("customer_email")
         user = get_user_by_stripe_customer(customer_id)
         if not user and customer_email:
             user = get_user_by_email(customer_email)
