@@ -284,14 +284,19 @@ async def stripe_webhook(request: Request):
     obj = event["data"]["object"]
 
     if event["type"] == "checkout.session.completed":
-        customer_id = obj.get("customer")
-        sub_id      = obj.get("subscription")
+        customer_id    = obj.get("customer")
+        sub_id         = obj.get("subscription")
+        customer_email = obj.get("customer_details", {}).get("email") or obj.get("customer_email")
         user = get_user_by_stripe_customer(customer_id)
+        if not user and customer_email:
+            user = get_user_by_email(customer_email)
         if user:
+            trial_ends_at = user.get("trial_ends_at") or time.time() + STRIPE_TRIAL_DAYS * 86400
             update_user_billing(user["id"],
+                stripe_customer_id=customer_id,
                 stripe_subscription_id=sub_id,
                 plan_status="trial",
-                trial_ends_at=time.time() + STRIPE_TRIAL_DAYS * 86400,
+                trial_ends_at=trial_ends_at,
             )
 
     elif event["type"] == "customer.subscription.updated":
