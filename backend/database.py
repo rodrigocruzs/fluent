@@ -80,12 +80,17 @@ def init_db():
         conn.commit()
 
 
+TRIAL_DAYS = 7
+
 def create_user(email: str, hashed_password: str) -> int:
+    now = time.time()
+    trial_ends_at = now + TRIAL_DAYS * 86400
     with _conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (email, hashed_password, created_at) VALUES (%s, %s, %s) RETURNING id",
-                (email.lower().strip(), hashed_password, time.time()),
+                """INSERT INTO users (email, hashed_password, created_at, trial_ends_at)
+                   VALUES (%s, %s, %s, %s) RETURNING id""",
+                (email.lower().strip(), hashed_password, now, trial_ends_at),
             )
             row = cur.fetchone()
         conn.commit()

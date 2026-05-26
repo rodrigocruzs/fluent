@@ -370,8 +370,11 @@
       })
       .catch(() => {});
 
-    // Fetch billing status
-    fetch(BACKEND_URL + '/billing/status', { headers: { 'Authorization': 'Bearer ' + token } })
+    // Fetch billing status (always fresh — never cached)
+    fetch(BACKEND_URL + '/billing/status', {
+      headers: { 'Authorization': 'Bearer ' + token },
+      cache: 'no-store',
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
