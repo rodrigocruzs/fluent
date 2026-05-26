@@ -257,7 +257,10 @@
             <div class="settings-plan-accent settings-plan-trial-meta"></div>
             <div class="settings-plan-meta settings-plan-billing-date"></div>
           </div>
-          <button type="button" class="settings-btn" id="settings-cancel-trial-btn">Cancel trial</button>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+            <button type="button" class="settings-btn primary" id="settings-upgrade-btn">Upgrade to paid</button>
+            <button type="button" class="settings-btn danger" id="settings-cancel-trial-btn">Cancel trial</button>
+          </div>
         </div>
 
         <!-- Active state -->
@@ -343,6 +346,6 @@
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
 
-<script src="report.js?v=5"></script>
+<script src="report.js?v=6"></script>
 </body>
 </html>

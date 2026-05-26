@@ -455,15 +455,18 @@
         });
         const data = await res.json();
         if (data.url) window.open(data.url, '_blank');
+        else if (res.status === 400) openCheckout(); // no customer yet — go to checkout
       } catch (e) { console.warn('[Fluent] portal error', e); }
     }
 
+    const upgradeBtn      = document.getElementById('settings-upgrade-btn');
     const cancelTrialBtn  = document.getElementById('settings-cancel-trial-btn');
     const cancelPlanBtn   = document.getElementById('settings-cancel-plan-btn');
     const resumePlanBtn   = document.getElementById('settings-resume-plan-btn');
     const updateCardBtn   = document.getElementById('settings-update-card-btn');
     const changeBillingBtn = document.getElementById('settings-change-billing-btn');
 
+    if (upgradeBtn)       upgradeBtn.addEventListener('click', openCheckout);
     if (cancelTrialBtn)   cancelTrialBtn.addEventListener('click', openPortal);
     if (cancelPlanBtn)    cancelPlanBtn.addEventListener('click', openPortal);
     if (resumePlanBtn)    resumePlanBtn.addEventListener('click', openCheckout);
