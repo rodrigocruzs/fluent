@@ -431,6 +431,15 @@
     const deleteBtn  = document.getElementById('settings-delete-btn');
 
     // Plan action buttons — open Stripe checkout or portal
+    function openExternal(url) {
+      // In the Mac app WebKit, window.open is blocked — ask Swift to open in system browser
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openURL) {
+        window.webkit.messageHandlers.openURL.postMessage(url);
+      } else {
+        window.location.href = url;
+      }
+    }
+
     async function openCheckout() {
       const token = localStorage.getItem('fluent_token');
       if (!token) return;
@@ -441,7 +450,7 @@
           body: JSON.stringify({}),
         });
         const data = await res.json();
-        if (data.url) window.open(data.url, '_blank');
+        if (data.url) openExternal(data.url);
       } catch (e) { console.warn('[Fluent] checkout error', e); }
     }
 
@@ -454,8 +463,8 @@
           headers: { 'Authorization': 'Bearer ' + token },
         });
         const data = await res.json();
-        if (data.url) window.open(data.url, '_blank');
-        else if (res.status === 400) openCheckout(); // no customer yet — go to checkout
+        if (data.url) openExternal(data.url);
+        else if (res.status === 400) openCheckout();
       } catch (e) { console.warn('[Fluent] portal error', e); }
     }
 
