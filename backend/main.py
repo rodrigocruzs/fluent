@@ -180,15 +180,23 @@ def billing_status(user: dict = Depends(_current_user)):
 @app.post("/billing/sync")
 def billing_sync(user: dict = Depends(_current_user)):
     """Pull live subscription state from Stripe and update the DB."""
+    import requests as _requests
     if not STRIPE_SECRET_KEY:
         raise HTTPException(503, "Billing not configured.")
     customer_id = user.get("stripe_customer_id")
     if not customer_id:
         raise HTTPException(400, "No billing account found.")
-    subs = stripe.Subscription.list(customer=customer_id, limit=1, status="all")
-    if not subs.data:
+    r = _requests.get(
+        "https://api.stripe.com/v1/subscriptions",
+        params={"customer": customer_id, "limit": 1, "status": "all"},
+        auth=(STRIPE_SECRET_KEY, ""),
+        timeout=10,
+    )
+    data = r.json()
+    subs = data.get("data", [])
+    if not subs:
         return {"plan_status": user.get("plan_status", "trial")}
-    sub = subs.data[0].to_dict_recursive()
+    sub = subs[0]
     status = sub.get("status")
     cancel_at_period_end = bool(sub.get("cancel_at_period_end", False))
     plan_status = "active" if status == "active" else \
@@ -234,7 +242,10 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
     existing_sub_id = user.get("stripe_subscription_id")
     if existing_sub_id:
         try:
-            existing = stripe.Subscription.retrieve(existing_sub_id).to_dict_recursive()
+            import requests as _requests
+            r = _requests.get(f"https://api.stripe.com/v1/subscriptions/{existing_sub_id}",
+                              auth=(STRIPE_SECRET_KEY, ""), timeout=10)
+            existing = r.json()
             if existing.get("status") == "trialing":
                 stripe.Subscription.cancel(existing_sub_id)
                 update_user_billing(user["id"], stripe_subscription_id=None)
