@@ -225,21 +225,23 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
         customer_id = customer.id
         update_user_billing(user["id"], stripe_customer_id=customer_id)
 
-    # Calculate remaining trial days from account creation, minimum 0
-    trial_ends_at = user.get("trial_ends_at")
-    if trial_ends_at:
-        remaining_days = max(0, int((trial_ends_at - time.time()) / 86400))
-    else:
-        remaining_days = 0
-
-    sub_data = {"trial_period_days": remaining_days} if remaining_days > 0 else {}
+    # If the customer already has a trialing subscription, cancel it so
+    # the new checkout starts an immediate paid plan (no trial carry-over).
+    existing_sub_id = user.get("stripe_subscription_id")
+    if existing_sub_id:
+        try:
+            existing = stripe.Subscription.retrieve(existing_sub_id)
+            if existing.status == "trialing":
+                stripe.Subscription.cancel(existing_sub_id)
+                update_user_billing(user["id"], stripe_subscription_id=None)
+        except stripe.StripeError:
+            pass
 
     session = stripe.checkout.Session.create(
         customer=customer_id,
         payment_method_types=["card"],
         line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
         mode="subscription",
-        subscription_data=sub_data,
         success_url=success_url,
         cancel_url=cancel_url,
     )
