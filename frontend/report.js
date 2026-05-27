@@ -388,7 +388,7 @@
   };
 
   function renderBillingStatus(data) {
-    const { plan_status, trial_ends_at, current_period_end } = data;
+    const { plan_status, trial_ends_at, current_period_end, cancel_at_period_end } = data;
 
     // Plan section
     const planSection = document.getElementById('settings-plan-section');
@@ -412,6 +412,10 @@
       if (trialMeta) trialMeta.textContent = `Free trial · ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
       if (trialDate) trialDate.textContent = `Billing starts ${fmtDate(trial_ends_at)}.`;
       trialEl.style.display = 'block';
+    } else if (plan_status === 'active' && cancel_at_period_end && canceledEl) {
+      const accessDate = canceledEl.querySelector('.settings-plan-access-date');
+      if (accessDate) accessDate.textContent = `Canceled · access through ${fmtDate(current_period_end)}`;
+      canceledEl.style.display = 'block';
     } else if (plan_status === 'active' && activeEl) {
       const renewDate = activeEl.querySelector('.settings-plan-renew-date');
       if (renewDate) renewDate.textContent = `Renews ${fmtDate(current_period_end)}.`;
