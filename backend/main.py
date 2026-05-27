@@ -188,23 +188,23 @@ def billing_sync(user: dict = Depends(_current_user)):
     subs = stripe.Subscription.list(customer=customer_id, limit=1, status="all")
     if not subs.data:
         return {"plan_status": user.get("plan_status", "trial")}
-    sub = subs.data[0]
-    status = sub.status
-    cancel_at_period_end = bool(sub.cancel_at_period_end)
+    sub = json.loads(json.dumps(subs.data[0], default=str))
+    status = sub.get("status")
+    cancel_at_period_end = bool(sub.get("cancel_at_period_end", False))
     plan_status = "active" if status == "active" else \
                   "trial"  if status == "trialing" else \
                   "canceled"
     update_user_billing(user["id"],
-        stripe_subscription_id=sub.id,
+        stripe_subscription_id=sub.get("id"),
         plan_status=plan_status,
-        trial_ends_at=sub.trial_end,
-        current_period_end=sub.current_period_end,
+        trial_ends_at=sub.get("trial_end"),
+        current_period_end=sub.get("current_period_end"),
         cancel_at_period_end=cancel_at_period_end,
     )
     return {
         "plan_status":          plan_status,
-        "trial_ends_at":        sub.trial_end,
-        "current_period_end":   sub.current_period_end,
+        "trial_ends_at":        sub.get("trial_end"),
+        "current_period_end":   sub.get("current_period_end"),
         "cancel_at_period_end": cancel_at_period_end,
     }
 
@@ -234,8 +234,8 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
     existing_sub_id = user.get("stripe_subscription_id")
     if existing_sub_id:
         try:
-            existing = stripe.Subscription.retrieve(existing_sub_id)
-            if existing.status == "trialing":
+            existing = json.loads(json.dumps(stripe.Subscription.retrieve(existing_sub_id), default=str))
+            if existing.get("status") == "trialing":
                 stripe.Subscription.cancel(existing_sub_id)
                 update_user_billing(user["id"], stripe_subscription_id=None)
         except stripe.StripeError:
