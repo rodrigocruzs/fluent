@@ -170,9 +170,10 @@ def delete_account(user: dict = Depends(_current_user)):
 @app.get("/billing/status")
 def billing_status(user: dict = Depends(_current_user)):
     return {
-        "plan_status":        user.get("plan_status", "trial"),
-        "trial_ends_at":      user.get("trial_ends_at"),
-        "current_period_end": user.get("current_period_end"),
+        "plan_status":          user.get("plan_status", "trial"),
+        "trial_ends_at":        user.get("trial_ends_at"),
+        "current_period_end":   user.get("current_period_end"),
+        "cancel_at_period_end": user.get("cancel_at_period_end", False),
     }
 
 
@@ -189,7 +190,7 @@ def billing_sync(user: dict = Depends(_current_user)):
         return {"plan_status": user.get("plan_status", "trial")}
     sub = subs.data[0]
     status = sub.status
-    cancel_at_period_end = sub.cancel_at_period_end
+    cancel_at_period_end = bool(sub.cancel_at_period_end)
     plan_status = "active" if status == "active" else \
                   "trial"  if status == "trialing" else \
                   "canceled"
@@ -198,12 +199,13 @@ def billing_sync(user: dict = Depends(_current_user)):
         plan_status=plan_status,
         trial_ends_at=sub.trial_end,
         current_period_end=sub.current_period_end,
+        cancel_at_period_end=cancel_at_period_end,
     )
     return {
-        "plan_status":           plan_status,
-        "trial_ends_at":         sub.trial_end,
-        "current_period_end":    sub.current_period_end,
-        "cancel_at_period_end":  cancel_at_period_end,
+        "plan_status":          plan_status,
+        "trial_ends_at":        sub.trial_end,
+        "current_period_end":   sub.current_period_end,
+        "cancel_at_period_end": cancel_at_period_end,
     }
 
 
@@ -345,6 +347,7 @@ async def stripe_webhook(request: Request):
                 plan_status=plan_status,
                 trial_ends_at=obj.get("trial_end"),
                 current_period_end=obj.get("current_period_end"),
+                cancel_at_period_end=bool(obj.get("cancel_at_period_end", False)),
             )
 
     elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):

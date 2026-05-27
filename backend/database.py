@@ -49,6 +49,7 @@ def init_db():
                 ("plan_status",            "TEXT NOT NULL DEFAULT 'trial'"),
                 ("trial_ends_at",          "FLOAT"),
                 ("current_period_end",     "FLOAT"),
+                ("cancel_at_period_end",   "BOOLEAN NOT NULL DEFAULT FALSE"),
             ]:
                 cur.execute(f"""
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {definition}
@@ -184,7 +185,7 @@ def delete_user(user_id: int) -> None:
 
 def update_user_billing(user_id: int, **fields) -> None:
     allowed = {"stripe_customer_id", "stripe_subscription_id", "plan_status",
-                "trial_ends_at", "current_period_end"}
+                "trial_ends_at", "current_period_end", "cancel_at_period_end"}
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
         return
