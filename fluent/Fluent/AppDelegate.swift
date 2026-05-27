@@ -157,6 +157,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         reportWindowController?.showOnboarding()
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        reportWindowController?.syncBillingStatus()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         engineProcess?.terminate()
     }

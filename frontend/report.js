@@ -387,6 +387,20 @@
       .catch(() => {});
   };
 
+  window.syncBillingStatus = function () {
+    const settingsPage = document.getElementById('settings-page');
+    if (!settingsPage || settingsPage.style.display === 'none') return;
+    const token = localStorage.getItem('fluent_token');
+    if (!token) return;
+    fetch(BACKEND_URL + '/billing/sync', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) renderBillingStatus(data); })
+      .catch(() => {});
+  };
+
   function renderBillingStatus(data) {
     const { plan_status, trial_ends_at, current_period_end, cancel_at_period_end } = data;
 
