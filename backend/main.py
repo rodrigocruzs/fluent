@@ -198,7 +198,11 @@ def billing_sync(user: dict = Depends(_current_user)):
         return {"plan_status": user.get("plan_status", "trial")}
     sub = subs[0]
     status = sub.get("status")
-    cancel_at_period_end = bool(sub.get("cancel_at_period_end", False))
+    # current_period_end moved to items in newer Stripe API versions
+    current_period_end = (sub.get("current_period_end") or
+                          (sub.get("items", {}).get("data") or [{}])[0].get("current_period_end"))
+    # Cancelled via portal sets cancel_at (scheduled) rather than cancel_at_period_end
+    is_canceling = bool(sub.get("cancel_at_period_end") or sub.get("cancel_at"))
     plan_status = "active" if status == "active" else \
                   "trial"  if status == "trialing" else \
                   "canceled"
@@ -206,14 +210,14 @@ def billing_sync(user: dict = Depends(_current_user)):
         stripe_subscription_id=sub.get("id"),
         plan_status=plan_status,
         trial_ends_at=sub.get("trial_end"),
-        current_period_end=sub.get("current_period_end"),
-        cancel_at_period_end=cancel_at_period_end,
+        current_period_end=current_period_end,
+        cancel_at_period_end=is_canceling,
     )
     return {
         "plan_status":          plan_status,
         "trial_ends_at":        sub.get("trial_end"),
-        "current_period_end":   sub.get("current_period_end"),
-        "cancel_at_period_end": cancel_at_period_end,
+        "current_period_end":   current_period_end,
+        "cancel_at_period_end": is_canceling,
     }
 
 
@@ -354,20 +358,25 @@ async def stripe_webhook(request: Request):
             plan_status = "active" if status == "active" else \
                           "trial"  if status == "trialing" else \
                           "canceled"
+            current_period_end = (obj.get("current_period_end") or
+                                  (obj.get("items", {}).get("data") or [{}])[0].get("current_period_end"))
+            is_canceling = bool(obj.get("cancel_at_period_end") or obj.get("cancel_at"))
             update_user_billing(user["id"],
                 plan_status=plan_status,
                 trial_ends_at=obj.get("trial_end"),
-                current_period_end=obj.get("current_period_end"),
-                cancel_at_period_end=bool(obj.get("cancel_at_period_end", False)),
+                current_period_end=current_period_end,
+                cancel_at_period_end=is_canceling,
             )
 
     elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
         customer_id = obj.get("customer")
         user = get_user_by_stripe_customer(customer_id)
         if user:
+            current_period_end = (obj.get("current_period_end") or
+                                  (obj.get("items", {}).get("data") or [{}])[0].get("current_period_end"))
             update_user_billing(user["id"],
                 plan_status="canceled",
-                current_period_end=obj.get("current_period_end"),
+                current_period_end=current_period_end,
             )
 
     elif event["type"] == "invoice.paid":

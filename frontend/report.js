@@ -457,12 +457,31 @@
 
     // Plan action buttons — open Stripe checkout or portal
     function openExternal(url) {
-      // In the Mac app WebKit, window.open is blocked — ask Swift to open in system browser
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openURL) {
         window.webkit.messageHandlers.openURL.postMessage(url);
       } else {
         window.location.href = url;
       }
+      // Poll for plan changes after the user returns from Stripe
+      _pollBillingAfterStripe();
+    }
+
+    function _pollBillingAfterStripe() {
+      let attempts = 0;
+      function poll() {
+        attempts++;
+        if (attempts > 8) return;
+        const token = localStorage.getItem('fluent_token');
+        if (!token) return;
+        fetch(BACKEND_URL + '/billing/sync', {
+          method: 'POST', headers: { 'Authorization': 'Bearer ' + token },
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data) renderBillingStatus(data); })
+          .catch(() => {});
+        setTimeout(poll, 3000);
+      }
+      setTimeout(poll, 3000);
     }
 
     async function openCheckout() {
