@@ -38,4 +38,8 @@ class ReportWindowController: NSWindowController {
     func showSettings() {
         webViewController?.showSettings()
     }
+
+    func syncBillingStatus() {
+        webViewController?.syncBillingStatus()
+    }
 }

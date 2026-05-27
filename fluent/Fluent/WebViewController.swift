@@ -162,6 +162,10 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         webView.evaluateJavaScript("window.showSettings && window.showSettings();")
     }
 
+    func syncBillingStatus() {
+        webView.evaluateJavaScript("window.syncBillingStatus && window.syncBillingStatus();")
+    }
+
     // MARK: - Report injection (latest or specific)
 
     func loadReportJSON(_ json: String) {
