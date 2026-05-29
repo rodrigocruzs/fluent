@@ -170,6 +170,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         return true
     }
 
+    // MARK: - URL scheme handler (fluent://auth?token=...&name=...&email=...)
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first,
+              url.scheme == "fluent",
+              url.host == "auth" else { return }
+
+        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let params = Dictionary(
+            uniqueKeysWithValues: (components?.queryItems ?? []).compactMap { item -> (String, String)? in
+                guard let value = item.value else { return nil }
+                return (item.name, value)
+            }
+        )
+
+        if let errorMsg = params["error"] {
+            showReport()
+            reportWindowController?.showGoogleAuthError(errorMsg)
+            return
+        }
+
+        guard let token = params["token"] else { return }
+        let name  = params["name"]  ?? ""
+        let email = params["email"] ?? ""
+
+        showReport()
+        reportWindowController?.handleGoogleAuthCallback(token: token, name: name, email: email)
+    }
+
     // MARK: - Window
 
     private func showReport() {

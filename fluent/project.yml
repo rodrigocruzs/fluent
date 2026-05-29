@@ -41,3 +41,7 @@ targets:
         NSUserNotificationAlertStyle: alert
         NSMicrophoneUsageDescription: "Fluent needs access to your microphone to coach your English."
         NSSupportsAutomaticGraphicsSwitching: true
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - fluent
+            CFBundleURLName: com.fluent.app

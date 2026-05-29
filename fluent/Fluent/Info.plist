@@ -32,5 +32,21 @@
 	<true/>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fluent</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.fluent.app</string>
+		</dict>
+	</array>
 </dict>
 </plist>

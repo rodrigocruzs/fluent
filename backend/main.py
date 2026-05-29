@@ -31,8 +31,9 @@ from anthropic import Anthropic
 from backend.database import (
     init_db, create_user, get_user_by_email, get_user_by_id,
     save_session, get_sessions, get_session_with_issues,
-    update_user_password, delete_user,
+    update_user_password, update_user_email, delete_user,
     update_user_billing, get_user_by_stripe_customer,
+    get_user_by_google_id, upsert_google_user,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
 
@@ -41,6 +42,10 @@ STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "")         # $10/mo price ID
 STRIPE_TRIAL_DAYS      = 7
 FRONTEND_URL           = os.environ.get("FRONTEND_URL", "https://fluent-lemon.vercel.app")
+
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI  = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback")
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
@@ -110,6 +115,95 @@ def login(req: AuthRequest):
     return TokenResponse(token=create_token(user["id"]))
 
 
+# ── Google OAuth ─────────────────────────────────────────────────────────────
+
+@app.get("/auth/google")
+def google_auth():
+    """Redirect the user's browser to Google's OAuth consent screen."""
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(503, "Google sign-in is not configured.")
+    import urllib.parse
+    params = urllib.parse.urlencode({
+        "client_id":     GOOGLE_CLIENT_ID,
+        "redirect_uri":  GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope":         "openid email profile",
+        "access_type":   "online",
+        "prompt":        "select_account",
+    })
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+
+
+@app.get("/auth/google/callback")
+def google_callback(code: str = "", error: str = ""):
+    """Exchange the auth code for user info, create/update user, redirect to app."""
+    import urllib.parse
+    import requests as _requests
+    from fastapi.responses import HTMLResponse
+
+    def _redirect_html(url: str) -> HTMLResponse:
+        return HTMLResponse(f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Signing in to Fluent…</title>
+<style>body{{font-family:-apple-system,sans-serif;display:flex;align-items:center;
+justify-content:center;min-height:100vh;margin:0;background:#fff;color:#1a1a1a}}</style>
+</head>
+<body><p>Signing in to Fluent…</p>
+<script>
+  window.location.href = {json.dumps(url)};
+  setTimeout(() => window.close(), 500);
+</script>
+</body></html>""")
+
+    if error or not code:
+        return _redirect_html(f"fluent://auth?error={urllib.parse.quote(error or 'access_denied')}")
+
+    # Exchange code for tokens
+    token_resp = _requests.post("https://oauth2.googleapis.com/token", data={
+        "code":          code,
+        "client_id":     GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri":  GOOGLE_REDIRECT_URI,
+        "grant_type":    "authorization_code",
+    }, timeout=10)
+    if not token_resp.ok:
+        return _redirect_html("fluent://auth?error=token_exchange_failed")
+
+    access_token = token_resp.json().get("access_token", "")
+
+    # Get user info from Google
+    userinfo_resp = _requests.get(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=10,
+    )
+    if not userinfo_resp.ok:
+        return _redirect_html("fluent://auth?error=userinfo_failed")
+
+    info      = userinfo_resp.json()
+    google_id = info.get("sub", "")
+    email     = info.get("email", "").lower().strip()
+    name      = info.get("name", "") or info.get("given_name", "")
+
+    if not google_id or not email:
+        return _redirect_html("fluent://auth?error=missing_profile")
+
+    user_id = upsert_google_user(google_id, email, name)
+    jwt     = create_token(user_id)
+
+    # Write token to a file the app polls, and also try the engine's /signin endpoint
+    import pathlib
+    pending = pathlib.Path.home() / ".fluent" / "pending_auth.json"
+    pending.write_text(json.dumps({"token": jwt, "name": name, "email": email}))
+    try:
+        _requests.post("http://127.0.0.1:2788/signin", json={"token": jwt}, timeout=2)
+    except Exception:
+        pass
+
+    return _redirect_html(f"fluent://auth?token={urllib.parse.quote(jwt)}&name={urllib.parse.quote(name)}&email={urllib.parse.quote(email)}")
+
+
 # ── Auth dependency ───────────────────────────────────────────────────────────
 
 def _current_user_id(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> int:
@@ -141,6 +235,26 @@ def get_me(user: dict = Depends(_current_user)):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+class ChangeEmailRequest(BaseModel):
+    new_email: EmailStr
+    password: str
+
+
+@app.post("/auth/change-email")
+def change_email(req: ChangeEmailRequest, user: dict = Depends(_current_user)):
+    if not verify_password(req.password, user["hashed_password"]):
+        raise HTTPException(400, "Password is incorrect.")
+    if get_user_by_email(req.new_email):
+        raise HTTPException(409, "That email is already in use.")
+    update_user_email(user["id"], req.new_email)
+    if STRIPE_SECRET_KEY and user.get("stripe_customer_id"):
+        try:
+            stripe.Customer.modify(user["stripe_customer_id"], email=req.new_email)
+        except stripe.StripeError:
+            pass
+    return {"ok": True}
 
 
 @app.post("/auth/change-password")
@@ -219,6 +333,68 @@ def billing_sync(user: dict = Depends(_current_user)):
         "current_period_end":   current_period_end,
         "cancel_at_period_end": is_canceling,
     }
+
+
+@app.get("/billing/invoices")
+def billing_invoices(user: dict = Depends(_current_user)):
+    """Return the customer's default payment method + last 12 paid invoices."""
+    import requests as _requests
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(503, "Billing not configured.")
+    customer_id = user.get("stripe_customer_id")
+    if not customer_id:
+        raise HTTPException(400, "No billing account found.")
+
+    auth = (STRIPE_SECRET_KEY, "")
+
+    # Fetch customer with expanded payment method
+    cust_r = _requests.get(
+        f"https://api.stripe.com/v1/customers/{customer_id}",
+        params={"expand[]": "invoice_settings.default_payment_method"},
+        auth=auth, timeout=10,
+    )
+    cust = cust_r.json()
+
+    def _card_from_obj(obj):
+        if not obj or not isinstance(obj, dict): return None
+        cd = obj.get("card") or {}
+        if not cd.get("last4"): return None
+        return {"brand": cd.get("brand", ""), "last4": cd.get("last4", ""),
+                "exp_month": cd.get("exp_month"), "exp_year": cd.get("exp_year")}
+
+    card = _card_from_obj((cust.get("invoice_settings") or {}).get("default_payment_method"))
+    if not card:
+        src = cust.get("default_source")
+        if isinstance(src, dict) and src.get("object") == "card":
+            card = _card_from_obj(src)
+    if not card:
+        pm_r = _requests.get(
+            "https://api.stripe.com/v1/payment_methods",
+            params={"customer": customer_id, "type": "card", "limit": 1},
+            auth=auth, timeout=10,
+        )
+        pms = pm_r.json().get("data", [])
+        if pms:
+            card = _card_from_obj(pms[0])
+
+    # Fetch paid invoices
+    inv_r = _requests.get(
+        "https://api.stripe.com/v1/invoices",
+        params={"customer": customer_id, "limit": 12, "status": "paid"},
+        auth=auth, timeout=10,
+    )
+    invoices = [
+        {
+            "id": inv.get("id"),
+            "date": inv.get("created"),
+            "amount": inv.get("amount_paid", 0),
+            "currency": inv.get("currency", "usd"),
+            "pdf": inv.get("invoice_pdf"),
+        }
+        for inv in inv_r.json().get("data", [])
+    ]
+
+    return {"card": card, "invoices": invoices}
 
 
 class CheckoutRequest(BaseModel):
