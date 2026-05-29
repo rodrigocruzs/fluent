@@ -130,21 +130,24 @@
 
   window.loadSessions = function (sessions) {
     const sessionsPage = document.getElementById('sessions-page');
-    const onboarding   = document.getElementById('onboarding');
+    const authPage     = document.getElementById('auth-page');
+    const settingsPage = document.getElementById('settings-page');
     const page         = document.getElementById('page');
     const listEl       = document.getElementById('sessions-list');
     const summaryEl    = document.getElementById('sessions-summary');
 
     page.classList.remove('visible');
     page.innerHTML = '';
-    if (onboarding) onboarding.style.display = 'none';
-
-    if (!sessions || sessions.length === 0) {
-      if (onboarding) { onboarding.style.display = ''; sessionsPage.style.display = 'none'; }
-      return;
-    }
+    if (authPage)       authPage.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = 'none';
 
     sessionsPage.style.display = '';
+
+    if (!sessions || sessions.length === 0) {
+      listEl.innerHTML = '';
+      summaryEl.textContent = '';
+      return;
+    }
 
     const totalSec = sessions.reduce((s, r) => s + (r.duration || 0), 0);
     const totalMin = Math.round(totalSec / 60);
@@ -186,7 +189,6 @@
 
   window.loadReport = function (data) {
     const page         = document.getElementById('page');
-    const onboarding   = document.getElementById('onboarding');
     const sessionsPage = document.getElementById('sessions-page');
     const issues       = Array.isArray(data.issues) ? data.issues : (Array.isArray(data) ? data : []);
     const transcript   = data.transcript || '';
@@ -195,7 +197,6 @@
       month: 'long', day: 'numeric', year: 'numeric',
     });
 
-    if (onboarding) onboarding.style.display = 'none';
     if (sessionsPage) sessionsPage.style.display = 'none';
 
     const n = issues.length;
@@ -245,11 +246,11 @@
   window.showOnboarding = function () {
     const page         = document.getElementById('page');
     const sessionsPage = document.getElementById('sessions-page');
-    const onboarding   = document.getElementById('onboarding');
     const authPage     = document.getElementById('auth-page');
+    const settingsPage = document.getElementById('settings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
-    if (onboarding)     onboarding.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = 'none';
     if (authPage)       authPage.style.display = '';
   };
 
@@ -343,17 +344,16 @@
     page.innerHTML = '';
     if (settingsPage) settingsPage.style.display = 'none';
     if (sessionsPage) sessionsPage.style.display = '';
+    _resetBillingDetailsFlag();
   };
 
   window.showSettings = function () {
     const page         = document.getElementById('page');
     const sessionsPage = document.getElementById('sessions-page');
-    const onboarding   = document.getElementById('onboarding');
     const authPage     = document.getElementById('auth-page');
     const settingsPage = document.getElementById('settings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
-    if (onboarding)     onboarding.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
 
@@ -367,6 +367,8 @@
         if (!data) return;
         const emailEl = document.getElementById('settings-email');
         if (emailEl) emailEl.textContent = data.email;
+        const billingEmailEl = document.getElementById('settings-billing-email-val');
+        if (billingEmailEl) billingEmailEl.textContent = data.email;
       })
       .catch(() => {});
 
@@ -443,6 +445,69 @@
     // Billing section
     const billingSection = document.getElementById('settings-billing-section');
     if (billingSection) billingSection.style.display = 'block';
+
+    if (!_billingDetailsFetched) {
+      _billingDetailsFetched = true;
+      fetchBillingDetails();
+    }
+  }
+
+  let _billingDetailsFetched = false;
+
+  // Reset flag when settings page is hidden so it re-fetches next open
+  function _resetBillingDetailsFlag() { _billingDetailsFetched = false; }
+
+  function fetchBillingDetails() {
+    const token = localStorage.getItem('fluent_token');
+    if (!token) return;
+    fetch(BACKEND_URL + '/billing/invoices', { headers: { 'Authorization': 'Bearer ' + token } })
+      .then(r => {
+        if (!r.ok) { r.text().then(t => console.warn('[Fluent] /billing/invoices error', r.status, t)); return null; }
+        return r.json();
+      })
+      .then(data => {
+        if (!data) return;
+        renderCardOnFile(data.card);
+        renderInvoices(data.invoices);
+      })
+      .catch(e => console.warn('[Fluent] /billing/invoices fetch failed', e));
+  }
+
+  function renderCardOnFile(card) {
+    const cardRow         = document.getElementById('settings-card-row');
+    const cardVal         = document.getElementById('settings-card-val');
+    const placeholderRow  = document.getElementById('settings-card-placeholder-row');
+    if (!card || !card.last4) return;
+    const brand = (card.brand || '').toUpperCase().slice(0, 4);
+    const month = String(card.exp_month || '').padStart(2, '0');
+    const year  = String(card.exp_year || '').slice(-2);
+    cardVal.innerHTML = `
+      <div class="settings-card-on-file">
+        <span class="settings-card-brand">${brand}</span>
+        <div>
+          <div class="settings-card-num"><span class="settings-card-dots">&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</span>${card.last4}</div>
+          <div class="settings-card-exp">Expires ${month} / ${year}</div>
+        </div>
+      </div>`;
+    if (cardRow)        cardRow.style.display = '';
+    if (placeholderRow) placeholderRow.style.display = 'none';
+  }
+
+  function renderInvoices(invoices) {
+    const row  = document.getElementById('settings-invoices-row');
+    const list = document.getElementById('settings-invoices-list');
+    if (!invoices || !invoices.length || !row || !list) return;
+    list.innerHTML = invoices.map(inv => {
+      const date   = inv.date ? new Date(inv.date * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
+      const amount = inv.amount != null ? (inv.currency === 'usd' ? '$' : '') + (inv.amount / 100).toFixed(2) : '—';
+      const link   = inv.pdf ? `<a class="settings-invoice-link" href="${inv.pdf}" target="_blank">Download &rarr;</a>` : '<span></span>';
+      return `<div class="settings-invoice">
+        <span class="settings-invoice-date">${date}</span>
+        <span class="settings-invoice-amount">${amount}</span>
+        ${link}
+      </div>`;
+    }).join('');
+    row.style.display = '';
   }
 
   // ── Settings page wiring ──────────────────────────────────────────────────
@@ -452,6 +517,9 @@
     const pwForm     = document.getElementById('settings-pw-form');
     const pwError    = document.getElementById('settings-pw-error');
     const pwCancel   = document.getElementById('settings-pw-cancel');
+    const emailForm  = document.getElementById('settings-email-form');
+    const emailError = document.getElementById('settings-email-error');
+    const emailCancel = document.getElementById('settings-email-cancel');
     const signoutBtn = document.getElementById('settings-signout-btn');
     const deleteBtn  = document.getElementById('settings-delete-btn');
 
@@ -512,21 +580,60 @@
       } catch (e) { console.warn('[Fluent] portal error', e); }
     }
 
-    const upgradeBtn      = document.getElementById('settings-upgrade-btn');
-    const cancelTrialBtn  = document.getElementById('settings-cancel-trial-btn');
-    const cancelPlanBtn   = document.getElementById('settings-cancel-plan-btn');
-    const resumePlanBtn   = document.getElementById('settings-resume-plan-btn');
-    const updateCardBtn   = document.getElementById('settings-update-card-btn');
-    const changeBillingBtn = document.getElementById('settings-change-billing-btn');
-
-    if (upgradeBtn)       upgradeBtn.addEventListener('click', openCheckout);
-    if (cancelTrialBtn)   cancelTrialBtn.addEventListener('click', openPortal);
-    if (cancelPlanBtn)    cancelPlanBtn.addEventListener('click', openPortal);
-    if (resumePlanBtn)    resumePlanBtn.addEventListener('click', openCheckout);
-    if (updateCardBtn)    updateCardBtn.addEventListener('click', openPortal);
-    if (changeBillingBtn) changeBillingBtn.addEventListener('click', openPortal);
+    const upgradeBtn             = document.getElementById('settings-upgrade-btn');
+    const cancelTrialBtn         = document.getElementById('settings-cancel-trial-btn');
+    const cancelPlanBtn          = document.getElementById('settings-cancel-plan-btn');
+    const resumePlanBtn          = document.getElementById('settings-resume-plan-btn');
+    const updateCardBtn          = document.getElementById('settings-update-card-btn');
+    const updateCardPlaceholder  = document.getElementById('settings-update-card-placeholder-btn');
+    if (upgradeBtn)            upgradeBtn.addEventListener('click', openCheckout);
+    if (cancelTrialBtn)        cancelTrialBtn.addEventListener('click', openPortal);
+    if (cancelPlanBtn)         cancelPlanBtn.addEventListener('click', openPortal);
+    if (resumePlanBtn)         resumePlanBtn.addEventListener('click', openCheckout);
+    if (updateCardBtn)         updateCardBtn.addEventListener('click', openPortal);
+    if (updateCardPlaceholder) updateCardPlaceholder.addEventListener('click', openPortal);
 
     if (backBtn) backBtn.addEventListener('click', () => window.showSessions && window.showSessions());
+
+    if (emailCancel) emailCancel.addEventListener('click', () => {
+      const details = emailCancel.closest('details');
+      if (details) details.open = false;
+    });
+
+    if (emailForm) emailForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (emailError) emailError.textContent = '';
+      const newEmail = document.getElementById('settings-new-email').value.trim();
+      const password = document.getElementById('settings-email-pw').value;
+      if (!newEmail) { if (emailError) emailError.textContent = 'Enter a new email address.'; return; }
+      const token = localStorage.getItem('fluent_token');
+      if (!token) { if (emailError) emailError.textContent = 'Not signed in.'; return; }
+      const submitBtn = emailForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const res = await fetch(BACKEND_URL + '/auth/change-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ new_email: newEmail, password }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (emailError) emailError.textContent = data.detail || 'Could not update email.';
+        } else {
+          const emailEl = document.getElementById('settings-email');
+          const billingEmailEl = document.getElementById('settings-billing-email-val');
+          if (emailEl) emailEl.textContent = newEmail;
+          if (billingEmailEl) billingEmailEl.textContent = newEmail;
+          emailForm.reset();
+          const details = emailForm.closest('details');
+          if (details) details.open = false;
+        }
+      } catch (err) {
+        if (emailError) emailError.textContent = 'Could not connect: ' + err.message;
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
 
     if (pwCancel) pwCancel.addEventListener('click', () => {
       const details = pwCancel.closest('details');
