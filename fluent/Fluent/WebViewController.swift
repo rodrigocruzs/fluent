@@ -7,6 +7,12 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     private var webView: WKWebView!
     private var pendingReportJSON: String?
     private var pendingShowSettings = false
+    private var authPollTimer: Timer?
+
+    private let pendingAuthURL: URL = {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".fluent/pending_auth.json")
+    }()
 
     private let reportsDir: URL = {
         FileManager.default.homeDirectoryForCurrentUser
@@ -148,6 +154,32 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
 
     func showOnboarding() {
         webView.evaluateJavaScript("window.showOnboarding && window.showOnboarding();")
+        startAuthPolling()
+    }
+
+    private func startAuthPolling() {
+        authPollTimer?.invalidate()
+        authPollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkPendingAuth()
+        }
+    }
+
+    private func stopAuthPolling() {
+        authPollTimer?.invalidate()
+        authPollTimer = nil
+    }
+
+    private func checkPendingAuth() {
+        guard let data = try? Data(contentsOf: pendingAuthURL),
+              let obj  = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              let token = obj["token"], !token.isEmpty
+        else { return }
+        // Consume the file immediately so we don't process it twice
+        try? FileManager.default.removeItem(at: pendingAuthURL)
+        stopAuthPolling()
+        let name  = obj["name"]  ?? ""
+        let email = obj["email"] ?? ""
+        handleGoogleAuthCallback(token: token, name: name, email: email)
     }
 
     func clearTokenAndShowOnboarding() {
@@ -164,6 +196,30 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
 
     func syncBillingStatus() {
         webView.evaluateJavaScript("window.syncBillingStatus && window.syncBillingStatus();")
+    }
+
+    func handleGoogleAuthCallback(token: String, name: String, email: String) {
+        stopAuthPolling()
+        let safeToken = token.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+        let js = """
+        localStorage.setItem('fluent_token', '\(safeToken)');
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.authComplete) {
+          window.webkit.messageHandlers.authComplete.postMessage('\(safeToken)');
+        }
+        """
+        webView.evaluateJavaScript(js) { [weak self] _, _ in
+            self?.saveTokenToEngine(token)
+            self?.injectSessions()
+        }
+    }
+
+    func showGoogleAuthError(_ message: String) {
+        let safe = message.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+        webView.evaluateJavaScript("""
+        window.showOnboarding && window.showOnboarding();
+        var el = document.getElementById('auth-error');
+        if (el) el.textContent = 'Google sign-in failed: \(safe)';
+        """)
     }
 
     // MARK: - Report injection (latest or specific)
@@ -231,6 +287,8 @@ extension WebViewController: WKNavigationDelegate {
         } else {
             injectSessions()
         }
+        // Start polling for Google OAuth callback in case user is on onboarding
+        startAuthPolling()
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

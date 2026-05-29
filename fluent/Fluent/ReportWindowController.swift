@@ -42,4 +42,12 @@ class ReportWindowController: NSWindowController {
     func syncBillingStatus() {
         webViewController?.syncBillingStatus()
     }
+
+    func handleGoogleAuthCallback(token: String, name: String, email: String) {
+        webViewController?.handleGoogleAuthCallback(token: token, name: name, email: email)
+    }
+
+    func showGoogleAuthError(_ message: String) {
+        webViewController?.showGoogleAuthError(message)
+    }
 }

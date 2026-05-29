@@ -303,6 +303,21 @@
 
     setMode('signin');
 
+    // Google sign-in: open the local backend OAuth endpoint in the system browser.
+    // The backend redirects to Google, which redirects back via fluent://auth?token=...
+    // Swift intercepts that URL and calls handleGoogleAuthCallback.
+    const googleBtn = authPage.querySelector('.auth-providers .auth-provider:first-child');
+    if (googleBtn) {
+      googleBtn.addEventListener('click', () => {
+        const googleAuthURL = 'http://localhost:8001/auth/google';
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openURL) {
+          window.webkit.messageHandlers.openURL.postMessage(googleAuthURL);
+        } else {
+          window.open(googleAuthURL, '_blank');
+        }
+      });
+    }
+
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('auth-email').value.trim();

@@ -50,6 +50,8 @@ def init_db():
                 ("trial_ends_at",          "FLOAT"),
                 ("current_period_end",     "FLOAT"),
                 ("cancel_at_period_end",   "BOOLEAN NOT NULL DEFAULT FALSE"),
+                ("google_id",              "TEXT"),
+                ("name",                   "TEXT"),
             ]:
                 cur.execute(f"""
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {definition}
@@ -183,6 +185,13 @@ def delete_user(user_id: int) -> None:
         conn.commit()
 
 
+def update_user_email(user_id: int, new_email: str) -> None:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE users SET email = %s WHERE id = %s", (new_email, user_id))
+        conn.commit()
+
+
 def update_user_billing(user_id: int, **fields) -> None:
     allowed = {"stripe_customer_id", "stripe_subscription_id", "plan_status",
                 "trial_ends_at", "current_period_end", "cancel_at_period_end"}
@@ -207,6 +216,32 @@ def get_user_by_stripe_customer(customer_id: str) -> dict | None:
                 (customer_id,),
             )
             return cur.fetchone()
+
+
+def get_user_by_google_id(google_id: str) -> dict | None:
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE google_id = %s", (google_id,))
+            return cur.fetchone()
+
+
+def upsert_google_user(google_id: str, email: str, name: str) -> int:
+    """Create or update a Google-authenticated user. Returns user id."""
+    now = time.time()
+    trial_ends_at = now + TRIAL_DAYS * 86400
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO users (email, hashed_password, created_at, trial_ends_at, google_id, name)
+                VALUES (%s, '', %s, %s, %s, %s)
+                ON CONFLICT (email) DO UPDATE
+                    SET google_id = EXCLUDED.google_id,
+                        name      = EXCLUDED.name
+                RETURNING id
+            """, (email.lower().strip(), now, trial_ends_at, google_id, name))
+            row = cur.fetchone()
+        conn.commit()
+        return row[0]
 
 
 def get_session_with_issues(user_id: int, slug: str) -> dict | None:
