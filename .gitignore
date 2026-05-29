@@ -27,5 +27,5 @@ DerivedData/
 .env.local
 .env.production
 
-# DMG
-website/Fluent.dmg
+.vercel
+.env*.local

@@ -140,40 +140,7 @@
   </footer>
 </div>
 
-<!-- Onboarding: shown when no sessions exist (authenticated but no sessions yet) -->
-<div id="onboarding" style="display:none">
-  <div class="brand">
-    <span class="logo" aria-hidden="true">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
-        <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
-        <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
-      </svg>
-    </span>
-    <span class="wordmark">Fluent</span>
-  </div>
-  <h1>Your personal English coach.</h1>
-  <p>Start a session before your next call.</p>
 
-  <div class="session-control" id="session-control-onboarding">
-    <button class="start-button" id="start-btn-onboarding" type="button">
-      <span class="dot"></span>
-      Start session
-    </button>
-    <div class="recording-bar" role="status" aria-live="polite">
-      <span class="rec-dot" aria-hidden="true"></span>
-      <span class="rec-label">Recording</span>
-      <span class="rec-wave" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span>
-      </span>
-      <span class="rec-timer" id="rec-timer-onboarding">00:00</span>
-      <span class="rec-divider" aria-hidden="true"></span>
-      <button class="rec-stop" type="button" id="stop-btn-onboarding" aria-label="Stop session">
-        <span class="stop-square" aria-hidden="true"></span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- Settings page -->
 <div id="settings-page" style="display:none">
@@ -203,12 +170,32 @@
         <p>The email and password you use to sign in.</p>
       </div>
       <div class="settings-body">
-        <div class="settings-row">
-          <div>
-            <div class="settings-row-label">Email</div>
-            <div class="settings-row-value" id="settings-email">—</div>
-          </div>
-        </div>
+        <details class="settings-editable">
+          <summary>
+            <div class="settings-summary-row">
+              <div>
+                <div class="settings-row-label">Email</div>
+                <div class="settings-row-value" id="settings-email">—</div>
+              </div>
+              <button type="button" class="settings-btn edit-btn"><span>Change</span></button>
+            </div>
+          </summary>
+          <form class="settings-edit-form" id="settings-email-form">
+            <div class="settings-field-pair">
+              <label for="settings-new-email">New email</label>
+              <input id="settings-new-email" type="email" autocomplete="email">
+            </div>
+            <div class="settings-field-pair">
+              <label for="settings-email-pw">Current password</label>
+              <input id="settings-email-pw" type="password" autocomplete="current-password">
+            </div>
+            <p class="settings-form-error" id="settings-email-error"></p>
+            <div class="settings-btn-row">
+              <button type="submit" class="settings-btn primary">Save changes</button>
+              <button type="button" class="settings-btn text" id="settings-email-cancel">Cancel</button>
+            </div>
+          </form>
+        </details>
         <div class="settings-divider"></div>
         <details class="settings-editable">
           <summary>
@@ -251,37 +238,43 @@
 
         <!-- Trial state -->
         <div id="settings-plan-trial" style="display:none" class="settings-plan-row">
-          <div>
-            <div class="settings-plan-name">Fluent</div>
-            <div class="settings-plan-price">$10 per month</div>
-            <div class="settings-plan-accent settings-plan-trial-meta"></div>
-            <div class="settings-plan-meta settings-plan-billing-date"></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-            <button type="button" class="settings-btn primary" id="settings-upgrade-btn">Upgrade to paid</button>
-            <button type="button" class="settings-btn danger" id="settings-cancel-trial-btn">Cancel trial</button>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
+            <div>
+              <div class="settings-plan-name">Fluent</div>
+              <div class="settings-plan-price">$10 per month</div>
+              <div class="settings-plan-accent settings-plan-trial-meta"></div>
+              <div class="settings-plan-meta settings-plan-billing-date"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <button type="button" class="settings-btn primary" id="settings-upgrade-btn">Upgrade to paid</button>
+              <button type="button" class="settings-btn danger" id="settings-cancel-trial-btn">Cancel trial</button>
+            </div>
           </div>
         </div>
 
         <!-- Active state -->
         <div id="settings-plan-active" style="display:none" class="settings-plan-row">
-          <div>
-            <div class="settings-plan-name">Fluent</div>
-            <div class="settings-plan-price">$10 per month</div>
-            <div class="settings-plan-meta settings-plan-renew-date" style="margin-top:10px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
+            <div>
+              <div class="settings-plan-name">Fluent</div>
+              <div class="settings-plan-price">$10 per month</div>
+              <div class="settings-plan-meta settings-plan-renew-date" style="margin-top:10px"></div>
+            </div>
+            <button type="button" class="settings-btn" id="settings-cancel-plan-btn">Cancel plan</button>
           </div>
-          <button type="button" class="settings-btn" id="settings-cancel-plan-btn">Cancel plan</button>
         </div>
 
         <!-- Canceled state -->
         <div id="settings-plan-canceled" style="display:none" class="settings-plan-row">
-          <div>
-            <div class="settings-plan-name">Fluent</div>
-            <div class="settings-plan-price">$10 per month</div>
-            <div class="settings-plan-meta settings-plan-access-date"></div>
-            <div class="settings-plan-meta" style="margin-top:4px">After that, reports stay readable but no new sessions will be coached.</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
+            <div>
+              <div class="settings-plan-name">Fluent</div>
+              <div class="settings-plan-price">$10 per month</div>
+              <div class="settings-plan-meta settings-plan-access-date"></div>
+              <div class="settings-plan-meta" style="margin-top:4px">After that, reports stay readable but no new sessions will be coached.</div>
+            </div>
+            <button type="button" class="settings-btn primary" id="settings-resume-plan-btn">Resume plan</button>
           </div>
-          <button type="button" class="settings-btn primary" id="settings-resume-plan-btn">Resume plan</button>
         </div>
 
       </div>
@@ -296,19 +289,31 @@
         <p>Payment method and past invoices.</p>
       </div>
       <div class="settings-body">
-        <div class="settings-row">
+        <div class="settings-row" id="settings-card-row" style="display:none">
+          <div>
+            <div class="settings-row-label">Card on file</div>
+            <div class="settings-row-value" id="settings-card-val">—</div>
+          </div>
+          <button type="button" class="settings-btn" id="settings-update-card-btn">Update card</button>
+        </div>
+        <div class="settings-row" id="settings-card-placeholder-row">
           <div>
             <div class="settings-row-label">Payment &amp; invoices</div>
             <div class="settings-row-value">Manage your card and download receipts.</div>
           </div>
-          <button type="button" class="settings-btn" id="settings-update-card-btn">Manage</button>
+          <button type="button" class="settings-btn" id="settings-update-card-placeholder-btn">Manage</button>
         </div>
         <div class="settings-row">
           <div>
             <div class="settings-row-label">Billing email</div>
             <div class="settings-row-value" id="settings-billing-email-val">—</div>
           </div>
-          <button type="button" class="settings-btn" id="settings-change-billing-btn">Change</button>
+        </div>
+        <div class="settings-row" id="settings-invoices-row" style="display:none">
+          <div style="width:100%">
+            <div class="settings-row-label" style="margin-bottom:10px">Receipts</div>
+            <div id="settings-invoices-list"></div>
+          </div>
         </div>
       </div>
     </div>
