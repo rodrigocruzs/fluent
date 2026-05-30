@@ -20,10 +20,13 @@ PORT = 2788
 
 
 class Engine:
+    MIN_DURATION_SECS = 5.0
+
     def __init__(self):
         self.config = Config.load()
         self.recorder = AudioRecorder()
         self._recording = False
+        self._analysing = False
         self._lock = threading.Lock()
 
     def start(self) -> dict:
@@ -44,17 +47,24 @@ class Engine:
             self._recording = False
 
         paths, duration = self.recorder.stop()
+        self._analysing = True
         threading.Thread(target=self._run_pipeline, args=(paths, duration), daemon=True).start()
         return {"ok": True, "recording": False}
 
     def status(self) -> dict:
-        return {"recording": self._recording}
+        return {"recording": self._recording, "analysing": self._analysing}
 
     def _run_pipeline(self, paths: RecordingPaths, duration: float):
+        if duration < self.MIN_DURATION_SECS:
+            print(f"[engine] session too short ({duration:.1f}s < {self.MIN_DURATION_SECS}s), skipping pipeline", file=sys.stderr)
+            self._analysing = False
+            return
         try:
             run_pipeline(paths=paths, duration=duration, config=self.config)
         except Exception as e:
             print(f"[engine] pipeline error: {e}", file=sys.stderr)
+        finally:
+            self._analysing = False
 
 
 def make_handler(engine: Engine):
@@ -79,6 +89,20 @@ def make_handler(engine: Engine):
                 self._json(engine.start())
             elif self.path == "/stop":
                 self._json(engine.stop())
+            elif self.path == "/signin":
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length)) if length else {}
+                token = body.get("token", "")
+                if token:
+                    from fluent.coach import save_token
+                    save_token(token)
+                    self._json({"ok": True})
+                else:
+                    self._json({"ok": False, "error": "no token"})
+            elif self.path == "/signout":
+                from fluent.coach import delete_token
+                delete_token()
+                self._json({"ok": True})
             else:
                 self.send_response(404)
                 self.end_headers()

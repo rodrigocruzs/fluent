@@ -12,6 +12,11 @@
 		82A73E8E110413AB410D64C4 /* ReportWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */; };
 		9D5F6BB59CAFA35CCEC1EF0D /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CD58649180C4615790A131 /* WebViewController.swift */; };
 		A9E3A18F1BBF4F644115396A /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B2F969D2852E538E21C0436 /* main.swift */; };
+		B1C200A100000001 /* report.css in Resources */ = {isa = PBXBuildFile; fileRef = 3BB654DD2FC340630049424F /* report.css */; };
+		B1C200A200000002 /* report.html in Resources */ = {isa = PBXBuildFile; fileRef = 3BB654DE2FC340630049424F /* report.html */; };
+		B1C200A300000003 /* report.js in Resources */ = {isa = PBXBuildFile; fileRef = 3BB654DF2FC340630049424F /* report.js */; };
+		B1C200A400000004 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = B1C200C000000020 /* engine */; };
+		B1C200A500000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C200D000000030 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +24,11 @@
 		32CD58649180C4615790A131 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		3844E4D54D3AC4BBB3D7473E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		3B2F969D2852E538E21C0436 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		3BB654DD2FC340630049424F /* report.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = report.css; path = ../frontend/report.css; sourceTree = SOURCE_ROOT; };
+		3BB654DE2FC340630049424F /* report.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = report.html; path = ../frontend/report.html; sourceTree = SOURCE_ROOT; };
+		3BB654DF2FC340630049424F /* report.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = report.js; path = ../frontend/report.js; sourceTree = SOURCE_ROOT; };
+		B1C200C000000020 /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = ../fluent-engine; sourceTree = SOURCE_ROOT; };
+		B1C200D000000030 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWindowController.swift; sourceTree = "<group>"; };
 		BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarwinNotificationBridge.swift; sourceTree = "<group>"; };
 		EA5342D38872AC0B957CBC5E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -40,6 +50,11 @@
 				BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */,
 				EA5342D38872AC0B957CBC5E /* Info.plist */,
 				3B2F969D2852E538E21C0436 /* main.swift */,
+				3BB654DD2FC340630049424F /* report.css */,
+				3BB654DE2FC340630049424F /* report.html */,
+				3BB654DF2FC340630049424F /* report.js */,
+				B1C200C000000020 /* engine */,
+				B1C200D000000030 /* Assets.xcassets */,
 				5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */,
 				32CD58649180C4615790A131 /* WebViewController.swift */,
 			);
@@ -61,6 +76,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B7E9670765F96CDB654B479A /* Build configuration list for PBXNativeTarget "Fluent" */;
 			buildPhases = (
+				B1C200B000000010 /* Resources */,
 				CDBDE7C81ADC6FD8E862AE40 /* Sources */,
 			);
 			buildRules = (
@@ -107,6 +123,21 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B1C200B000000010 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1C200A500000005 /* Assets.xcassets in Resources */,
+				B1C200A100000001 /* report.css in Resources */,
+				B1C200A200000002 /* report.html in Resources */,
+				B1C200A300000003 /* report.js in Resources */,
+				B1C200A400000004 /* engine in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		CDBDE7C81ADC6FD8E862AE40 /* Sources */ = {
@@ -194,7 +225,7 @@
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -261,7 +292,7 @@
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};

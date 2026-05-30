@@ -12,7 +12,7 @@ from pathlib import Path
 from fluent.config import Config
 from fluent.transcribe import transcribe
 from fluent.diarise import diarise, filter_user_segments, LABEL_USER
-from fluent.coach import coach
+from fluent.coach import coach, save_session_remote
 from fluent.audio import RecordingPaths
 
 REPORTS_DIR = Path.home() / ".fluent" / "reports"
@@ -98,5 +98,15 @@ def run_pipeline(
         json.dumps(payload, indent=2, ensure_ascii=False))
 
     print(f"[pipeline] wrote {LATEST_JSON}")
+
+    save_session_remote(
+        slug=slug,
+        name=payload["name"],
+        date=payload["date"],
+        duration=duration,
+        transcript=transcript,
+        issues=issues,
+    )
+
     _notify_swift()
     return LATEST_JSON

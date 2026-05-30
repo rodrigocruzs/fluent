@@ -18,6 +18,7 @@ backend/fluent.db
 # Xcode / Swift
 fluent/build/
 fluent/fluent/build/
+**/build/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
 DerivedData/
