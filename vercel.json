@@ -13,6 +13,7 @@
     "routes": [
         { "src": "/api/(.*)", "dest": "/api/index.py" },
         { "src": "/sample-report.html", "dest": "/website/sample-report.html" },
+        { "src": "/privacy", "dest": "/website/privacy.html" },
         { "src": "/(.*)", "dest": "/website/$1" }
     ]
 }
