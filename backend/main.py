@@ -20,7 +20,7 @@ Run locally:
 import os
 import time
 from dotenv import load_dotenv
-load_dotenv(".env.local")
+load_dotenv(".env.local", override=True)  # must run before any module reads os.environ
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
@@ -55,9 +55,8 @@ _bearer = HTTPBearer()
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
-COACH_SYSTEM = """You are an English language coach specialising in helping non-native speakers sound more natural and professional in business meetings.
+COACH_SYSTEM = """You are an English language coach helping non-native speakers sound more natural and professional in business meetings.
 
-The user's native language is {native_language}.
 Their job context: {job_context}.
 
 You will receive a transcript of what they said in a meeting. Your job is to identify specific issues and suggest improvements.
@@ -68,7 +67,7 @@ For each issue found, return a JSON array with this structure:
     "category": "Grammar" | "Phrasing" | "Vocabulary",
     "original": "exactly what they said",
     "improved": "what a fluent native speaker would say",
-    "explanation": "one sentence explaining why, specific to their native language background"
+    "explanation": "one sentence explaining why this sounds more natural or professional"
   }}
 ]
 
@@ -127,9 +126,9 @@ def google_auth():
         "client_id":     GOOGLE_CLIENT_ID,
         "redirect_uri":  GOOGLE_REDIRECT_URI,
         "response_type": "code",
-        "scope":         "openid email profile",
-        "access_type":   "online",
-        "prompt":        "select_account",
+        "scope":         "openid email profile https://www.googleapis.com/auth/calendar.readonly",
+        "access_type":   "offline",
+        "prompt":        "consent select_account",
     })
     from fastapi.responses import RedirectResponse
     return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
@@ -181,15 +180,22 @@ justify-content:center;min-height:100vh;margin:0;background:#fff;color:#1a1a1a}}
     if not userinfo_resp.ok:
         return _redirect_html("fluent://auth?error=userinfo_failed")
 
-    info      = userinfo_resp.json()
-    google_id = info.get("sub", "")
-    email     = info.get("email", "").lower().strip()
-    name      = info.get("name", "") or info.get("given_name", "")
+    info          = userinfo_resp.json()
+    google_id     = info.get("sub", "")
+    email         = info.get("email", "").lower().strip()
+    name          = info.get("name", "") or info.get("given_name", "")
+    token_data    = token_resp.json()
+    refresh_token = token_data.get("refresh_token", "")
+    expires_in    = token_data.get("expires_in", 3600)
+    token_expiry  = time.time() + expires_in
 
     if not google_id or not email:
         return _redirect_html("fluent://auth?error=missing_profile")
 
-    user_id = upsert_google_user(google_id, email, name)
+    user_id = upsert_google_user(google_id, email, name,
+                                 access_token=access_token,
+                                 refresh_token=refresh_token,
+                                 token_expiry=token_expiry)
     jwt     = create_token(user_id)
 
     # Write token to a file the app polls, and also try the engine's /signin endpoint
@@ -223,6 +229,75 @@ def _current_user(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> dic
     if not user:
         raise HTTPException(401, "User not found.")
     return user
+
+
+# ── Calendar ─────────────────────────────────────────────────────────────────
+
+def _refresh_google_token(user: dict) -> str | None:
+    import requests as _requests
+    access_token  = user.get("google_access_token", "")
+    refresh_token = user.get("google_refresh_token", "")
+    expiry        = user.get("google_token_expiry") or 0
+
+    if access_token and time.time() < expiry - 60:
+        return access_token
+    if not refresh_token:
+        return None
+
+    resp = _requests.post("https://oauth2.googleapis.com/token", data={
+        "client_id":     GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "refresh_token": refresh_token,
+        "grant_type":    "refresh_token",
+    }, timeout=10)
+    if not resp.ok:
+        return None
+
+    data       = resp.json()
+    new_token  = data.get("access_token", "")
+    new_expiry = time.time() + data.get("expires_in", 3600)
+    update_user_billing(user["id"],
+        **{"google_access_token": new_token, "google_token_expiry": new_expiry})
+    return new_token
+
+
+@app.get("/calendar/upcoming")
+def calendar_upcoming(user: dict = Depends(_current_user)):
+    import requests as _requests
+    from datetime import datetime, timezone
+
+    token = _refresh_google_token(user)
+    if not token:
+        raise HTTPException(403, "Google Calendar not connected. Please sign in with Google.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    resp = _requests.get(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        headers={"Authorization": f"Bearer {token}"},
+        params={
+            "timeMin":      now_iso,
+            "maxResults":   3,
+            "singleEvents": True,
+            "orderBy":      "startTime",
+            "fields":       "items(id,summary,start,end,attendees)",
+        },
+        timeout=10,
+    )
+    if not resp.ok:
+        raise HTTPException(502, "Failed to fetch calendar events.")
+
+    events = []
+    for item in resp.json().get("items", []):
+        start = item.get("start", {})
+        end   = item.get("end",   {})
+        events.append({
+            "id":        item.get("id", ""),
+            "title":     item.get("summary", "Untitled"),
+            "start":     start.get("dateTime") or start.get("date", ""),
+            "end":       end.get("dateTime")   or end.get("date", ""),
+            "attendees": len(item.get("attendees") or []),
+        })
+    return events
 
 
 # ── Account management ────────────────────────────────────────────────────────
@@ -568,7 +643,7 @@ async def stripe_webhook(request: Request):
 
 class CoachRequest(BaseModel):
     transcript: str
-    native_language: str = "Spanish"
+    native_language: str = ""  # kept for backwards compat, ignored
     job_context: str = "Professional"
 
 
@@ -579,7 +654,6 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
 
     client = Anthropic(api_key=ANTHROPIC_API_KEY)
     system = COACH_SYSTEM.format(
-        native_language=req.native_language,
         job_context=req.job_context,
     )
     response = client.messages.create(
@@ -587,6 +661,7 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
         max_tokens=4096,
         system=system,
         messages=[{"role": "user", "content": req.transcript}],
+        timeout=90,
     )
 
     raw = response.content[0].text.strip()

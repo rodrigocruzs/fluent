@@ -3,7 +3,7 @@ from pathlib import Path
 from dataclasses import dataclass, asdict, field
 
 CONFIG_PATH = Path.home() / ".fluent" / "config.json"
-BACKEND_URL = "http://localhost:8001"  # override with env var FLUENT_BACKEND_URL
+BACKEND_URL = "https://fluent-lemon.vercel.app/api"
 
 
 @dataclass

@@ -43,6 +43,33 @@ def login(email: str, password: str) -> str:
     return r.json()["token"]
 
 
+def save_session_remote(slug: str, name: str, date: str,
+                        duration: float, transcript: str, issues: list) -> None:
+    """POST the completed session to the backend for persistent storage."""
+    token = get_token()
+    if not token:
+        return
+    url = os.environ.get("FLUENT_BACKEND_URL", BACKEND_URL)
+    try:
+        r = httpx.post(
+            f"{url}/sessions",
+            json={
+                "slug": slug,
+                "name": name,
+                "date": date,
+                "duration": duration,
+                "transcript": transcript,
+                "issues": issues,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        print(f"[coach] session saved remotely (id={r.json().get('id')})")
+    except Exception as e:
+        print(f"[coach] failed to save session remotely: {e}")
+
+
 def coach(transcript: str, config: Config) -> list:
     """
     Send transcript to backend /coach endpoint.

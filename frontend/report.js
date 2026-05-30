@@ -59,8 +59,23 @@
 
   function wireHovers() {
     document.querySelectorAll('mark.flag').forEach(flag => {
-      flag.addEventListener('mouseenter', () => setActive(flag.dataset.issue, true));
-      flag.addEventListener('mouseleave', () => setActive(flag.dataset.issue, false));
+      const id = flag.dataset.issue;
+      flag.addEventListener('mouseenter', () => setActive(id, true));
+      flag.addEventListener('mouseleave', () => setActive(id, false));
+      flag.addEventListener('click', () => {
+        const note = document.getElementById('note-' + id);
+        if (note) note.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+    document.querySelectorAll('.note').forEach(note => {
+      const id = note.dataset.issue;
+      note.style.cursor = 'pointer';
+      note.addEventListener('mouseenter', () => setActive(id, true));
+      note.addEventListener('mouseleave', () => setActive(id, false));
+      note.addEventListener('click', () => {
+        const flag = document.getElementById('flag-' + id);
+        if (flag) flag.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
     });
   }
 
@@ -81,7 +96,7 @@
       const original = issue.original || '';
       if (!original || !text.includes(original)) return;
       const replacement =
-        `<mark class="flag" data-issue="${n}">${esc(original)}` +
+        `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
         `<span class="num">${n}</span></mark>`;
       text = text.replace(original, replacement);
     });
@@ -97,11 +112,14 @@
     return issues.map((issue, idx) => {
       const n = idx + 1;
       return `
-      <article class="note" data-issue="${n}">
+      <article class="note" data-issue="${n}" id="note-${n}">
         <div class="note-head">
           <span class="note-num">${n}</span>
           <span class="note-category">${esc(issue.category || 'Phrasing')}</span>
         </div>
+        <p class="note-said-label">You said</p>
+        <p class="note-said">${esc(issue.original || '')}</p>
+        <p class="note-try-label">Try this</p>
         <p class="note-try">${esc(issue.improved || issue.better_phrasing || '')}</p>
         <p class="note-explain">${esc(issue.explanation || '')}</p>
       </article>`.trim();
@@ -142,6 +160,7 @@
     if (settingsPage)   settingsPage.style.display = 'none';
 
     sessionsPage.style.display = '';
+    loadUpNext();
 
     if (!sessions || sessions.length === 0) {
       listEl.innerHTML = '';
@@ -206,12 +225,26 @@
         ? `1 suggestion across ${durationStr(duration)} of your speech.`
         : `${n} suggestions across ${durationStr(duration)} of your speech.`;
 
-    let body = '';
+    const transcriptHTML = buildTranscript(issues, transcript);
+    const noIssuesNote   = n === 0
+      ? '<p class="empty">Nothing to flag — great session.</p>'
+      : '';
+    const notesHTML = buildNotes(issues);
+
+    let body;
     if (n === 0) {
-      body = '<p class="empty">Nothing to flag — great session.</p>';
+      body = `
+  ${noIssuesNote}
+  <div class="layout">
+    <aside class="margin" id="margin"></aside>
+    <section>
+      <div class="transcript-label">Transcript</div>
+      <div class="transcript">
+        ${transcriptHTML}
+      </div>
+    </section>
+  </div>`;
     } else {
-      const transcriptHTML = buildTranscript(issues, transcript);
-      const notesHTML      = buildNotes(issues);
       body = `
   <div class="layout">
     <aside class="margin" id="margin">
@@ -351,6 +384,66 @@
     });
   })();
 
+  // ── Calendar / Up Next ───────────────────────────────────────────────────
+
+  function _formatEventTime(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (isNaN(d)) return '';
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function _formatEventDuration(startIso, endIso) {
+    const start = new Date(startIso);
+    const end   = new Date(endIso);
+    if (isNaN(start) || isNaN(end)) return '';
+    const mins = Math.round((end - start) / 60000);
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  function _formatEventDay(isoString) {
+    if (!isoString) return '';
+    const d     = new Date(isoString);
+    const today = new Date();
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    if (d.toDateString() === today.toDateString())    return 'Today';
+    if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+    return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  function loadUpNext() {
+    const token = _token();
+    if (!token) return;
+    const list = document.getElementById('upnext-list');
+    if (!list) return;
+
+    fetch(BACKEND_URL + '/calendar/upcoming', {
+      headers: { 'Authorization': 'Bearer ' + token },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(events => {
+        if (!events || !events.length) {
+          list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">No upcoming meetings</span></div>';
+          return;
+        }
+        list.innerHTML = events.map(ev => {
+          const time     = _formatEventTime(ev.start);
+          const duration = _formatEventDuration(ev.start, ev.end);
+          const day      = _formatEventDay(ev.start);
+          const dayLabel = day !== 'Today' ? `<span class="upnext-day">${esc(day)}</span> ` : '';
+          return `<div class="session">
+            <span class="session-name">${esc(ev.title)}</span>
+            <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
+            <span class="session-duration">${esc(duration)}</span>
+          </div>`;
+        }).join('');
+      })
+      .catch(() => {});
+  }
+
   window.showSessions = function () {
     const page         = document.getElementById('page');
     const sessionsPage = document.getElementById('sessions-page');
@@ -360,6 +453,7 @@
     if (settingsPage) settingsPage.style.display = 'none';
     if (sessionsPage) sessionsPage.style.display = '';
     _resetBillingDetailsFlag();
+    loadUpNext();
   };
 
   window.showSettings = function () {
@@ -825,7 +919,11 @@
       const res = await fetch(ENGINE_URL + '/status');
       const data = await res.json();
       const ctrl = document.querySelector('.session-control');
-      if (ctrl && !ctrl.classList.contains('is-processing') && data.recording !== _recording) {
+      // If the engine says it's no longer analysing but the UI is stuck in is-processing, reset it.
+      if (ctrl && ctrl.classList.contains('is-processing') && data.analysing === false) {
+        setRecordingState(false);
+        resetRecLabel();
+      } else if (ctrl && !ctrl.classList.contains('is-processing') && data.recording !== _recording) {
         setRecordingState(data.recording);
       }
     } catch (_) {}

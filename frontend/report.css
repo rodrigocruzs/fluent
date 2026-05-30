@@ -474,7 +474,7 @@ body {
   border-radius: 1.5px;
 }
 
-/* ── Up next ── */
+/* ── Coming Up ── */
 .upnext-label {
   font-size: 11px;
   text-transform: uppercase;
@@ -688,31 +688,27 @@ body {
 mark.flag {
   background: transparent;
   color: inherit;
-  border-bottom: 1px solid var(--gray-4);
+  border-bottom: 1.5px solid var(--accent);
   padding-bottom: 1px;
-  transition: border-color 140ms ease, color 140ms ease;
-  cursor: default;
+  transition: opacity 140ms ease;
+  cursor: pointer;
+  opacity: 0.7;
 }
 
 mark.flag:hover,
 mark.flag.is-active {
-  border-bottom-color: var(--accent);
-  color: var(--ink);
+  opacity: 1;
 }
 
 mark.flag .num {
   font-size: 10px;
-  color: var(--gray-2);
+  color: var(--accent);
   vertical-align: super;
   line-height: 0;
   margin-left: 3px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.02em;
-  transition: color 140ms ease;
 }
-
-mark.flag:hover .num,
-mark.flag.is-active .num { color: var(--accent); }
 
 /* ── Margin notes column ── */
 .margin { position: relative; }
@@ -745,6 +741,28 @@ mark.flag.is-active .num { color: var(--accent); }
   letter-spacing: 0.14em;
   color: var(--gray-2);
   font-weight: 500;
+}
+
+.note-said-label,
+.note-try-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  margin: 0 0 4px;
+  padding-left: 26px;
+}
+
+.note-said-label { color: var(--gray-3); margin-top: 2px; }
+.note-try-label  { color: var(--accent); margin-top: 12px; opacity: 0.8; }
+
+.note-said {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gray-1);
+  margin: 0 0 4px;
+  padding-left: 26px;
+  letter-spacing: -0.005em;
 }
 
 .note-try {
@@ -1063,7 +1081,7 @@ mark.flag.is-active .num { color: var(--accent); }
 .settings-plan-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+  align-items: start;
   gap: 24px;
   padding: 16px 0;
   border-top: 1px solid var(--rule);
@@ -1074,3 +1092,27 @@ mark.flag.is-active .num { color: var(--accent); }
 .settings-plan-price { font-size: 14px; color: var(--gray-1); margin-top: 2px; }
 .settings-plan-accent { font-size: 13px; color: var(--accent); font-weight: 500; margin-top: 14px; }
 .settings-plan-meta  { font-size: 13px; color: var(--gray-2); margin-top: 4px; }
+
+/* Card on file */
+.settings-card-on-file { display: flex; align-items: center; gap: 12px; }
+.settings-card-brand {
+  width: 34px; height: 22px; border-radius: 3px; background: var(--ink);
+  color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; letter-spacing: 0.06em; flex-shrink: 0;
+}
+.settings-card-num  { font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.settings-card-num .settings-card-dots { color: var(--gray-3); letter-spacing: 0.05em; margin-right: 3px; }
+.settings-card-exp  { font-size: 12px; color: var(--gray-2); font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* Invoice list */
+.settings-invoice {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 20px; align-items: baseline;
+  padding: 10px 0; border-top: 1px solid var(--rule);
+  font-size: 13px; color: var(--gray-1);
+}
+.settings-invoice:first-child { border-top: none; padding-top: 0; }
+.settings-invoice-date   { color: var(--ink-2); }
+.settings-invoice-amount { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
+.settings-invoice-link   { color: var(--gray-2); text-decoration: none; font-size: 12px; }
+.settings-invoice-link:hover { color: var(--ink-2); }
