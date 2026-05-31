@@ -22,7 +22,6 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     override func loadView() {
         let config = WKWebViewConfiguration()
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        config.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         // Allow JS on the page to call back into Swift to open a specific session
         config.userContentController.add(self, name: "openSession")
         config.userContentController.add(self, name: "authComplete")
@@ -53,21 +52,19 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
 
         // Try to locate frontend/ by walking up from the .app bundle or exe path.
         // Handles both: repo build/ layout and Xcode DerivedData layout.
+        // Walk up from the .app bundle to find frontend/report.html in a dev layout
         let candidates: [URL] = {
             var urls: [URL] = []
-            // Walk up from the .app bundle
             var dir = Bundle.main.bundleURL
             for _ in 0..<10 {
                 dir = dir.deletingLastPathComponent()
                 urls.append(dir.appendingPathComponent("frontend/report.html"))
             }
-            // Also try known repo location as fallback
-            urls.append(URL(fileURLWithPath: "/Users/rodrigocruzsouza/fluent/frontend/report.html"))
             return urls
         }()
         guard let devURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
-            print("[Fluent] report.html not found in any candidate path")
-            webView.loadHTMLString("<html><body style='font-family:system-ui;padding:40px'><h1>Fluent</h1><p style='color:#888'>frontend/report.html not found.</p></body></html>", baseURL: nil)
+            print("[Fluent] report.html not found in bundle or dev layout")
+            webView.loadHTMLString("<html><body style='font-family:system-ui;padding:40px'><h1>Fluent</h1><p style='color:#888'>report.html not found.</p></body></html>", baseURL: nil)
             return
         }
 

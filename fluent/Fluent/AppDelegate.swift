@@ -86,14 +86,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         let systemPython = "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"
         let pythonPath = FileManager.default.fileExists(atPath: venvPython) ? venvPython : systemPython
 
-        // Find main.py: prefer bundled engine, fall back to repo location
-        let bundledMain = Bundle.main.resourceURL?
-            .appendingPathComponent("engine/main.py").path ?? ""
-        let repoMain = "/Users/rodrigocruzsouza/fluent/fluent-engine/main.py"
-        let mainPy = FileManager.default.fileExists(atPath: bundledMain) ? bundledMain : repoMain
-
-        guard FileManager.default.fileExists(atPath: mainPy) else {
-            print("[Fluent] engine main.py not found")
+        // Find main.py inside the app bundle
+        guard let mainPy = Bundle.main.resourceURL?
+            .appendingPathComponent("engine/main.py").path,
+              FileManager.default.fileExists(atPath: mainPy) else {
+            print("[Fluent] engine main.py not found in bundle")
             return
         }
 

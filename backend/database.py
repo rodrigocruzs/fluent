@@ -83,6 +83,14 @@ def init_db():
                     explanation TEXT    NOT NULL DEFAULT ''
                 )
             """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                    token      TEXT    PRIMARY KEY,
+                    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    expires_at FLOAT   NOT NULL,
+                    used       BOOLEAN NOT NULL DEFAULT FALSE
+                )
+            """)
         conn.commit()
 
 
@@ -257,6 +265,42 @@ def upsert_google_user(google_id: str, email: str, name: str,
             row = cur.fetchone()
         conn.commit()
         return row[0]
+
+
+def create_password_reset_token(user_id: int, token: str, ttl_seconds: int = 3600) -> None:
+    expires_at = time.time() + ttl_seconds
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO password_reset_tokens (token, user_id, expires_at)
+                   VALUES (%s, %s, %s)
+                   ON CONFLICT (token) DO NOTHING""",
+                (token, user_id, expires_at),
+            )
+        conn.commit()
+
+
+def consume_password_reset_token(token: str) -> int | None:
+    """Mark token used and return user_id, or None if invalid/expired/used."""
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT user_id, expires_at, used
+                   FROM password_reset_tokens WHERE token = %s""",
+                (token,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return None
+            user_id, expires_at, used = row
+            if used or time.time() > expires_at:
+                return None
+            cur.execute(
+                "UPDATE password_reset_tokens SET used = TRUE WHERE token = %s",
+                (token,),
+            )
+        conn.commit()
+        return user_id
 
 
 def get_session_with_issues(user_id: int, slug: str) -> dict | None:

@@ -98,7 +98,7 @@
       const replacement =
         `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
         `<span class="num">${n}</span></mark>`;
-      text = text.replace(original, replacement);
+      text = text.replace(original, () => replacement);
     });
 
     const paras = text.split(/\n\n+/).filter(p => p.trim());
@@ -592,10 +592,10 @@
     const year  = String(card.exp_year || '').slice(-2);
     cardVal.innerHTML = `
       <div class="settings-card-on-file">
-        <span class="settings-card-brand">${brand}</span>
+        <span class="settings-card-brand">${esc(brand)}</span>
         <div>
-          <div class="settings-card-num"><span class="settings-card-dots">&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</span>${card.last4}</div>
-          <div class="settings-card-exp">Expires ${month} / ${year}</div>
+          <div class="settings-card-num"><span class="settings-card-dots">&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</span>${esc(card.last4)}</div>
+          <div class="settings-card-exp">Expires ${esc(month)} / ${esc(year)}</div>
         </div>
       </div>`;
     if (cardRow)        cardRow.style.display = '';
@@ -609,7 +609,7 @@
     list.innerHTML = invoices.map(inv => {
       const date   = inv.date ? new Date(inv.date * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
       const amount = inv.amount != null ? (inv.currency === 'usd' ? '$' : '') + (inv.amount / 100).toFixed(2) : '—';
-      const link   = inv.pdf ? `<a class="settings-invoice-link" href="${inv.pdf}" target="_blank">Download &rarr;</a>` : '<span></span>';
+      const link   = inv.pdf ? `<a class="settings-invoice-link" href="${esc(inv.pdf)}" target="_blank">Download &rarr;</a>` : '<span></span>';
       return `<div class="settings-invoice">
         <span class="settings-invoice-date">${date}</span>
         <span class="settings-invoice-amount">${amount}</span>
