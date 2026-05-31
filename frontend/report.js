@@ -289,7 +289,7 @@
 
   // ── Auth page logic ───────────────────────────────────────────────────────
 
-  const BACKEND_URL = 'https://fluent-lemon.vercel.app/api';
+  const BACKEND_URL = 'https://www.tryfluent.co/api';
 
   function _token() { return localStorage.getItem('fluent_token'); }
   function _saveToken(t) { localStorage.setItem('fluent_token', t); }
@@ -342,7 +342,7 @@
     const googleBtn = authPage.querySelector('.auth-providers .auth-provider:first-child');
     if (googleBtn) {
       googleBtn.addEventListener('click', () => {
-        const googleAuthURL = 'http://localhost:8001/auth/google';
+        const googleAuthURL = 'https://www.tryfluent.co/api/auth/google';
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openURL) {
           window.webkit.messageHandlers.openURL.postMessage(googleAuthURL);
         } else {
