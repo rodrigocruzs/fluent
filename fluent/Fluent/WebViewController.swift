@@ -112,7 +112,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     }
 
     private func fetchAndInjectSessions(token: String) {
-        var req = URLRequest(url: URL(string: "https://fluent-lemon.vercel.app/api/sessions")!)
+        var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions")!)
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
             DispatchQueue.main.async {
