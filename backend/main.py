@@ -34,6 +34,7 @@ from backend.database import (
     update_user_password, update_user_email, delete_user,
     update_user_billing, get_user_by_stripe_customer,
     get_user_by_google_id, upsert_google_user,
+    create_password_reset_token, consume_password_reset_token,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
 
@@ -41,11 +42,14 @@ STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "")         # $10/mo price ID
 STRIPE_TRIAL_DAYS      = 7
-FRONTEND_URL           = os.environ.get("FRONTEND_URL", "https://fluent-lemon.vercel.app")
+FRONTEND_URL           = os.environ.get("FRONTEND_URL", "https://www.tryfluent.co")
 
 GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI  = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback")
+
+RESEND_API_KEY   = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM      = os.environ.get("RESEND_FROM_EMAIL", "Fluent <noreply@usefluent.app>")
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
@@ -339,6 +343,86 @@ def change_password(req: ChangePasswordRequest, user: dict = Depends(_current_us
     if len(req.new_password) < 8:
         raise HTTPException(400, "New password must be at least 8 characters.")
     update_user_password(user["id"], hash_password(req.new_password))
+    return {"ok": True}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+@app.post("/auth/forgot-password")
+def forgot_password(req: ForgotPasswordRequest):
+    if not RESEND_API_KEY:
+        raise HTTPException(503, "Email service is not configured.")
+    user = get_user_by_email(req.email)
+    # Always return 200 to avoid leaking which emails exist
+    if not user:
+        return {"ok": True}
+
+    import secrets
+    import resend
+    resend.api_key = RESEND_API_KEY
+
+    token = secrets.token_urlsafe(32)
+    create_password_reset_token(user["id"], token, ttl_seconds=3600)
+
+    reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
+    resend.Emails.send({
+        "from": RESEND_FROM,
+        "to": [user["email"]],
+        "subject": "Reset your Fluent password",
+        "html": f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+             background:#fff;color:#1a1a1a;margin:0;padding:0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:48px auto;padding:0 24px;">
+    <tr><td>
+      <div style="margin-bottom:32px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:#C96442;
+                    display:inline-flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
+            <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+            <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+            <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+          </svg>
+        </div>
+      </div>
+      <h1 style="font-size:22px;font-weight:600;letter-spacing:-0.02em;margin:0 0 8px;">Reset your password</h1>
+      <p style="font-size:15px;color:#555;line-height:1.6;margin:0 0 24px;">
+        We received a request to reset the password for your Fluent account.<br>
+        Click the button below — this link expires in 1 hour.
+      </p>
+      <a href="{reset_url}"
+         style="display:inline-block;background:#C96442;color:#fff;text-decoration:none;
+                font-size:15px;font-weight:500;padding:12px 24px;border-radius:8px;">
+        Reset password
+      </a>
+      <p style="font-size:13px;color:#8a8a8a;margin:24px 0 0;line-height:1.5;">
+        If you didn't request this, you can safely ignore this email.<br>
+        Your password won't change until you click the link above.
+      </p>
+    </td></tr>
+  </table>
+</body>
+</html>""",
+    })
+    return {"ok": True}
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@app.post("/auth/reset-password")
+def reset_password(req: ResetPasswordRequest):
+    if len(req.new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters.")
+    user_id = consume_password_reset_token(req.token)
+    if user_id is None:
+        raise HTTPException(400, "This reset link is invalid or has expired.")
+    update_user_password(user_id, hash_password(req.new_password))
     return {"ok": True}
 
 
