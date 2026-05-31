@@ -5,6 +5,10 @@
             "use": "@vercel/static"
         },
         {
+            "src": "assets/**",
+            "use": "@vercel/static"
+        },
+        {
             "src": "api/index.py",
             "use": "@vercel/python",
             "config": { "requirementsFile": "api/requirements.txt" }
@@ -12,8 +16,10 @@
     ],
     "routes": [
         { "src": "/api/(.*)", "dest": "/api/index.py" },
+        { "src": "/assets/(.*)", "dest": "/assets/$1" },
         { "src": "/sample-report.html", "dest": "/website/sample-report.html" },
         { "src": "/privacy", "dest": "/website/privacy.html" },
+        { "src": "/reset-password", "dest": "/website/reset-password.html" },
         { "src": "/(.*)", "dest": "/website/$1" }
     ]
 }

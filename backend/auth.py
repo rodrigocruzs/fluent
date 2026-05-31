@@ -9,7 +9,10 @@ import bcrypt
 from jose import JWTError, jwt
 
 def _jwt_secret() -> str:
-    return os.environ.get("JWT_SECRET", "change-me-in-production-use-env-var")
+    secret = os.environ.get("JWT_SECRET", "")
+    if not secret:
+        raise RuntimeError("JWT_SECRET environment variable is not set.")
+    return secret
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 30
 

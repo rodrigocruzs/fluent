@@ -22,6 +22,7 @@ import time
 from dotenv import load_dotenv
 load_dotenv(".env.local", override=True)  # must run before any module reads os.environ
 from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 import json
@@ -55,6 +56,20 @@ if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
 app = FastAPI(title="Fluent API")
+
+_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "https://www.tryfluent.co,https://tryfluent.co,http://localhost:3000,http://localhost:8000",
+).split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 _bearer = HTTPBearer()
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -206,6 +221,7 @@ justify-content:center;min-height:100vh;margin:0;background:#fff;color:#1a1a1a}}
     import pathlib
     pending = pathlib.Path.home() / ".fluent" / "pending_auth.json"
     pending.write_text(json.dumps({"token": jwt, "name": name, "email": email}))
+    pending.chmod(0o600)
     try:
         _requests.post("http://127.0.0.1:2788/signin", json={"token": jwt}, timeout=2)
     except Exception:
