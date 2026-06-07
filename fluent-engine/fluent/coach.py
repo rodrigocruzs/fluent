@@ -11,18 +11,25 @@ from fluent.config import Config, BACKEND_URL
 KEYCHAIN_SERVICE = "fluent"
 KEYCHAIN_JWT_KEY = "jwt_token"
 
+_token_cache: str | None = None
+
 
 def get_token() -> str | None:
+    global _token_cache
+    if _token_cache is not None:
+        return _token_cache
     result = subprocess.run(
         ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY, "-w"],
         capture_output=True, text=True
     )
     token = result.stdout.strip()
-    return token if token else None
+    _token_cache = token if token else None
+    return _token_cache
 
 
 def save_token(token: str):
-    # Delete first to avoid duplicate errors
+    global _token_cache
+    _token_cache = token
     subprocess.run(
         ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
         capture_output=True
@@ -34,6 +41,8 @@ def save_token(token: str):
 
 
 def delete_token():
+    global _token_cache
+    _token_cache = None
     subprocess.run(
         ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
         capture_output=True

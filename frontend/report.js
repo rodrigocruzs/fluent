@@ -146,7 +146,11 @@
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  window._t0 = performance.now();
+  console.log('[Fluent] page ready at', window._t0.toFixed(0), 'ms');
+
   window.loadSessions = function (sessions, upNext) {
+    console.log('[Fluent] loadSessions called at', performance.now().toFixed(0), 'ms (+' + (performance.now() - window._t0).toFixed(0) + 'ms after page ready)');
     const sessionsPage = document.getElementById('sessions-page');
     const authPage     = document.getElementById('auth-page');
     const settingsPage = document.getElementById('settings-page');

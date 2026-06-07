@@ -8,6 +8,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     private var pendingReportJSON: String?
     private var pendingShowSettings = false
     private var authPollTimer: Timer?
+    private var cachedToken: String?
 
     private let pendingAuthURL: URL = {
         FileManager.default.homeDirectoryForCurrentUser
@@ -75,6 +76,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     // MARK: - Sessions list (shown on startup)
 
     private func getToken() -> String? {
+        if let cached = cachedToken { return cached }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "fluent",
@@ -87,6 +89,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
               let data = result as? Data,
               let token = String(data: data, encoding: .utf8)
         else { return nil }
+        cachedToken = token
         return token
     }
 
@@ -207,6 +210,7 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     }
 
     func clearTokenAndShowOnboarding() {
+        cachedToken = nil
         webView.evaluateJavaScript("localStorage.removeItem('fluent_token'); window.showOnboarding && window.showOnboarding();")
     }
 
@@ -286,26 +290,29 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
             return
         }
         guard message.name == "openSession", let slug = message.body as? String else { return }
-        guard let token = getToken() else {
-            print("[Fluent] openSession: no token")
-            return
-        }
         let encoded = slug.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? slug
-        var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions/\(encoded)")!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
-            DispatchQueue.main.async {
-                guard let self,
-                      let data = data,
-                      let json = String(data: data, encoding: .utf8),
-                      (response as? HTTPURLResponse)?.statusCode == 200
-                else {
-                    print("[Fluent] openSession: failed to fetch slug \(slug)")
-                    return
-                }
-                self.injectReport(json: json)
+        // Read token from localStorage (already injected on startup) to avoid keychain access
+        webView.evaluateJavaScript("localStorage.getItem('fluent_token')") { [weak self] result, _ in
+            guard let self, let token = result as? String, !token.isEmpty else {
+                print("[Fluent] openSession: no token in localStorage")
+                return
             }
-        }.resume()
+            var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions/\(encoded)")!)
+            req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+                DispatchQueue.main.async {
+                    guard let self,
+                          let data = data,
+                          let json = String(data: data, encoding: .utf8),
+                          (response as? HTTPURLResponse)?.statusCode == 200
+                    else {
+                        print("[Fluent] openSession: failed to fetch slug \(slug)")
+                        return
+                    }
+                    self.injectReport(json: json)
+                }
+            }.resume()
+        }
     }
 }
 
