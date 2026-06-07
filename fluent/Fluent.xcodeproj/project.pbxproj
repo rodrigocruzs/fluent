@@ -27,9 +27,9 @@
 		3BB654DD2FC340630049424F /* report.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; name = report.css; path = ../frontend/report.css; sourceTree = SOURCE_ROOT; };
 		3BB654DE2FC340630049424F /* report.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = report.html; path = ../frontend/report.html; sourceTree = SOURCE_ROOT; };
 		3BB654DF2FC340630049424F /* report.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = report.js; path = ../frontend/report.js; sourceTree = SOURCE_ROOT; };
-		B1C200C000000020 /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = ../fluent-engine; sourceTree = SOURCE_ROOT; };
-		B1C200D000000030 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportWindowController.swift; sourceTree = "<group>"; };
+		B1C200C000000020 /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = "../fluent-engine"; sourceTree = SOURCE_ROOT; };
+		B1C200D000000030 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarwinNotificationBridge.swift; sourceTree = "<group>"; };
 		EA5342D38872AC0B957CBC5E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -78,6 +78,7 @@
 			buildPhases = (
 				B1C200B000000010 /* Resources */,
 				CDBDE7C81ADC6FD8E862AE40 /* Sources */,
+				A1B2C3D400000001 /* Install to Applications */,
 			);
 			buildRules = (
 			);
@@ -90,6 +91,23 @@
 			productReference = 2C6E64A7A9EC2D44FCB9F3BF /* Fluent.app */;
 			productType = "com.apple.product-type.application";
 		};
+/* Begin PBXShellScriptBuildPhase section */
+		A1B2C3D400000001 /* Install to Applications */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Install to Applications";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "pkill -x Fluent || true\nsleep 0.5\ncp -Rf \"$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app\" /Applications/\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -100,7 +118,6 @@
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					FA19A27B5CADF6A7348CA2DF = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -159,7 +176,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Fluent/Fluent.entitlements;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = H28RYPBSMQ;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Fluent/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -205,8 +227,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
-				ENABLE_HARDENED_RUNTIME = NO;
+				DEVELOPMENT_TEAM = H28RYPBSMQ;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -265,8 +287,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
-				ENABLE_HARDENED_RUNTIME = NO;
+				DEVELOPMENT_TEAM = H28RYPBSMQ;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -300,12 +322,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Fluent/Fluent.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = H28RYPBSMQ;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Fluent/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.tryfluent.app;
 				SDKROOT = macosx;
 			};
 			name = Debug;

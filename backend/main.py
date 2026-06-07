@@ -217,11 +217,14 @@ justify-content:center;min-height:100vh;margin:0;background:#fff;color:#1a1a1a}}
                                  token_expiry=token_expiry)
     jwt     = create_token(user_id)
 
-    # Write token to a file the app polls, and also try the engine's /signin endpoint
+    # Write token to a file the app polls (local only; silently skipped on Vercel)
     import pathlib
-    pending = pathlib.Path.home() / ".fluent" / "pending_auth.json"
-    pending.write_text(json.dumps({"token": jwt, "name": name, "email": email}))
-    pending.chmod(0o600)
+    try:
+        pending = pathlib.Path.home() / ".fluent" / "pending_auth.json"
+        pending.write_text(json.dumps({"token": jwt, "name": name, "email": email}))
+        pending.chmod(0o600)
+    except Exception:
+        pass
     try:
         _requests.post("http://127.0.0.1:2788/signin", json={"token": jwt}, timeout=2)
     except Exception:

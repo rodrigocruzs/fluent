@@ -4,8 +4,8 @@ The backend holds the Anthropic API key; the client only needs a JWT.
 """
 
 import os
+import subprocess
 import httpx
-import keyring
 from fluent.config import Config, BACKEND_URL
 
 KEYCHAIN_SERVICE = "fluent"
@@ -13,18 +13,31 @@ KEYCHAIN_JWT_KEY = "jwt_token"
 
 
 def get_token() -> str | None:
-    return keyring.get_password(KEYCHAIN_SERVICE, KEYCHAIN_JWT_KEY)
+    result = subprocess.run(
+        ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY, "-w"],
+        capture_output=True, text=True
+    )
+    token = result.stdout.strip()
+    return token if token else None
 
 
 def save_token(token: str):
-    keyring.set_password(KEYCHAIN_SERVICE, KEYCHAIN_JWT_KEY, token)
+    # Delete first to avoid duplicate errors
+    subprocess.run(
+        ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
+        capture_output=True
+    )
+    subprocess.run(
+        ["security", "add-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY, "-w", token],
+        capture_output=True
+    )
 
 
 def delete_token():
-    try:
-        keyring.delete_password(KEYCHAIN_SERVICE, KEYCHAIN_JWT_KEY)
-    except keyring.errors.PasswordDeleteError:
-        pass
+    subprocess.run(
+        ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
+        capture_output=True
+    )
 
 
 def register(email: str, password: str) -> str:

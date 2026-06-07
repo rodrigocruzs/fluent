@@ -474,7 +474,7 @@ body {
   border-radius: 1.5px;
 }
 
-/* ── Coming Up ── */
+/* ── Up next ── */
 .upnext-label {
   font-size: 11px;
   text-transform: uppercase;
@@ -688,27 +688,31 @@ body {
 mark.flag {
   background: transparent;
   color: inherit;
-  border-bottom: 1.5px solid var(--accent);
+  border-bottom: 1px solid var(--gray-4);
   padding-bottom: 1px;
-  transition: opacity 140ms ease;
-  cursor: pointer;
-  opacity: 0.7;
+  transition: border-color 140ms ease, color 140ms ease;
+  cursor: default;
 }
 
 mark.flag:hover,
 mark.flag.is-active {
-  opacity: 1;
+  border-bottom-color: var(--accent);
+  color: var(--ink);
 }
 
 mark.flag .num {
   font-size: 10px;
-  color: var(--accent);
+  color: var(--gray-2);
   vertical-align: super;
   line-height: 0;
   margin-left: 3px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
+  transition: color 140ms ease;
 }
+
+mark.flag:hover .num,
+mark.flag.is-active .num { color: var(--accent); }
 
 /* ── Margin notes column ── */
 .margin { position: relative; }
@@ -741,28 +745,6 @@ mark.flag .num {
   letter-spacing: 0.14em;
   color: var(--gray-2);
   font-weight: 500;
-}
-
-.note-said-label,
-.note-try-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 500;
-  margin: 0 0 4px;
-  padding-left: 26px;
-}
-
-.note-said-label { color: var(--gray-3); margin-top: 2px; }
-.note-try-label  { color: var(--accent); margin-top: 12px; opacity: 0.8; }
-
-.note-said {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--gray-1);
-  margin: 0 0 4px;
-  padding-left: 26px;
-  letter-spacing: -0.005em;
 }
 
 .note-try {

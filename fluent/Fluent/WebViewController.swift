@@ -112,23 +112,50 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     }
 
     private func fetchAndInjectSessions(token: String) {
-        var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions")!)
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                guard let data = data,
-                      let json = String(data: data, encoding: .utf8),
-                      (response as? HTTPURLResponse)?.statusCode == 200
-                else {
-                    self.webView.evaluateJavaScript("window.loadSessions([]);")
-                    return
-                }
-                self.webView.evaluateJavaScript("window.loadSessions(\(json));") { _, error in
-                    if let error { print("[Fluent WebView] loadSessions error:", error) }
-                }
-            }
+        let group = DispatchGroup()
+        var sessions: [[String: Any]] = []
+        var upNext: [[String: Any]] = []
+
+        // Fetch sessions list
+        group.enter()
+        var sessionsReq = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions")!)
+        sessionsReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: sessionsReq) { data, response, _ in
+            defer { group.leave() }
+            guard let data,
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            else { return }
+            sessions = parsed
         }.resume()
+
+        // Fetch calendar events
+        group.enter()
+        var calReq = URLRequest(url: URL(string: "https://www.tryfluent.co/api/calendar/upcoming")!)
+        calReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: calReq) { data, response, _ in
+            defer { group.leave() }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            print("[Fluent] calendar status:", status, String(data: data ?? Data(), encoding: .utf8) ?? "")
+            guard let data, status == 200,
+                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            else { return }
+            upNext = parsed
+        }.resume()
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self,
+                  let sessionsJSON = try? JSONSerialization.data(withJSONObject: sessions),
+                  let sessionsStr  = String(data: sessionsJSON, encoding: .utf8),
+                  let upNextJSON   = try? JSONSerialization.data(withJSONObject: upNext),
+                  let upNextStr    = String(data: upNextJSON, encoding: .utf8)
+            else { return }
+            let safeToken = token.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+            let js = "localStorage.setItem('fluent_token', '\(safeToken)'); window.loadSessions(\(sessionsStr), \(upNextStr));"
+            self.webView.evaluateJavaScript(js) { _, error in
+                if let error { print("[Fluent WebView] loadSessions error:", error) }
+            }
+        }
     }
 
     private func showSettingsIfPending() {
@@ -259,15 +286,26 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
             return
         }
         guard message.name == "openSession", let slug = message.body as? String else { return }
-        let sessionURL = reportsDir.appendingPathComponent("\(slug).json")
-        guard
-            let data = try? Data(contentsOf: sessionURL),
-            let json = String(data: data, encoding: .utf8)
-        else {
-            print("[Fluent] session JSON not found for slug: \(slug)")
+        guard let token = getToken() else {
+            print("[Fluent] openSession: no token")
             return
         }
-        injectReport(json: json)
+        let encoded = slug.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? slug
+        var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions/\(encoded)")!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            DispatchQueue.main.async {
+                guard let self,
+                      let data = data,
+                      let json = String(data: data, encoding: .utf8),
+                      (response as? HTTPURLResponse)?.statusCode == 200
+                else {
+                    print("[Fluent] openSession: failed to fetch slug \(slug)")
+                    return
+                }
+                self.injectReport(json: json)
+            }
+        }.resume()
     }
 }
 

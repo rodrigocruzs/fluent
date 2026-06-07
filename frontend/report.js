@@ -146,7 +146,7 @@
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
-  window.loadSessions = function (sessions) {
+  window.loadSessions = function (sessions, upNext) {
     const sessionsPage = document.getElementById('sessions-page');
     const authPage     = document.getElementById('auth-page');
     const settingsPage = document.getElementById('settings-page');
@@ -160,7 +160,11 @@
     if (settingsPage)   settingsPage.style.display = 'none';
 
     sessionsPage.style.display = '';
-    loadUpNext();
+    if (upNext !== undefined) {
+      renderUpNext(upNext);
+    } else {
+      loadUpNext(_token());
+    }
 
     if (!sessions || sessions.length === 0) {
       listEl.innerHTML = '';
@@ -178,6 +182,7 @@
       `${count} session${count !== 1 ? 's' : ''} — about ${timeLabel} of recorded speech.`;
 
     listEl.innerHTML = '';
+
     sessions.forEach(session => {
       const n = session.issue_count || 0;
       const countLabel = n === 0 ? 'No suggestions' : n === 1 ? '1 suggestion' : `${n} suggestions`;
@@ -194,10 +199,26 @@
         <span class="session-count${n > 0 ? ' has-suggestions' : ''}">${esc(countLabel)}</span>
         <span class="session-chevron" aria-hidden="true">&rsaquo;</span>`;
       btn.addEventListener('click', () => {
+        console.log('[Fluent] session clicked:', session.slug, 'data:', !!session.data);
         if (session.data) {
           window.loadReport(session.data);
-        } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openSession) {
-          window.webkit.messageHandlers.openSession.postMessage(session.slug || session.date);
+          return;
+        }
+        const slug = session.slug || session.date;
+        console.log('[Fluent] slug:', slug);
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openSession) {
+          console.log('[Fluent] sending openSession to Swift');
+          window.webkit.messageHandlers.openSession.postMessage(slug);
+        } else {
+          const token = _token();
+          console.log('[Fluent] no Swift bridge, token present:', !!token);
+          if (!token) return;
+          const url = BACKEND_URL + '/sessions/' + encodeURIComponent(slug);
+          console.log('[Fluent] fetching:', url);
+          fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(r => { console.log('[Fluent] response status:', r.status); return r.ok ? r.json() : null; })
+            .then(data => { console.log('[Fluent] session data:', data); if (data) window.loadReport(data); })
+            .catch(e => { console.error('[Fluent] fetch error:', e); });
         }
       });
       listEl.appendChild(btn);
@@ -291,7 +312,7 @@
 
   const BACKEND_URL = 'https://www.tryfluent.co/api';
 
-  function _token() { return localStorage.getItem('fluent_token'); }
+  function _token() { return localStorage.getItem('fluent_token') || window._fluentToken || null; }
   function _saveToken(t) { localStorage.setItem('fluent_token', t); }
   function _clearToken() { localStorage.removeItem('fluent_token'); }
 
@@ -414,8 +435,28 @@
     return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  function loadUpNext() {
-    const token = _token();
+  function renderUpNext(events) {
+    const list = document.getElementById('upnext-list');
+    if (!list) return;
+    if (!events || !events.length) {
+      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">No upcoming meetings</span></div>';
+      return;
+    }
+    list.innerHTML = events.map(ev => {
+      const time     = _formatEventTime(ev.start);
+      const duration = _formatEventDuration(ev.start, ev.end);
+      const day      = _formatEventDay(ev.start);
+      const dayLabel = day !== 'Today' ? `<span class="upnext-day">${esc(day)}</span> ` : '';
+      return `<div class="session">
+        <span class="session-name">${esc(ev.title)}</span>
+        <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
+        <span class="session-duration">${esc(duration)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function loadUpNext(token) {
+    token = token || _token();
     if (!token) return;
     const list = document.getElementById('upnext-list');
     if (!list) return;
@@ -424,23 +465,7 @@
       headers: { 'Authorization': 'Bearer ' + token },
     })
       .then(r => r.ok ? r.json() : null)
-      .then(events => {
-        if (!events || !events.length) {
-          list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">No upcoming meetings</span></div>';
-          return;
-        }
-        list.innerHTML = events.map(ev => {
-          const time     = _formatEventTime(ev.start);
-          const duration = _formatEventDuration(ev.start, ev.end);
-          const day      = _formatEventDay(ev.start);
-          const dayLabel = day !== 'Today' ? `<span class="upnext-day">${esc(day)}</span> ` : '';
-          return `<div class="session">
-            <span class="session-name">${esc(ev.title)}</span>
-            <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
-            <span class="session-duration">${esc(duration)}</span>
-          </div>`;
-        }).join('');
-      })
+      .then(events => renderUpNext(events))
       .catch(() => {});
   }
 

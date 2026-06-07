@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="squircle">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"></rect>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="#C96442"></rect>
+    <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="78">
+      <path d="M 188 360 Q 332 140, 512 360 T 836 360" opacity="1"></path>
+      <path d="M 188 532 Q 332 312, 512 532 T 836 532" opacity="0.72"></path>
+      <path d="M 188 704 Q 332 484, 512 704 T 836 704" opacity="0.45"></path>
+    </g>
+  </g>
+</svg>

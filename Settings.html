@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fluent — Settings</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/fluent-icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/fluent-icon-16.png">
+<style>
+  :root {
+    --ink:        #1a1a1a;
+    --ink-2:      #2a2a2a;
+    --gray-1:     #555555;
+    --gray-2:     #8a8a8a;
+    --gray-3:     #b5b5b5;
+    --gray-4:     #d8d8d6;
+    --rule:       #e8e8e6;
+    --field-bg:   #fafaf9;
+    --field-bd:   #e3e3e0;
+    --field-bd-h: #c8c8c5;
+    --accent:     #C96442;
+    --accent-hover:#b85737;
+    --danger:     #b94a3a;
+    --bg:         #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01", "cv11", "kern";
+    text-rendering: optimizeLegibility;
+    line-height: 1.55;
+  }
+
+  a { color: inherit; }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 48px 160px;
+  }
+
+  /* ── Masthead ───────────────────────────────────────── */
+  .masthead { margin-bottom: 56px; }
+
+  .back-link {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--gray-2);
+    text-decoration: none;
+    margin-bottom: 28px;
+    transition: color 120ms ease;
+  }
+  .back-link:hover { color: var(--ink-2); }
+  .back-link .arrow {
+    display: inline-block;
+    margin-right: 4px;
+    transition: transform 120ms ease;
+  }
+  .back-link:hover .arrow { transform: translateX(-2px); }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .wordmark {
+    font-size: 16px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  .page-label {
+    font-size: 13px;
+    color: var(--gray-2);
+    margin-top: 28px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  .page-heading {
+    font-size: 28px;
+    color: var(--ink);
+    margin: 12px 0 0;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  /* ── Section ────────────────────────────────────────── */
+  section {
+    padding: 48px 0;
+    border-top: 1px solid var(--rule);
+  }
+  section:last-of-type { border-bottom: 1px solid var(--rule); }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 48px;
+  }
+
+  .section-head h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -0.005em;
+  }
+  .section-head p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--gray-2);
+    line-height: 1.55;
+  }
+
+  /* ── Row (inside section body) ──────────────────────── */
+  .row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .row:first-child { border-top: none; padding-top: 0; }
+  .row:last-child  { padding-bottom: 0; }
+
+  .row-label {
+    font-size: 12px;
+    color: var(--gray-2);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .row-value {
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    word-break: break-word;
+  }
+  .row-value .mono {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .row-value .muted {
+    color: var(--gray-2);
+    font-weight: 400;
+  }
+
+  /* ── Inline edit form (collapsed by default) ─────────── */
+  details.editable {
+    grid-column: 1 / -1;
+  }
+  details.editable summary {
+    list-style: none;
+    cursor: pointer;
+    display: contents;
+  }
+  details.editable summary::-webkit-details-marker { display: none; }
+
+  details.editable .summary-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 24px;
+  }
+
+  details.editable[open] .summary-row { margin-bottom: 18px; }
+  details.editable[open] .edit-btn span { display: none; }
+  details.editable[open] .edit-btn::after { content: "Cancel"; }
+
+  .edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 6px;
+  }
+  .edit-form .field-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .edit-form label {
+    font-size: 12px;
+    color: var(--gray-2);
+    font-weight: 500;
+  }
+
+  /* ── Inputs ─────────────────────────────────────────── */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    appearance: none;
+    background: var(--field-bg);
+    border: 1px solid var(--field-bd);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+    width: 100%;
+    max-width: 340px;
+  }
+  input::placeholder { color: var(--gray-3); }
+  input:hover { border-color: var(--field-bd-h); }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(201, 100, 66, 0.12);
+  }
+
+  /* ── Buttons ────────────────────────────────────────── */
+  .btn {
+    appearance: none;
+    border: 1px solid var(--field-bd);
+    background: #fff;
+    color: var(--ink-2);
+    border-radius: 7px;
+    padding: 7px 13px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+  }
+  .btn:hover {
+    border-color: var(--field-bd-h);
+    background: var(--field-bg);
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+  .btn.danger {
+    color: var(--danger);
+    border-color: transparent;
+    padding: 7px 0;
+  }
+  .btn.danger:hover {
+    background: transparent;
+    color: #8a3528;
+  }
+  .btn.text {
+    border-color: transparent;
+    color: var(--gray-1);
+    padding: 7px 4px;
+  }
+  .btn.text:hover {
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  /* ── Plan card (calm, no shadow) ────────────────────── */
+  .plan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 24px;
+    padding: 16px 0 22px;
+    border-top: 1px solid var(--rule);
+  }
+  .plan:first-child { border-top: none; padding-top: 0; }
+
+  .plan-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .plan-price {
+    font-size: 14px;
+    color: var(--gray-1);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .plan-trial {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .plan-meta {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--gray-2);
+  }
+
+  /* ── Card on file ───────────────────────────────────── */
+  .card-on-file {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .card-brand {
+    width: 38px;
+    height: 26px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+  }
+  .card-num {
+    font-size: 15px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+  }
+  .card-num .dots {
+    color: var(--gray-3);
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+  }
+  .card-exp {
+    font-size: 13px;
+    color: var(--gray-2);
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+
+  /* ── Receipts list ──────────────────────────────────── */
+  .receipts {
+    display: flex;
+    flex-direction: column;
+  }
+  .receipt {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 24px;
+    align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+    font-size: 14px;
+    color: var(--gray-1);
+  }
+  .receipt:first-child { border-top: none; padding-top: 0; }
+  .receipt-date { color: var(--ink-2); }
+  .receipt-amount {
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    min-width: 56px;
+    text-align: right;
+  }
+  .receipt-link {
+    color: var(--gray-2);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 120ms ease;
+  }
+  .receipt-link:hover { color: var(--ink-2); }
+
+  /* ── Danger zone ────────────────────────────────────── */
+  .danger-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .danger-row:first-child { border-top: none; padding-top: 0; }
+  .danger-row strong {
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 14px;
+    letter-spacing: -0.005em;
+  }
+  .danger-row p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--gray-2);
+    line-height: 1.5;
+  }
+
+  /* ── Tweakable: density (body classes) ─────────────────── */
+  body.density-compact section { padding: 32px 0; }
+  body.density-compact .row,
+  body.density-compact .danger-row { padding: 12px 0; }
+  body.density-compact .plan { padding: 12px 0 16px; }
+  body.density-compact .masthead { margin-bottom: 40px; }
+
+  body.density-comfy section { padding: 64px 0; }
+  body.density-comfy .row,
+  body.density-comfy .danger-row { padding: 22px 0; }
+  body.density-comfy .plan { padding: 22px 0 28px; }
+  body.density-comfy .masthead { margin-bottom: 72px; }
+
+  /* ── Tweakable: plan state (body classes) ───────────────── */
+  body:not(.plan-trial)    .plan-state.is-trial,
+  body:not(.plan-active)   .plan-state.is-active,
+  body:not(.plan-canceled) .plan-state.is-canceled { display: none; }
+
+  /* ── Tweakable: hide receipts ───────────────────────── */
+  body.no-receipts .receipts-row { display: none; }
+
+  /* ── Narrow ─────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .page { padding: 56px 24px 120px; }
+    .section-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .row,
+    .danger-row,
+    .plan,
+    .receipt {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+    .row > :last-child,
+    .danger-row > :last-child,
+    .plan > :last-child { justify-self: start; }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+
+  <header class="masthead">
+    <a class="back-link" href="Sessions.html"><span class="arrow">&larr;</span> Sessions</a>
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+          <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+          <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+        </svg>
+      </span>
+      <span class="wordmark">Fluent</span>
+    </div>
+    <div class="page-label">Settings</div>
+    <h1 class="page-heading">Your account.</h1>
+  </header>
+
+  <!-- ── Account ─────────────────────────────────────── -->
+  <section>
+    <div class="section-grid">
+      <div class="section-head">
+        <h2>Account</h2>
+        <p>The email and password you use to sign in.</p>
+      </div>
+
+      <div>
+
+        <details class="editable">
+          <summary>
+            <div class="summary-row">
+              <div>
+                <div class="row-label">Email</div>
+                <div class="row-value">marina@example.com</div>
+              </div>
+            </div>
+          </summary>
+        </details>
+
+        <div style="border-top: 1px solid var(--rule); margin: 16px 0;"></div>
+
+        <details class="editable">
+          <summary>
+            <div class="summary-row">
+              <div>
+                <div class="row-label">Password</div>
+                <div class="row-value"><span class="mono">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div>
+              </div>
+              <button type="button" class="btn edit-btn"><span>Change</span></button>
+            </div>
+          </summary>
+          <form class="edit-form" onsubmit="event.preventDefault(); this.closest('details').open = false;">
+            <div class="field-pair">
+              <label for="current-pw">Current password</label>
+              <input id="current-pw" type="password" autocomplete="current-password">
+            </div>
+            <div class="field-pair">
+              <label for="new-pw">New password</label>
+              <input id="new-pw" type="password" autocomplete="new-password" placeholder="At least 8 characters">
+            </div>
+            <div class="btn-row">
+              <button type="submit" class="btn primary">Save changes</button>
+              <button type="button" class="btn text" onclick="this.closest('details').open = false;">Cancel</button>
+            </div>
+          </form>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Plan ────────────────────────────────────────── -->
+  <section>
+    <div class="section-grid">
+      <div class="section-head">
+        <h2>Plan</h2>
+        <p>Your subscription and renewal date.</p>
+      </div>
+
+      <div>
+        <div class="plan plan-state is-trial">
+          <div>
+            <div class="plan-name">Fluent</div>
+            <div class="plan-price">$10 per month</div>
+            <div class="plan-trial">Free trial &middot; 4 days remaining</div>
+            <div class="plan-meta">Billing starts May 28, 2026.</div>
+          </div>
+          <button type="button" class="btn">Cancel trial</button>
+        </div>
+
+        <div class="plan plan-state is-active">
+          <div>
+            <div class="plan-name">Fluent</div>
+            <div class="plan-price">$10 per month</div>
+            <div class="plan-meta" style="margin-top: 10px;">Renews June 1, 2026.</div>
+          </div>
+          <button type="button" class="btn">Cancel plan</button>
+        </div>
+
+        <div class="plan plan-state is-canceled">
+          <div>
+            <div class="plan-name">Fluent</div>
+            <div class="plan-price">$10 per month</div>
+            <div class="plan-trial" style="color: var(--gray-1);">Canceled &middot; access through May 31, 2026</div>
+            <div class="plan-meta">After that, reports stay readable but no new sessions will be coached.</div>
+          </div>
+          <button type="button" class="btn primary">Resume plan</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Billing ─────────────────────────────────────── -->
+  <section>
+    <div class="section-grid">
+      <div class="section-head">
+        <h2>Billing</h2>
+        <p>Payment method and past invoices.</p>
+      </div>
+
+      <div>
+
+        <div class="row">
+          <div>
+            <div class="row-label">Card on file</div>
+            <div class="row-value">
+              <div class="card-on-file">
+                <span class="card-brand" aria-hidden="true">VISA</span>
+                <div>
+                  <div class="card-num"><span class="dots">&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;</span>4242</div>
+                  <div class="card-exp">Expires 08 / 28</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn">Update card</button>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="row-label">Billing email</div>
+            <div class="row-value">marina@example.com</div>
+          </div>
+          <button type="button" class="btn">Change</button>
+        </div>
+
+        <div class="row receipts-row" style="display: block;">
+          <div class="row-label" style="margin-bottom: 12px;">Receipts</div>
+          <div class="receipts">
+            <div class="receipt">
+              <span class="receipt-date">May 1, 2026</span>
+              <span class="receipt-amount">$10.00</span>
+              <a class="receipt-link" href="#">Download &rarr;</a>
+            </div>
+            <div class="receipt">
+              <span class="receipt-date">Apr 1, 2026</span>
+              <span class="receipt-amount">$10.00</span>
+              <a class="receipt-link" href="#">Download &rarr;</a>
+            </div>
+            <div class="receipt">
+              <span class="receipt-date">Mar 1, 2026</span>
+              <span class="receipt-amount">$10.00</span>
+              <a class="receipt-link" href="#">Download &rarr;</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Danger zone ─────────────────────────────────── -->
+  <section>
+    <div class="section-grid">
+      <div class="section-head">
+        <h2>Sign out &amp; delete</h2>
+        <p>End your session or permanently remove your account.</p>
+      </div>
+
+      <div>
+        <div class="danger-row">
+          <div>
+            <strong>Sign out of this Mac</strong>
+            <p>You&rsquo;ll need to sign in again to see your reports.</p>
+          </div>
+          <button type="button" class="btn">Sign out</button>
+        </div>
+        <div class="danger-row">
+          <div>
+            <strong>Delete account</strong>
+            <p>All recordings, transcripts, and reports are removed within 24 hours.</p>
+          </div>
+          <button type="button" class="btn danger">Delete account</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div id="tweaks-mount"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "#C96442",
+    "density": "regular",
+    "planState": "trial",
+    "showReceipts": true
+  }/*EDITMODE-END*/;
+
+  const ACCENT_OPTIONS = [
+    "#C96442",  // coral (default)
+    "#1F8A5B",  // forest
+    "#2A6FDB",  // blue
+    "#1a1a1a"   // ink
+  ];
+
+  // derive a hover variant by shifting the color a bit darker
+  function darken(hex, amount = 0.12) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, ((n >> 16) & 0xff) - Math.round(255 * amount));
+    const g = Math.max(0, ((n >>  8) & 0xff) - Math.round(255 * amount));
+    const b = Math.max(0, ( n        & 0xff) - Math.round(255 * amount));
+    return "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+  }
+
+  function App() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    // Apply CSS variable + body classes
+    React.useEffect(() => {
+      const root = document.documentElement;
+      root.style.setProperty("--accent", t.accent);
+      root.style.setProperty("--accent-hover", darken(t.accent, 0.10));
+
+      const body = document.body;
+      body.classList.remove("density-compact", "density-regular", "density-comfy");
+      body.classList.add(`density-${t.density}`);
+
+      body.classList.remove("plan-trial", "plan-active", "plan-canceled");
+      body.classList.add(`plan-${t.planState}`);
+
+      body.classList.toggle("no-receipts", !t.showReceipts);
+    }, [t.accent, t.density, t.planState, t.showReceipts]);
+
+    return (
+      <TweaksPanel>
+        <TweakSection label="Appearance" />
+        <TweakColor
+          label="Accent"
+          value={t.accent}
+          options={ACCENT_OPTIONS}
+          onChange={(v) => setTweak("accent", v)}
+        />
+        <TweakRadio
+          label="Density"
+          value={t.density}
+          options={["compact", "regular", "comfy"]}
+          onChange={(v) => setTweak("density", v)}
+        />
+
+        <TweakSection label="Plan state" />
+        <TweakRadio
+          label="State"
+          value={t.planState}
+          options={["trial", "active", "canceled"]}
+          onChange={(v) => setTweak("planState", v)}
+        />
+
+        <TweakSection label="Billing" />
+        <TweakToggle
+          label="Show receipts"
+          value={t.showReceipts}
+          onChange={(v) => setTweak("showReceipts", v)}
+        />
+      </TweaksPanel>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("tweaks-mount")).render(<App />);
+</script>
+
+</body>
+</html>

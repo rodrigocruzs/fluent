@@ -1,0 +1,6 @@
+fluent-engine/
+fluent/
+resources/
+fluent/build/
+*.dmg
+!website/Fluent.dmg
