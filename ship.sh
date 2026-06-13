@@ -9,9 +9,11 @@ DERIVED_DATA="/Users/rodrigocruzsouza/Library/Developer/Xcode/DerivedData/Fluent
 APP_NAME="Fluent.app"
 ENTITLEMENTS="/Users/rodrigocruzsouza/fluent/fluent/Fluent/Fluent.entitlements"
 SIGN_IDENTITY="Developer ID Application: Rodrigo Cruz de Souza (H28RYPBSMQ)"
-APPLE_ID="rodrigocruuz@gmail.com"
-TEAM_ID="H28RYPBSMQ"
-APP_PASSWORD="***REMOVED***"
+# Notarization uses a keychain profile (no plaintext password in the repo).
+# Create it once with:
+#   xcrun notarytool store-credentials "fluent-notary" \
+#     --apple-id <apple-id> --team-id H28RYPBSMQ --password <app-specific-password>
+NOTARY_PROFILE="fluent-notary"
 
 APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME"
 
@@ -37,9 +39,7 @@ ditto -c -k --keepParent "$APP_PATH" "$TMPZIP"
 
 echo "==> Submitting for notarization (this takes a few minutes)..."
 xcrun notarytool submit "$TMPZIP" \
-  --apple-id "$APPLE_ID" \
-  --team-id "$TEAM_ID" \
-  --password "$APP_PASSWORD" \
+  --keychain-profile "$NOTARY_PROFILE" \
   --wait
 
 rm -f "$TMPZIP"
