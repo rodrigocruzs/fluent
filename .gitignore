@@ -20,8 +20,11 @@ fluent/build/
 fluent/fluent/build/
 **/build/
 *.xcuserstate
-*.xcworkspace/xcuserdata/
+xcuserdata/
 DerivedData/
+
+# Build artifacts (the release DMG lives in website/ and is tracked there)
+/Fluent.dmg
 
 # Secrets
 .env
