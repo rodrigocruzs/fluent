@@ -28,23 +28,37 @@ echo "[setup] Engine source: $ENGINE_SRC"
 
 # ── 1. Find a suitable Python 3.10+ ──────────────────────────────────────────
 
+# Echoes the path of a Python interpreter that is version 3.10 or newer.
+is_py_310_plus() {
+    # Exit status 0 only when the interpreter reports major==3 and minor>=10.
+    "$1" -c 'import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)' >/dev/null 2>&1
+}
+
 find_python() {
-    for py in python3.12 python3.11 python3.10 python3; do
-        local path
-        path=$(command -v "$py" 2>/dev/null || true)
-        [ -z "$path" ] && continue
-        local ver
-        ver=$("$path" -c "import sys; print(sys.version_info[:2])" 2>/dev/null || true)
-        # Accept 3.10+
-        if echo "$ver" in "(3, 10)" "(3, 11)" "(3, 12)" "(3, 13)" | grep -qF "$ver"; then
+    # Prefer well-known absolute paths first — when Fluent.app launches this
+    # script the inherited PATH may only contain /usr/bin (system Python 3.9),
+    # so relying on PATH lookups alone can wrongly pick an old interpreter.
+    local path
+    for path in \
+        /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 \
+        /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3.10 \
+        /usr/local/bin/python3.13 /usr/local/bin/python3.12 \
+        /usr/local/bin/python3.11 /usr/local/bin/python3.10 \
+        /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 \
+        /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
+        /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 \
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3; do
+        if [ -x "$path" ] && is_py_310_plus "$path"; then
             echo "$path"; return 0
         fi
     done
-    # Try Homebrew paths directly
-    for path in /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 \
-                /usr/local/bin/python3.12 /usr/local/bin/python3.11 \
-                /Library/Frameworks/Python.framework/Versions/3.11/bin/python3; do
-        [ -x "$path" ] && echo "$path" && return 0
+    # Fall back to PATH lookups, verifying the version each time.
+    for py in python3.13 python3.12 python3.11 python3.10 python3; do
+        path=$(command -v "$py" 2>/dev/null || true)
+        [ -z "$path" ] && continue
+        if is_py_310_plus "$path"; then
+            echo "$path"; return 0
+        fi
     done
     return 1
 }
@@ -112,9 +126,15 @@ PLIST
 
 echo "[setup] Wrote Launch Agent plist: $PLIST_PATH"
 
-# Unload existing agent if running, then load fresh
-launchctl unload "$PLIST_PATH" 2>/dev/null || true
-launchctl load "$PLIST_PATH"
+# Re-register the agent. The Swift app also launches the engine itself, so the
+# agent is a best-effort fallback (e.g. engine running without the app open).
+# Use the modern bootstrap API and ignore failures — a non-zero status here must
+# not abort setup (set -e), since the app-managed engine still works regardless.
+GUI_DOMAIN="gui/$(id -u)"
+launchctl bootout "$GUI_DOMAIN/$AGENT_LABEL" 2>/dev/null || true
+launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH" 2>/dev/null \
+    || launchctl load "$PLIST_PATH" 2>/dev/null \
+    || echo "[setup] note: launch agent not loaded (engine still managed by Fluent.app)"
 
-echo "[setup] Engine registered and started."
+echo "[setup] Engine registered."
 echo "[setup] Done — $(date)"

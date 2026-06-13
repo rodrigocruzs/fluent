@@ -27,6 +27,10 @@ class ReportWindowController: NSWindowController {
         webViewController?.loadReportJSON(json)
     }
 
+    func refreshSessions() {
+        webViewController?.refreshSessions()
+    }
+
     func showOnboarding() {
         webViewController?.showOnboarding()
     }

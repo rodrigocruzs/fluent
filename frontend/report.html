@@ -28,7 +28,7 @@
       <div class="session-control" id="session-control">
         <button class="start-button" id="start-btn" type="button">
           <span class="dot"></span>
-          Start session
+          Start recording
         </button>
         <div class="recording-bar" role="status" aria-live="polite">
           <span class="rec-dot" aria-hidden="true"></span>
@@ -135,6 +135,42 @@
 </div>
 
 
+
+<!-- Recording page: shown when a "Coming up" meeting starts recording -->
+<div id="recording-page" style="display:none">
+  <main class="page recording-page-inner">
+    <header class="masthead recording-masthead">
+      <button class="back-link" id="recording-back"><span class="arrow">&larr;</span> Sessions</button>
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+            <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+            <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+          </svg>
+        </span>
+        <span class="wordmark">Fluent</span>
+      </div>
+      <div class="page-label">Recording</div>
+      <h1 class="recording-title" id="recording-title">Recording</h1>
+
+      <div class="session-control is-recording" id="recording-control">
+        <div class="recording-bar" role="status" aria-live="polite">
+          <span class="rec-dot" aria-hidden="true"></span>
+          <span class="rec-label">Recording</span>
+          <span class="rec-wave" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </span>
+          <span class="rec-timer" id="rec-timer-page">00:00</span>
+          <span class="rec-divider" aria-hidden="true"></span>
+          <button class="rec-stop" type="button" aria-label="Stop session">
+            <span class="stop-square" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+  </main>
+</div>
 
 <!-- Settings page -->
 <div id="settings-page" style="display:none">
@@ -345,6 +381,6 @@
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
 
-<script src="report.js?v=14"></script>
+<script src="report.js?v=16"></script>
 </body>
 </html>

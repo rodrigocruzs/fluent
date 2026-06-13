@@ -49,8 +49,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
 
         guard
-            let engineSrc = Bundle.main.resourceURL?.appendingPathComponent("engine"),
-            let setupScript = Bundle.main.path(forResource: "setup_engine", ofType: "sh", inDirectory: "engine")
+            let engineSrc = Bundle.main.resourceURL?.appendingPathComponent("fluent-engine"),
+            let setupScript = Bundle.main.path(forResource: "setup_engine", ofType: "sh", inDirectory: "fluent-engine")
         else {
             print("[Fluent] setup_engine.sh not found in bundle — skipping engine setup")
             return
@@ -75,10 +75,39 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         engineSetupProcess = process
     }
 
+    /// Terminate whatever process is listening on the given TCP port (best effort).
+    private func killProcessOnPort(_ port: Int) {
+        let lsof = Process()
+        lsof.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        lsof.arguments = ["-nP", "-tiTCP:\(port)", "-sTCP:LISTEN"]
+        let pipe = Pipe()
+        lsof.standardOutput = pipe
+        lsof.standardError = FileHandle.nullDevice
+        do {
+            try lsof.run()
+            lsof.waitUntilExit()
+        } catch {
+            return
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let out = String(data: data, encoding: .utf8) else { return }
+        for line in out.split(whereSeparator: { $0 == "\n" || $0 == " " }) {
+            guard let pid = Int32(line.trimmingCharacters(in: .whitespaces)),
+                  pid != ProcessInfo.processInfo.processIdentifier else { continue }
+            kill(pid, SIGTERM)
+            print("[Fluent] terminated stale engine on port \(port) (pid \(pid))")
+        }
+    }
+
     private func startEngine() {
         // Kill any existing engine process
         engineProcess?.terminate()
         engineProcess = nil
+
+        // Kill any orphaned engine from a previous session that still owns port 2788.
+        // Otherwise the freshly launched engine can't bind the port, and all requests
+        // keep hitting the stale process (which may be running outdated code).
+        killProcessOnPort(2788)
 
         // Prefer the venv python (set up by setup_engine.sh), fall back to system Python
         let venvPython = FileManager.default.homeDirectoryForCurrentUser
@@ -88,7 +117,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
         // Find main.py inside the app bundle
         guard let mainPy = Bundle.main.resourceURL?
-            .appendingPathComponent("engine/main.py").path,
+            .appendingPathComponent("fluent-engine/main.py").path,
               FileManager.default.fileExists(atPath: mainPy) else {
             print("[Fluent] engine main.py not found in bundle")
             return
@@ -213,6 +242,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         if let jsonString = loadLatestJSONString() {
             reportWindowController?.loadReportJSON(jsonString)
         }
+        // A new report means a new session was just saved to the backend.
+        // Refresh the History list natively (the webview can't fetch it itself
+        // due to CORS) so the session appears when the user navigates back.
+        reportWindowController?.refreshSessions()
     }
 
     private func loadLatestJSONString() -> String? {

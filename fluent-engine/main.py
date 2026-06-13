@@ -40,7 +40,7 @@ class Engine:
             except Exception as e:
                 return {"ok": False, "error": str(e)}
 
-    def stop(self) -> dict:
+    def stop(self, session_name: str | None = None) -> dict:
         with self._lock:
             if not self._recording:
                 return {"ok": False, "error": "not recording"}
@@ -48,19 +48,23 @@ class Engine:
 
         paths, duration = self.recorder.stop()
         self._analysing = True
-        threading.Thread(target=self._run_pipeline, args=(paths, duration), daemon=True).start()
+        threading.Thread(
+            target=self._run_pipeline,
+            args=(paths, duration, session_name),
+            daemon=True,
+        ).start()
         return {"ok": True, "recording": False}
 
     def status(self) -> dict:
         return {"recording": self._recording, "analysing": self._analysing}
 
-    def _run_pipeline(self, paths: RecordingPaths, duration: float):
+    def _run_pipeline(self, paths: RecordingPaths, duration: float, session_name: str | None = None):
         if duration < self.MIN_DURATION_SECS:
             print(f"[engine] session too short ({duration:.1f}s < {self.MIN_DURATION_SECS}s), skipping pipeline", file=sys.stderr)
             self._analysing = False
             return
         try:
-            run_pipeline(paths=paths, duration=duration, config=self.config)
+            run_pipeline(paths=paths, duration=duration, config=self.config, session_name=session_name)
         except Exception as e:
             print(f"[engine] pipeline error: {e}", file=sys.stderr)
         finally:
@@ -88,7 +92,9 @@ def make_handler(engine: Engine):
             if self.path == "/start":
                 self._json(engine.start())
             elif self.path == "/stop":
-                self._json(engine.stop())
+                length = int(self.headers.get("Content-Length", 0))
+                body = json.loads(self.rfile.read(length)) if length else {}
+                self._json(engine.stop(session_name=body.get("session_name")))
             elif self.path == "/signin":
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length)) if length else {}

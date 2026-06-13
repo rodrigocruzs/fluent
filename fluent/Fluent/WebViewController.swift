@@ -161,6 +161,40 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         }
     }
 
+    /// Re-fetch the sessions list natively and update the History list in the
+    /// webview *without* navigating away from whatever page is showing. Used
+    /// after a recording finishes so the new session appears in History. The
+    /// webview itself can't fetch the backend (CORS blocks file:// origin), so
+    /// the fetch must happen here in Swift.
+    func refreshSessions() {
+        // Prefer keychain token; fall back to the JS localStorage token.
+        if let token = getToken() {
+            refreshSessions(token: token)
+            return
+        }
+        webView.evaluateJavaScript("localStorage.getItem('fluent_token')") { [weak self] result, _ in
+            guard let self, let token = result as? String, !token.isEmpty else { return }
+            self.refreshSessions(token: token)
+        }
+    }
+
+    private func refreshSessions(token: String) {
+        var req = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions")!)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            guard let self,
+                  let data,
+                  (response as? HTTPURLResponse)?.statusCode == 200,
+                  let sessionsStr = String(data: data, encoding: .utf8)
+            else { return }
+            DispatchQueue.main.async {
+                self.webView.evaluateJavaScript("window.refreshSessionsList && window.refreshSessionsList(\(sessionsStr));") { _, error in
+                    if let error { print("[Fluent WebView] refreshSessionsList error:", error) }
+                }
+            }
+        }.resume()
+    }
+
     private func showSettingsIfPending() {
         guard pendingShowSettings else { return }
         pendingShowSettings = false

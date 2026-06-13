@@ -57,6 +57,7 @@ def run_pipeline(
     paths: RecordingPaths,
     duration: float,
     config: Config,
+    session_name: str | None = None,
 ) -> Path | None:
     """
     Runs the full pipeline, writes latest.json, wakes Swift frontend.
@@ -81,9 +82,10 @@ def run_pipeline(
     print(f"[pipeline] {len(issues)} issue(s)")
 
     now = datetime.now()
+    name = (session_name or "").strip() or _session_name(now)
     payload = {
         "date": now.strftime("%B %d, %Y"),
-        "name": _session_name(now),
+        "name": name,
         "duration": duration,
         "transcript": transcript,
         "issues": issues,

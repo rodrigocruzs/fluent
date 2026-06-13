@@ -155,8 +155,6 @@
     const authPage     = document.getElementById('auth-page');
     const settingsPage = document.getElementById('settings-page');
     const page         = document.getElementById('page');
-    const listEl       = document.getElementById('sessions-list');
-    const summaryEl    = document.getElementById('sessions-summary');
 
     page.classList.remove('visible');
     page.innerHTML = '';
@@ -169,6 +167,24 @@
     } else {
       loadUpNext(_token());
     }
+
+    renderSessionsList(sessions);
+  };
+
+  // Swift calls this to refresh the History list after a recording finishes,
+  // without switching the visible page (so it doesn't yank the user off the
+  // report they're viewing). The webview can't fetch the backend itself due to
+  // CORS, so Swift fetches natively and hands us the parsed sessions array.
+  window.refreshSessionsList = function (sessions) {
+    renderSessionsList(sessions);
+  };
+
+  // Render just the History list + summary (no page switching). Shared by
+  // loadSessions (initial inject from Swift) and showSessions (live refetch).
+  function renderSessionsList(sessions) {
+    const listEl    = document.getElementById('sessions-list');
+    const summaryEl = document.getElementById('sessions-summary');
+    if (!listEl || !summaryEl) return;
 
     if (!sessions || sessions.length === 0) {
       listEl.innerHTML = '';
@@ -242,6 +258,8 @@
     });
 
     if (sessionsPage) sessionsPage.style.display = 'none';
+    const recordingPage = document.getElementById('recording-page');
+    if (recordingPage) recordingPage.style.display = 'none';
 
     const n = issues.length;
     const summaryText = n === 0
@@ -302,13 +320,15 @@
   };
 
   window.showOnboarding = function () {
-    const page         = document.getElementById('page');
-    const sessionsPage = document.getElementById('sessions-page');
-    const authPage     = document.getElementById('auth-page');
-    const settingsPage = document.getElementById('settings-page');
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const authPage      = document.getElementById('auth-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const recordingPage = document.getElementById('recording-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'none';
+    if (recordingPage)  recordingPage.style.display = 'none';
     if (authPage)       authPage.style.display = '';
   };
 
@@ -451,12 +471,23 @@
       const duration = _formatEventDuration(ev.start, ev.end);
       const day      = _formatEventDay(ev.start);
       const dayLabel = day !== 'Today' ? `<span class="upnext-day">${esc(day)}</span> ` : '';
-      return `<div class="session">
+      return `<div class="session upnext-row">
         <span class="session-name">${esc(ev.title)}</span>
         <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
         <span class="session-duration">${esc(duration)}</span>
+        <button class="upnext-record-btn" type="button">
+          <span class="dot"></span>Start recording
+        </button>
       </div>`;
     }).join('');
+
+    list.querySelectorAll('.upnext-record-btn').forEach((btn, i) => {
+      const title = events[i] && events[i].title ? events[i].title : 'Recording';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRecordingPage(title);
+      });
+    });
   }
 
   function loadUpNext(token) {
@@ -474,25 +505,64 @@
   }
 
   window.showSessions = function () {
-    const page         = document.getElementById('page');
-    const sessionsPage = document.getElementById('sessions-page');
-    const settingsPage = document.getElementById('settings-page');
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const recordingPage = document.getElementById('recording-page');
     page.classList.remove('visible');
     page.innerHTML = '';
-    if (settingsPage) settingsPage.style.display = 'none';
-    if (sessionsPage) sessionsPage.style.display = '';
+    if (settingsPage)  settingsPage.style.display = 'none';
+    if (recordingPage) recordingPage.style.display = 'none';
+    if (sessionsPage)  sessionsPage.style.display = '';
     _resetBillingDetailsFlag();
     loadUpNext();
+
+    // Re-fetch the History list every time we open it, so sessions recorded
+    // while a report was on screen still appear (the post-recording refresh in
+    // loadReport is skipped while the report page is visible).
+    const token = _token();
+    if (token) {
+      fetch(BACKEND_URL + '/sessions', { headers: { 'Authorization': 'Bearer ' + token } })
+        .then(r => r.ok ? r.json() : null)
+        .then(sessions => { if (sessions) renderSessionsList(sessions); })
+        .catch(() => {});
+    }
+  };
+
+  // Open the dedicated recording page for a "Coming up" meeting and start recording.
+  window.openRecordingPage = function (title) {
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const authPage      = document.getElementById('auth-page');
+    const recordingPage = document.getElementById('recording-page');
+    const titleEl       = document.getElementById('recording-title');
+
+    if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
+    if (sessionsPage)   sessionsPage.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = 'none';
+    if (authPage)       authPage.style.display = 'none';
+    if (titleEl)        titleEl.textContent = title || 'Recording';
+    if (recordingPage)  recordingPage.style.display = '';
+
+    // Remember the meeting title so the created session keeps this name.
+    _sessionName = title || null;
+
+    // Reset the recording control to a clean "recording" state, then start.
+    resetRecLabel();
+    startRecording();
   };
 
   window.showSettings = function () {
-    const page         = document.getElementById('page');
-    const sessionsPage = document.getElementById('sessions-page');
-    const authPage     = document.getElementById('auth-page');
-    const settingsPage = document.getElementById('settings-page');
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const authPage      = document.getElementById('auth-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const recordingPage = document.getElementById('recording-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
+    if (recordingPage)  recordingPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
 
     const token = localStorage.getItem('fluent_token');
@@ -851,6 +921,9 @@
   let _polling = null;
   let _timerHandle = null;
   let _startedAt = null;
+  // Title of the meeting being recorded (from a "Coming up" row), so the
+  // created session keeps that name instead of a generic "Morning session".
+  let _sessionName = null;
 
   function fmtTime(ms) {
     const total = Math.floor(ms / 1000);
@@ -914,8 +987,13 @@
 
   async function stopRecording() {
     setProcessingState();
+    const body = _sessionName ? { session_name: _sessionName } : {};
     try {
-      await fetch(ENGINE_URL + '/stop', { method: 'POST' });
+      await fetch(ENGINE_URL + '/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
     } catch (e) {
       console.warn('[Fluent] engine not running');
     }
@@ -926,19 +1004,17 @@
   window.loadReport = function(data) {
     setRecordingState(false);
     resetRecLabel();
+    _sessionName = null;
     if (_origLoadReport) _origLoadReport(data);
-    // Refresh sessions data in background without navigating away from the report
+    // Refresh the History list in the background so a just-finished recording
+    // appears as soon as the user navigates back. Re-render the (hidden)
+    // sessions list directly rather than calling loadSessions(), which would
+    // switch the visible page and yank the user off the report they're viewing.
     const token = localStorage.getItem('fluent_token');
     if (token) {
       fetch(BACKEND_URL + '/sessions', { headers: { 'Authorization': 'Bearer ' + token } })
-        .then(r => r.ok ? r.json() : [])
-        .then(sessions => {
-          // Only update the list if the report page is not currently visible
-          const page = document.getElementById('page');
-          if (!page || !page.classList.contains('visible')) {
-            if (window.loadSessions) window.loadSessions(sessions);
-          }
-        })
+        .then(r => r.ok ? r.json() : null)
+        .then(sessions => { if (sessions) renderSessionsList(sessions); })
         .catch(() => {});
     }
   };
@@ -952,6 +1028,13 @@
       if (ctrl && ctrl.classList.contains('is-processing') && data.analysing === false) {
         setRecordingState(false);
         resetRecLabel();
+        // If we're still on the recording page, no report arrived (e.g. session too
+        // short to analyse). Fall back to the sessions list rather than stranding the user.
+        const recordingPage = document.getElementById('recording-page');
+        if (recordingPage && recordingPage.style.display !== 'none') {
+          _sessionName = null;
+          window.showSessions && window.showSessions();
+        }
       } else if (ctrl && !ctrl.classList.contains('is-processing') && data.recording !== _recording) {
         setRecordingState(data.recording);
       }
@@ -965,6 +1048,10 @@
     document.querySelectorAll('.rec-stop').forEach(btn => {
       btn.addEventListener('click', stopRecording);
     });
+    const recordingBack = document.getElementById('recording-back');
+    if (recordingBack) {
+      recordingBack.addEventListener('click', () => window.showSessions && window.showSessions());
+    }
     pollStatus();
     if (_polling) clearInterval(_polling);
     _polling = setInterval(pollStatus, 3000);
