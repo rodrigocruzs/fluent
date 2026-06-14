@@ -19,9 +19,22 @@ PYTHON="$VENV/bin/python3"
 AGENT_LABEL="com.fluent.engine"
 PLIST_PATH="$HOME/Library/LaunchAgents/$AGENT_LABEL.plist"
 LOG_FILE="$FLUENT_DIR/engine-setup.log"
+# Written only after a fully validated install; removed at the start of every run.
+# The app keys off THIS file (not "venv exists") so a half-finished install is
+# correctly treated as not-ready and retried on the next launch.
+READY_SENTINEL="$ENGINE_DIR/.engine-ready"
+
+# Distinct exit codes so the app can show the right guidance to the user.
+EXIT_NO_PYTHON=10   # no suitable Python 3.10+ interpreter found
+EXIT_VENV_FAILED=11 # could not create the virtual environment
+EXIT_PIP_FAILED=12  # dependency install failed (network / build error)
+EXIT_VERIFY_FAILED=13 # deps installed but failed to import
 
 mkdir -p "$FLUENT_DIR" "$ENGINE_DIR"
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+# Any install in progress is not ready until we say so.
+rm -f "$READY_SENTINEL"
 
 echo "[setup] Starting Fluent engine setup — $(date)"
 echo "[setup] Engine source: $ENGINE_SRC"
@@ -65,7 +78,7 @@ find_python() {
 
 SYS_PYTHON=$(find_python) || {
     echo "[setup] ERROR: Python 3.10+ not found. Please install Python from python.org."
-    exit 1
+    exit $EXIT_NO_PYTHON
 }
 echo "[setup] Using Python: $SYS_PYTHON ($($SYS_PYTHON --version))"
 
@@ -73,7 +86,11 @@ echo "[setup] Using Python: $SYS_PYTHON ($($SYS_PYTHON --version))"
 
 if [ ! -x "$PYTHON" ]; then
     echo "[setup] Creating venv at $VENV ..."
-    "$SYS_PYTHON" -m venv "$VENV"
+    if ! "$SYS_PYTHON" -m venv "$VENV"; then
+        echo "[setup] ERROR: failed to create virtual environment at $VENV."
+        rm -rf "$VENV"
+        exit $EXIT_VENV_FAILED
+    fi
 fi
 
 # ── 3. Copy engine source ─────────────────────────────────────────────────────
@@ -89,10 +106,40 @@ rsync -a --delete \
 # ── 4. Install dependencies ───────────────────────────────────────────────────
 
 echo "[setup] Installing dependencies (this may take a few minutes) ..."
-"$VENV/bin/pip" install --upgrade pip --quiet
-"$VENV/bin/pip" install -r "$ENGINE_DIR/requirements.txt" --quiet
+if ! "$VENV/bin/pip" install --upgrade pip; then
+    echo "[setup] ERROR: failed to upgrade pip (network?)."
+    exit $EXIT_PIP_FAILED
+fi
+if ! "$VENV/bin/pip" install -r "$ENGINE_DIR/requirements.txt"; then
+    echo "[setup] ERROR: failed to install dependencies (network or build error)."
+    exit $EXIT_PIP_FAILED
+fi
 
 echo "[setup] Dependencies installed."
+
+# ── 4b. Verify the heavy deps actually import ─────────────────────────────────
+# pip can report success while leaving a broken/partial install (e.g. an aborted
+# torch wheel). Import the critical modules so we never mark the engine "ready"
+# when it would crash on startup.
+echo "[setup] Verifying dependencies import cleanly ..."
+if ! "$PYTHON" - <<'PYCHECK'
+import sys
+mods = ["torch", "torchaudio", "faster_whisper", "pyannote.audio", "anthropic"]
+missing = []
+for m in mods:
+    try:
+        __import__(m)
+    except Exception as e:
+        missing.append(f"{m}: {e}")
+if missing:
+    sys.stderr.write("Import check failed:\n" + "\n".join(missing) + "\n")
+    sys.exit(1)
+PYCHECK
+then
+    echo "[setup] ERROR: dependencies installed but failed to import."
+    exit $EXIT_VERIFY_FAILED
+fi
+echo "[setup] Dependency import check passed."
 
 # ── 5. Register Launch Agent ──────────────────────────────────────────────────
 
@@ -137,4 +184,8 @@ launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH" 2>/dev/null \
     || echo "[setup] note: launch agent not loaded (engine still managed by Fluent.app)"
 
 echo "[setup] Engine registered."
+
+# Mark setup fully complete. The app only starts the engine when this exists.
+date > "$READY_SENTINEL"
+echo "[setup] Wrote ready sentinel: $READY_SENTINEL"
 echo "[setup] Done — $(date)"

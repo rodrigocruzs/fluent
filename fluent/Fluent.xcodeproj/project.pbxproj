@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		09FD31023E70CD1F903A2938 /* DarwinNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */; };
+		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
 		5A2731DF508317FE8E8A822B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3844E4D54D3AC4BBB3D7473E /* AppDelegate.swift */; };
 		82A73E8E110413AB410D64C4 /* ReportWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */; };
 		9D5F6BB59CAFA35CCEC1EF0D /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CD58649180C4615790A131 /* WebViewController.swift */; };
@@ -31,6 +32,7 @@
 		B1C200C000000020 /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = "../fluent-engine"; sourceTree = SOURCE_ROOT; };
 		B1C200D000000030 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarwinNotificationBridge.swift; sourceTree = "<group>"; };
+		F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSetupWindowController.swift; sourceTree = "<group>"; };
 		EA5342D38872AC0B957CBC5E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -56,6 +58,7 @@
 				B1C200C000000020 /* engine */,
 				B1C200D000000030 /* Assets.xcassets */,
 				5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */,
+				F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */,
 				32CD58649180C4615790A131 /* WebViewController.swift */,
 			);
 			path = Fluent;
@@ -160,6 +163,7 @@
 				5A2731DF508317FE8E8A822B /* AppDelegate.swift in Sources */,
 				09FD31023E70CD1F903A2938 /* DarwinNotificationBridge.swift in Sources */,
 				82A73E8E110413AB410D64C4 /* ReportWindowController.swift in Sources */,
+				E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */,
 				9D5F6BB59CAFA35CCEC1EF0D /* WebViewController.swift in Sources */,
 				A9E3A18F1BBF4F644115396A /* main.swift in Sources */,
 			);

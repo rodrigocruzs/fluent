@@ -58,35 +58,8 @@
         <span class="wordmark">Fluent</span>
       </div>
 
-      <h1 class="auth-heading" id="auth-heading">Welcome back.</h1>
+      <h1 class="auth-heading" id="auth-heading">Welcome to Fluent.</h1>
       <p class="auth-subhead" id="auth-subhead">Sign in to see your coaching reports.</p>
-
-      <div class="mode-toggle" role="tablist" aria-label="Authentication mode">
-        <button type="button" role="tab" aria-selected="true"  data-mode="signin" class="is-active">Sign in</button>
-        <button type="button" role="tab" aria-selected="false" data-mode="signup">Sign up</button>
-      </div>
-
-      <form id="auth-form" novalidate>
-        <div class="auth-field signup-only">
-          <label for="auth-name">Name</label>
-          <input id="auth-name" type="text" autocomplete="name" placeholder="Your name">
-        </div>
-        <div class="auth-field">
-          <label for="auth-email">Email</label>
-          <input id="auth-email" type="email" autocomplete="email" placeholder="you@company.com">
-        </div>
-        <div class="auth-field">
-          <div class="auth-field-row">
-            <label for="auth-password">Password</label>
-            <a href="#" class="auth-forgot signin-only">Forgot?</a>
-          </div>
-          <input id="auth-password" type="password" autocomplete="current-password" placeholder="Your password">
-        </div>
-        <p class="auth-error" id="auth-error"></p>
-        <button type="submit" class="auth-primary" id="auth-submit">Sign in</button>
-      </form>
-
-      <div class="auth-divider"><span>or</span></div>
 
       <div class="auth-providers">
         <button type="button" class="auth-provider">
@@ -100,17 +73,13 @@
         </button>
       </div>
 
-      <p class="auth-mode-switch">
-        <span class="signin-only">New to Fluent?<button type="button" data-mode="signup">Create an account</button></span>
-        <span class="signup-only">Already have an account?<button type="button" data-mode="signin">Sign in</button></span>
-      </p>
+      <p class="auth-error" id="auth-error"></p>
 
     </div>
   </main>
 
   <footer class="auth-legal">
-    <span class="signup-only">By signing up you agree to our </span>
-    <span class="signin-only">Protected by Fluent's </span>
+    <span>By continuing you agree to our </span>
     <a href="#">Terms</a> &middot; <a href="#">Privacy</a>
   </footer>
 </div>
@@ -178,62 +147,24 @@
     <div class="settings-grid">
       <div class="settings-section-head">
         <h2>Account</h2>
-        <p>The email and password you use to sign in.</p>
+        <p>The Google account you use to sign in.</p>
       </div>
       <div class="settings-body">
-        <details class="settings-editable">
-          <summary>
-            <div class="settings-summary-row">
-              <div>
-                <div class="settings-row-label">Email</div>
-                <div class="settings-row-value" id="settings-email">—</div>
-              </div>
-              <button type="button" class="settings-btn edit-btn"><span>Change</span></button>
-            </div>
-          </summary>
-          <form class="settings-edit-form" id="settings-email-form">
-            <div class="settings-field-pair">
-              <label for="settings-new-email">New email</label>
-              <input id="settings-new-email" type="email" autocomplete="email">
-            </div>
-            <div class="settings-field-pair">
-              <label for="settings-email-pw">Current password</label>
-              <input id="settings-email-pw" type="password" autocomplete="current-password">
-            </div>
-            <p class="settings-form-error" id="settings-email-error"></p>
-            <div class="settings-btn-row">
-              <button type="submit" class="settings-btn primary">Save changes</button>
-              <button type="button" class="settings-btn text" id="settings-email-cancel">Cancel</button>
-            </div>
-          </form>
-        </details>
-        <div class="settings-divider"></div>
-        <details class="settings-editable">
-          <summary>
-            <div class="settings-summary-row">
-              <div>
-                <div class="settings-row-label">Password</div>
-                <div class="settings-row-value"><span class="settings-mono">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span></div>
-              </div>
-              <button type="button" class="settings-btn edit-btn"><span>Change</span></button>
-            </div>
-          </summary>
-          <form class="settings-edit-form" id="settings-pw-form">
-            <div class="settings-field-pair">
-              <label for="settings-current-pw">Current password</label>
-              <input id="settings-current-pw" type="password" autocomplete="current-password">
-            </div>
-            <div class="settings-field-pair">
-              <label for="settings-new-pw">New password</label>
-              <input id="settings-new-pw" type="password" autocomplete="new-password" placeholder="At least 8 characters">
-            </div>
-            <p class="settings-form-error" id="settings-pw-error"></p>
-            <div class="settings-btn-row">
-              <button type="submit" class="settings-btn primary">Save changes</button>
-              <button type="button" class="settings-btn text" id="settings-pw-cancel">Cancel</button>
-            </div>
-          </form>
-        </details>
+        <div class="settings-summary-row">
+          <div>
+            <div class="settings-row-label">Email</div>
+            <div class="settings-row-value" id="settings-email">—</div>
+          </div>
+          <span class="settings-row-value" style="display:flex;align-items:center;gap:6px;color:#6b6b6b">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M15.68 8.18c0-.6-.05-1.04-.16-1.5H8v2.83h4.42c-.09.75-.57 1.88-1.64 2.65l-.01.1 2.38 1.85.17.02c1.51-1.4 2.36-3.47 2.36-5.95z" fill="#4285F4"/>
+              <path d="M8 16c2.16 0 3.97-.71 5.29-1.94l-2.52-1.95c-.67.47-1.58.8-2.77.8-2.12 0-3.92-1.4-4.56-3.34l-.09.01-2.48 1.92-.03.09C2.16 14.18 4.86 16 8 16z" fill="#34A853"/>
+              <path d="M3.44 9.57A4.95 4.95 0 013.17 8c0-.55.09-1.08.26-1.57l-.01-.1L.91 4.39l-.08.04A8 8 0 000 8c0 1.29.31 2.51.83 3.57l2.61-2z" fill="#FBBC05"/>
+              <path d="M8 3.09c1.5 0 2.51.65 3.09 1.19l2.26-2.2C11.96.8 10.16 0 8 0 4.86 0 2.16 1.82.83 4.43l2.6 2.01C4.08 4.49 5.88 3.09 8 3.09z" fill="#EA4335"/>
+            </svg>
+            Google
+          </span>
+        </div>
       </div>
     </div>
   </section>
