@@ -420,43 +420,6 @@
     const authPage  = document.getElementById('auth-page');
     if (!authPage) return;
 
-    const heading   = document.getElementById('auth-heading');
-    const subhead   = document.getElementById('auth-subhead');
-    const submitBtn = document.getElementById('auth-submit');
-    const errorEl   = document.getElementById('auth-error');
-    const password  = document.getElementById('auth-password');
-
-    const copy = {
-      signin: { heading: 'Welcome back.', subhead: 'Sign in to see your coaching reports.', submit: 'Sign in', passAuto: 'current-password', passPlaceholder: 'Your password' },
-      signup: { heading: 'Create your account.', subhead: 'Seven days free. Cancel anytime from the app.', submit: 'Start free trial', passAuto: 'new-password', passPlaceholder: 'At least 8 characters' },
-    };
-
-    let currentMode = 'signin';
-
-    function setMode(mode) {
-      currentMode = mode;
-      authPage.classList.toggle('mode-signin', mode === 'signin');
-      authPage.classList.toggle('mode-signup', mode === 'signup');
-      const c = copy[mode];
-      heading.textContent  = c.heading;
-      subhead.textContent  = c.subhead;
-      submitBtn.textContent = c.submit;
-      password.setAttribute('autocomplete', c.passAuto);
-      password.setAttribute('placeholder', c.passPlaceholder);
-      errorEl.textContent = '';
-      authPage.querySelectorAll('.mode-toggle button').forEach(b => {
-        const on = b.dataset.mode === mode;
-        b.classList.toggle('is-active', on);
-        b.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-    }
-
-    authPage.querySelectorAll('[data-mode]').forEach(btn => {
-      btn.addEventListener('click', () => setMode(btn.dataset.mode));
-    });
-
-    setMode('signin');
-
     // Google sign-in: open the local backend OAuth endpoint in the system browser.
     // The backend redirects to Google, which redirects back via fluent://auth?token=...
     // Swift intercepts that URL and calls handleGoogleAuthCallback.
@@ -471,38 +434,6 @@
         }
       });
     }
-
-    document.getElementById('auth-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('auth-email').value.trim();
-      const pw    = document.getElementById('auth-password').value;
-      errorEl.textContent = '';
-
-      if (!email || !email.includes('@')) { errorEl.textContent = 'Please enter a valid email.'; return; }
-      if (pw.length < 8) { errorEl.textContent = 'Password must be at least 8 characters.'; return; }
-
-      submitBtn.disabled = true;
-      const endpoint = currentMode === 'signin' ? '/auth/login' : '/auth/register';
-      try {
-        const res = await fetch(BACKEND_URL + endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pw }),
-        });
-        const data = await res.json();
-        if (!res.ok) { errorEl.textContent = data.detail || 'Something went wrong.'; return; }
-        _saveToken(data.token);
-        authPage.style.display = 'none';
-        // Tell Swift the user is now signed in so it can load sessions
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.authComplete) {
-          window.webkit.messageHandlers.authComplete.postMessage(data.token);
-        }
-      } catch (err) {
-        errorEl.textContent = 'Could not connect: ' + err.message + ' (url: ' + BACKEND_URL + ')';
-      } finally {
-        submitBtn.disabled = false;
-      }
-    });
   })();
 
   // ── Calendar / Up Next ───────────────────────────────────────────────────
@@ -783,12 +714,6 @@
 
   (function initSettings() {
     const backBtn    = document.getElementById('settings-back');
-    const pwForm     = document.getElementById('settings-pw-form');
-    const pwError    = document.getElementById('settings-pw-error');
-    const pwCancel   = document.getElementById('settings-pw-cancel');
-    const emailForm  = document.getElementById('settings-email-form');
-    const emailError = document.getElementById('settings-email-error');
-    const emailCancel = document.getElementById('settings-email-cancel');
     const signoutBtn = document.getElementById('settings-signout-btn');
     const deleteBtn  = document.getElementById('settings-delete-btn');
 
@@ -864,83 +789,6 @@
     if (updateCardPlaceholder) updateCardPlaceholder.addEventListener('click', openPortal);
 
     if (backBtn) backBtn.addEventListener('click', () => window.showSessions && window.showSessions());
-
-    if (emailCancel) emailCancel.addEventListener('click', () => {
-      const details = emailCancel.closest('details');
-      if (details) details.open = false;
-    });
-
-    if (emailForm) emailForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (emailError) emailError.textContent = '';
-      const newEmail = document.getElementById('settings-new-email').value.trim();
-      const password = document.getElementById('settings-email-pw').value;
-      if (!newEmail) { if (emailError) emailError.textContent = 'Enter a new email address.'; return; }
-      const token = _token();
-      if (!token) { if (emailError) emailError.textContent = 'Not signed in.'; return; }
-      const submitBtn = emailForm.querySelector('button[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
-      try {
-        const res = await apiFetch('/auth/change-email', {
-          method: 'POST',
-          body: { new_email: newEmail, password },
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (emailError) emailError.textContent = data.detail || 'Could not update email.';
-        } else {
-          const emailEl = document.getElementById('settings-email');
-          const billingEmailEl = document.getElementById('settings-billing-email-val');
-          if (emailEl) emailEl.textContent = newEmail;
-          if (billingEmailEl) billingEmailEl.textContent = newEmail;
-          emailForm.reset();
-          const details = emailForm.closest('details');
-          if (details) details.open = false;
-        }
-      } catch (err) {
-        if (emailError) emailError.textContent = 'Could not connect: ' + err.message;
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
-      }
-    });
-
-    if (pwCancel) pwCancel.addEventListener('click', () => {
-      const details = pwCancel.closest('details');
-      if (details) details.open = false;
-    });
-
-    if (pwForm) pwForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (pwError) pwError.textContent = '';
-      const current = document.getElementById('settings-current-pw').value;
-      const next    = document.getElementById('settings-new-pw').value;
-      if (next.length < 8) {
-        if (pwError) pwError.textContent = 'New password must be at least 8 characters.';
-        return;
-      }
-      const token = _token();
-      if (!token) { if (pwError) pwError.textContent = 'Not signed in.'; return; }
-      const submitBtn = pwForm.querySelector('button[type="submit"]');
-      if (submitBtn) submitBtn.disabled = true;
-      try {
-        const res = await apiFetch('/auth/change-password', {
-          method: 'POST',
-          body: { current_password: current, new_password: next },
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (pwError) pwError.textContent = data.detail || 'Could not update password.';
-        } else {
-          pwForm.reset();
-          const details = pwForm.closest('details');
-          if (details) details.open = false;
-        }
-      } catch (err) {
-        if (pwError) pwError.textContent = 'Could not connect: ' + err.message;
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
-      }
-    });
 
     if (signoutBtn) signoutBtn.addEventListener('click', () => {
       localStorage.removeItem('fluent_token');

@@ -7,6 +7,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     private var reportWindowController: ReportWindowController?
     private var engineSetupProcess: Process?
     private var engineProcess: Process?
+    private var setupWindowController: EngineSetupWindowController?
+
+    // Crash-loop guard: if the engine keeps dying immediately we back off and
+    // eventually stop auto-restarting instead of spinning the CPU forever.
+    private var engineRestartCount = 0
+    private var lastEngineStart = Date.distantPast
+    private static let maxEngineRestarts = 5
+
+    /// Setup is "done" only when the script wrote this sentinel after a fully
+    /// validated install — NOT merely when a venv python exists (a half-finished
+    /// install leaves the venv but no sentinel, so we correctly retry).
+    private var engineReadySentinel: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".fluent/engine/.engine-ready")
+    }
+
+    // Exit codes from setup_engine.sh — kept in sync with the script.
+    private enum EngineSetupError: Int32 {
+        case noPython = 10
+        case venvFailed = 11
+        case pipFailed = 12
+        case verifyFailed = 13
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -40,11 +63,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     // MARK: - Engine setup & launch
 
     private func setupEngineIfNeeded() {
-        let sentinel = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".fluent/engine/venv/bin/python3")
-
-        if FileManager.default.fileExists(atPath: sentinel.path) {
+        // Already fully set up and validated → just start.
+        if FileManager.default.fileExists(atPath: engineReadySentinel.path) {
             startEngine()
+            return
+        }
+        runEngineSetup()
+    }
+
+    /// Runs the first-launch (or retry) engine setup, surfacing progress and
+    /// actionable errors to the user instead of failing silently.
+    private func runEngineSetup() {
+        // Bail early with clear guidance if there's no usable Python at all —
+        // no point spawning the script just to have it exit 10.
+        guard findSystemPython() != nil else {
+            DispatchQueue.main.async { [weak self] in self?.showPythonMissing() }
             return
         }
 
@@ -56,23 +89,128 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             return
         }
 
-        print("[Fluent] First launch — running engine setup...")
+        print("[Fluent] Running engine setup...")
+        DispatchQueue.main.async { [weak self] in self?.showSetupProgress() }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = [setupScript, engineSrc.path]
-        process.terminationHandler = { [self] p in
+        process.terminationHandler = { [weak self] p in
             let status = p.terminationStatus
             DispatchQueue.main.async {
+                guard let self else { return }
                 if status == 0 {
                     print("[Fluent] Engine setup complete.")
+                    self.dismissSetupWindow()
+                    self.engineRestartCount = 0
                     self.startEngine()
                 } else {
-                    print("[Fluent] Engine setup failed (status \(status)). Check ~/.fluent/engine-setup.log")
+                    print("[Fluent] Engine setup failed (status \(status)). See ~/.fluent/engine-setup.log")
+                    self.showSetupFailed(EngineSetupError(rawValue: status))
                 }
             }
         }
-        try? process.run()
-        engineSetupProcess = process
+        do {
+            try process.run()
+            engineSetupProcess = process
+        } catch {
+            print("[Fluent] failed to launch setup: \(error)")
+            DispatchQueue.main.async { [weak self] in self?.showSetupFailed(nil) }
+        }
+    }
+
+    /// Mirror of setup_engine.sh's find_python: returns a usable Python 3.10+,
+    /// checking well-known absolute paths first (the inherited PATH may only have
+    /// the macOS system Python 3.9).
+    private func findSystemPython() -> String? {
+        let candidates = [
+            "/opt/homebrew/bin/python3.13", "/opt/homebrew/bin/python3.12",
+            "/opt/homebrew/bin/python3.11", "/opt/homebrew/bin/python3.10",
+            "/usr/local/bin/python3.13", "/usr/local/bin/python3.12",
+            "/usr/local/bin/python3.11", "/usr/local/bin/python3.10",
+            "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/3.12/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3",
+            "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
+        ]
+        for path in candidates where isPython310Plus(path) {
+            return path
+        }
+        return nil
+    }
+
+    private func isPython310Plus(_ path: String) -> Bool {
+        guard FileManager.default.isExecutableFile(atPath: path) else { return false }
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: path)
+        p.arguments = ["-c", "import sys; sys.exit(0 if sys.version_info[:2] >= (3, 10) else 1)"]
+        p.standardOutput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        do {
+            try p.run()
+            p.waitUntilExit()
+            return p.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    // MARK: - Setup UI
+
+    private func showSetupProgress() {
+        if setupWindowController == nil {
+            setupWindowController = EngineSetupWindowController()
+        }
+        setupWindowController?.showProgress()
+    }
+
+    private func dismissSetupWindow() {
+        setupWindowController?.close()
+        setupWindowController = nil
+    }
+
+    private func showPythonMissing() {
+        let alert = NSAlert()
+        alert.messageText = "Python is required"
+        alert.informativeText = """
+        Fluent needs Python 3.10 or newer to process your recordings. \
+        It doesn't look like a compatible version is installed.
+
+        Install Python from python.org, then click Retry.
+        """
+        alert.addButton(withTitle: "Open python.org")
+        alert.addButton(withTitle: "Retry")
+        alert.addButton(withTitle: "Later")
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            NSWorkspace.shared.open(URL(string: "https://www.python.org/downloads/macos/")!)
+        case .alertSecondButtonReturn:
+            runEngineSetup()
+        default:
+            break
+        }
+    }
+
+    private func showSetupFailed(_ reason: EngineSetupError?) {
+        dismissSetupWindow()
+        let alert = NSAlert()
+        alert.messageText = "Couldn't finish setup"
+        switch reason {
+        case .noPython:
+            showPythonMissing()
+            return
+        case .pipFailed:
+            alert.informativeText = "Downloading Fluent's processing components failed. "
+                + "Check your internet connection and try again."
+        case .verifyFailed, .venvFailed, .none:
+            alert.informativeText = "Something went wrong while setting up the engine. "
+                + "You can retry, or see ~/.fluent/engine-setup.log for details."
+        }
+        alert.addButton(withTitle: "Retry")
+        alert.addButton(withTitle: "Later")
+        if alert.runModal() == .alertFirstButtonReturn {
+            runEngineSetup()
+        }
     }
 
     /// Terminate whatever process is listening on the given TCP port (best effort).
@@ -109,11 +247,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // keep hitting the stale process (which may be running outdated code).
         killProcessOnPort(2788)
 
-        // Prefer the venv python (set up by setup_engine.sh), fall back to system Python
+        // Only the venv python has the installed deps. If it's missing the install
+        // is incomplete — re-run setup rather than launching a Python that will
+        // crash on `import torch` and trigger an endless restart loop.
         let venvPython = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".fluent/engine/venv/bin/python3").path
-        let systemPython = "/Library/Frameworks/Python.framework/Versions/3.11/bin/python3"
-        let pythonPath = FileManager.default.fileExists(atPath: venvPython) ? venvPython : systemPython
+        guard FileManager.default.isExecutableFile(atPath: venvPython) else {
+            print("[Fluent] venv python missing — (re)running setup")
+            runEngineSetup()
+            return
+        }
 
         // Find main.py inside the app bundle
         guard let mainPy = Bundle.main.resourceURL?
@@ -123,8 +266,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             return
         }
 
+        lastEngineStart = Date()
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: pythonPath)
+        process.executableURL = URL(fileURLWithPath: venvPython)
         process.arguments = [mainPy]
         // Inherit the Swift app's TCC permissions (including microphone)
         process.currentDirectoryURL = URL(fileURLWithPath: mainPy).deletingLastPathComponent()
@@ -136,9 +280,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             process.standardError = fh
         }
         process.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                self?.startEngine() // auto-restart on crash
-            }
+            DispatchQueue.main.async { self?.handleEngineExit() }
         }
         do {
             try process.run()
@@ -146,6 +288,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             print("[Fluent] engine started (pid \(process.processIdentifier))")
         } catch {
             print("[Fluent] failed to start engine: \(error)")
+        }
+    }
+
+    /// Auto-restart the engine on crash, but with back-off and a cap so a
+    /// reliably-crashing engine can't spin the CPU in a tight loop forever.
+    private func handleEngineExit() {
+        // A process that survived a while is a normal crash, not a startup loop —
+        // reset the counter so transient crashes don't count toward the cap.
+        if Date().timeIntervalSince(lastEngineStart) > 30 {
+            engineRestartCount = 0
+        }
+
+        engineRestartCount += 1
+        guard engineRestartCount <= Self.maxEngineRestarts else {
+            print("[Fluent] engine crashed \(engineRestartCount) times — giving up auto-restart")
+            return
+        }
+
+        // Linear back-off: 2s, 4s, 6s, …
+        let delay = Double(engineRestartCount) * 2.0
+        print("[Fluent] engine exited — restarting in \(delay)s (attempt \(engineRestartCount))")
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.startEngine()
         }
     }
 
