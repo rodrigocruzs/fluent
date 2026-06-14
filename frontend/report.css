@@ -502,7 +502,7 @@ body {
 .upnext .upnext-time { color: var(--accent); }
 
 .upnext .upnext-row {
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   cursor: default;
 }
 .upnext .upnext-row:hover { background-color: transparent; }
@@ -649,7 +649,6 @@ body {
 /* ── Report masthead ── */
 .report-masthead {
   max-width: 600px;
-  margin-bottom: 72px;
 }
 
 .back-link {
@@ -683,19 +682,73 @@ body {
   font-weight: 500;
 }
 
+.report-title {
+  font-size: 34px;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  max-width: 22ch;
+}
+
 .session-meta {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--gray-2);
-  margin-top: 4px;
+  margin-top: 12px;
   font-variant-numeric: tabular-nums;
+}
+
+.report-masthead {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 40px;
+  margin-bottom: 56px;
 }
 
 .report-summary {
   font-size: 18px;
   color: var(--ink-2);
-  margin-top: 32px;
+  margin: 0 0 32px;
   line-height: 1.45;
   letter-spacing: -0.005em;
+}
+
+/* ── No-transcript state ── */
+.no-transcript {
+  max-width: 600px;
+}
+
+.no-transcript-eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--gray-3);
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.no-transcript-title {
+  font-size: 24px;
+  color: var(--ink);
+  margin: 0 0 24px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.no-transcript-body {
+  font-size: 18px;
+  color: var(--ink-2);
+  margin: 0 0 28px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.no-transcript-hint {
+  font-size: 16px;
+  color: var(--gray-2);
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* ── Two-column layout ── */

@@ -23,6 +23,22 @@
     return `${s}s`;
   }
 
+  // Long form for the report meta line, e.g. "10 sec", "2 min", "1 hr 5 min".
+  function durationLong(seconds) {
+    seconds = Math.round(seconds);
+    if (seconds < 60) return `${seconds} sec`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.round((seconds % 3600) / 60);
+    if (h) return m ? `${h} hr ${m} min` : `${h} hr`;
+    return `${m} min`;
+  }
+
+  // Pull "HH:MM" out of a session slug like "2026-06-13_09-31".
+  function timeFromSlug(slug) {
+    const m = String(slug || '').match(/_(\d{2})-(\d{2})/);
+    return m ? `${m[1]}:${m[2]}` : '';
+  }
+
   // ── Alignment ────────────────────────────────────────────────────────────
 
   function align() {
@@ -253,45 +269,52 @@
     const issues       = Array.isArray(data.issues) ? data.issues : (Array.isArray(data) ? data : []);
     const transcript   = data.transcript || '';
     const duration     = data.duration   || 0;
-    const date         = data.date       || new Date().toLocaleDateString('en-US', {
+    const slug         = data.slug || '';
+    const date         = data.date       || formatSessionName(slug) || new Date().toLocaleDateString('en-US', {
       month: 'long', day: 'numeric', year: 'numeric',
     });
+    const title        = data.name || formatSessionName(slug) || 'Session';
+    const time         = timeFromSlug(slug);
 
     if (sessionsPage) sessionsPage.style.display = 'none';
     const recordingPage = document.getElementById('recording-page');
     if (recordingPage) recordingPage.style.display = 'none';
 
-    const n = issues.length;
-    const summaryText = n === 0
-      ? 'No suggestions — your English sounded natural and fluent.'
-      : n === 1
-        ? `1 suggestion across ${durationStr(duration)} of your speech.`
-        : `${n} suggestions across ${durationStr(duration)} of your speech.`;
+    // Meta line: "June 13, 2026 · 09:31 · 10 sec"
+    const metaParts = [esc(date), time && esc(time), esc(durationLong(duration))].filter(Boolean);
 
-    const transcriptHTML = buildTranscript(issues, transcript);
-    const noIssuesNote   = n === 0
-      ? '<p class="empty">Nothing to flag — great session.</p>'
-      : '';
-    const notesHTML = buildNotes(issues);
+    const hasTranscript = transcript.trim().length > 0;
 
     let body;
-    if (n === 0) {
+    if (!hasTranscript) {
+      // Nothing was captured — don't pretend to grade silence.
       body = `
-  ${noIssuesNote}
-  <div class="layout">
-    <aside class="margin" id="margin"></aside>
-    <section>
-      <div class="transcript-label">Transcript</div>
-      <div class="transcript">
-        ${transcriptHTML}
-      </div>
-    </section>
+  <div class="no-transcript">
+    <div class="no-transcript-eyebrow">No transcript</div>
+    <h2 class="no-transcript-title">Nothing was transcribed in this session.</h2>
+    <p class="no-transcript-body">The recording ran for ${esc(durationLong(duration))} &mdash; too short to capture any speech, or no one spoke. There&rsquo;s nothing to review here.</p>
+    <p class="no-transcript-hint">If you expected feedback, check your microphone and make sure recording continues while you&rsquo;re speaking.</p>
   </div>`;
     } else {
+      const n = issues.length;
+      const summaryText = n === 0
+        ? 'No suggestions — your English sounded natural and fluent.'
+        : n === 1
+          ? `1 suggestion across ${durationStr(duration)} of your speech.`
+          : `${n} suggestions across ${durationStr(duration)} of your speech.`;
+
+      const transcriptHTML = buildTranscript(issues, transcript);
+      const noIssuesNote   = n === 0
+        ? '<p class="empty">Nothing to flag — great session.</p>'
+        : '';
+      const notesHTML = buildNotes(issues);
+
       body = `
+  <p class="report-summary">${esc(summaryText)}</p>
+  ${noIssuesNote}
   <div class="layout">
     <aside class="margin" id="margin">
-      ${notesHTML}
+      ${n === 0 ? '' : notesHTML}
     </aside>
     <section>
       <div class="transcript-label">Transcript</div>
@@ -305,9 +328,8 @@
     page.innerHTML = `
   <header class="report-masthead">
     <button class="back-link" onclick="window.showSessions && window.showSessions()"><span class="arrow">&larr;</span> Sessions</button>
-    <div class="report-wordmark">Fluent</div>
-    <div class="session-meta">${esc(date)} &middot; ${esc(durationStr(duration))}</div>
-    <p class="report-summary">${esc(summaryText)}</p>
+    <h1 class="report-title">${esc(title)}</h1>
+    <div class="session-meta">${metaParts.join(' &middot; ')}</div>
   </header>
   ${body}`;
 
@@ -339,6 +361,60 @@
   function _token() { return localStorage.getItem('fluent_token') || window._fluentToken || null; }
   function _saveToken(t) { localStorage.setItem('fluent_token', t); }
   function _clearToken() { localStorage.removeItem('fluent_token'); }
+
+  // ── Backend access ──────────────────────────────────────────────────────────
+  // The webview is served from a file:// origin, so direct fetch() to the API is
+  // blocked by CORS. When running inside the app we proxy authenticated requests
+  // through the native Swift bridge (which holds the keychain token); in a real
+  // browser (future web client) we fall back to a normal fetch().
+  const _hasNativeBridge = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.apiRequest);
+  const _apiPending = {};
+  window.__apiResolve = function (id, result) {
+    const r = _apiPending[id];
+    if (!r) return;
+    delete _apiPending[id];
+    r(result); // { ok, status, body }
+  };
+
+  // fetch-like wrapper. `path` is relative to the API root (e.g. "/auth/me").
+  // Returns { ok, status, json(), text() } so callers read like a fetch Response.
+  function apiFetch(path, opts) {
+    opts = opts || {};
+    const method = opts.method || 'GET';
+    let bodyObj = null;
+    if (opts.body != null) {
+      try { bodyObj = typeof opts.body === 'string' ? JSON.parse(opts.body) : opts.body; }
+      catch (_) { bodyObj = opts.body; }
+    }
+
+    if (_hasNativeBridge) {
+      return new Promise(resolve => {
+        const id = 'api_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        _apiPending[id] = (res) => {
+          const text = res.body || '';
+          resolve({
+            ok: res.ok,
+            status: res.status,
+            json: () => Promise.resolve(text ? JSON.parse(text) : null),
+            text: () => Promise.resolve(text),
+          });
+        };
+        window.webkit.messageHandlers.apiRequest.postMessage({ id, method, path, body: bodyObj });
+      });
+    }
+
+    // Browser fallback: real fetch with the bearer token.
+    const token = _token();
+    const headers = Object.assign({}, opts.headers || {});
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    if (bodyObj != null) headers['Content-Type'] = 'application/json';
+    return fetch(BACKEND_URL + path, {
+      method,
+      headers,
+      cache: opts.cache,
+      body: bodyObj != null ? JSON.stringify(bodyObj) : undefined,
+    });
+  }
 
   (function initAuth() {
     const authPage  = document.getElementById('auth-page');
@@ -438,17 +514,6 @@
     return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
 
-  function _formatEventDuration(startIso, endIso) {
-    const start = new Date(startIso);
-    const end   = new Date(endIso);
-    if (isNaN(start) || isNaN(end)) return '';
-    const mins = Math.round((end - start) / 60000);
-    if (mins < 60) return `${mins} min`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return m ? `${h}h ${m}m` : `${h}h`;
-  }
-
   function _formatEventDay(isoString) {
     if (!isoString) return '';
     const d     = new Date(isoString);
@@ -468,13 +533,11 @@
     }
     list.innerHTML = events.map(ev => {
       const time     = _formatEventTime(ev.start);
-      const duration = _formatEventDuration(ev.start, ev.end);
       const day      = _formatEventDay(ev.start);
-      const dayLabel = day !== 'Today' ? `<span class="upnext-day">${esc(day)}</span> ` : '';
+      const dayLabel = day ? `<span class="upnext-day">${esc(day)}</span> ` : '';
       return `<div class="session upnext-row">
         <span class="session-name">${esc(ev.title)}</span>
         <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
-        <span class="session-duration">${esc(duration)}</span>
         <button class="upnext-record-btn" type="button">
           <span class="dot"></span>Start recording
         </button>
@@ -496,9 +559,7 @@
     const list = document.getElementById('upnext-list');
     if (!list) return;
 
-    fetch(BACKEND_URL + '/calendar/upcoming', {
-      headers: { 'Authorization': 'Bearer ' + token },
-    })
+    apiFetch('/calendar/upcoming')
       .then(r => r.ok ? r.json() : null)
       .then(events => renderUpNext(events))
       .catch(() => {});
@@ -522,7 +583,7 @@
     // loadReport is skipped while the report page is visible).
     const token = _token();
     if (token) {
-      fetch(BACKEND_URL + '/sessions', { headers: { 'Authorization': 'Bearer ' + token } })
+      apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
         .then(sessions => { if (sessions) renderSessionsList(sessions); })
         .catch(() => {});
@@ -565,11 +626,11 @@
     if (recordingPage)  recordingPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
 
-    const token = localStorage.getItem('fluent_token');
+    const token = _token();
     if (!token) return;
 
     // Fetch account info
-    fetch(BACKEND_URL + '/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
+    apiFetch('/auth/me')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
@@ -580,32 +641,32 @@
       })
       .catch(() => {});
 
-    // Sync billing status live from Stripe, then fall back to cached status
-    fetch(BACKEND_URL + '/billing/sync', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token },
-    })
+    // Fallback: use cached status from the DB. /billing/status returns 200 for
+    // any authenticated user (defaulting to a trial), so this reliably reveals
+    // the Plan + Billing sections even when the live Stripe sync can't run
+    // (e.g. user has no Stripe customer yet, or the sync request errors out).
+    const showCachedStatus = () =>
+      apiFetch('/billing/status', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) renderBillingStatus(d); })
+        .catch(() => {});
+
+    // Sync billing status live from Stripe, then fall back to cached status.
+    apiFetch('/billing/sync', { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) { renderBillingStatus(data); return; }
-        // Fallback: use cached status from DB
-        return fetch(BACKEND_URL + '/billing/status', {
-          headers: { 'Authorization': 'Bearer ' + token },
-          cache: 'no-store',
-        }).then(r => r.ok ? r.json() : null).then(d => { if (d) renderBillingStatus(d); });
+        return showCachedStatus();
       })
-      .catch(() => {});
+      .catch(() => showCachedStatus());
   };
 
   window.syncBillingStatus = function () {
     const settingsPage = document.getElementById('settings-page');
     if (!settingsPage || settingsPage.style.display === 'none') return;
-    const token = localStorage.getItem('fluent_token');
+    const token = _token();
     if (!token) return;
-    fetch(BACKEND_URL + '/billing/sync', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token },
-    })
+    apiFetch('/billing/sync', { method: 'POST' })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) renderBillingStatus(data); })
       .catch(() => {});
@@ -666,9 +727,9 @@
   function _resetBillingDetailsFlag() { _billingDetailsFetched = false; }
 
   function fetchBillingDetails() {
-    const token = localStorage.getItem('fluent_token');
+    const token = _token();
     if (!token) return;
-    fetch(BACKEND_URL + '/billing/invoices', { headers: { 'Authorization': 'Bearer ' + token } })
+    apiFetch('/billing/invoices')
       .then(r => {
         if (!r.ok) { r.text().then(t => console.warn('[Fluent] /billing/invoices error', r.status, t)); return null; }
         return r.json();
@@ -747,11 +808,9 @@
       function poll() {
         attempts++;
         if (attempts > 8) return;
-        const token = localStorage.getItem('fluent_token');
+        const token = _token();
         if (!token) return;
-        fetch(BACKEND_URL + '/billing/sync', {
-          method: 'POST', headers: { 'Authorization': 'Bearer ' + token },
-        })
+        apiFetch('/billing/sync', { method: 'POST' })
           .then(r => r.ok ? r.json() : null)
           .then(data => { if (data) renderBillingStatus(data); })
           .catch(() => {});
@@ -761,31 +820,34 @@
     }
 
     async function openCheckout() {
-      const token = localStorage.getItem('fluent_token');
+      const token = _token();
       if (!token) return;
       try {
-        const res = await fetch(BACKEND_URL + '/billing/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({}),
-        });
-        const data = await res.json();
-        if (data.url) openExternal(data.url);
-      } catch (e) { console.warn('[Fluent] checkout error', e); }
+        const res = await apiFetch('/billing/checkout', { method: 'POST', body: {} });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.url) { openExternal(data.url); return; }
+        console.warn('[Fluent] checkout failed', res.status, data);
+        alert((data && data.detail) || 'Could not start checkout. Please try again.');
+      } catch (e) {
+        console.warn('[Fluent] checkout error', e);
+        alert('Could not start checkout. Please try again.');
+      }
     }
 
     async function openPortal() {
-      const token = localStorage.getItem('fluent_token');
+      const token = _token();
       if (!token) return;
       try {
-        const res = await fetch(BACKEND_URL + '/billing/portal', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token },
-        });
-        const data = await res.json();
-        if (data.url) openExternal(data.url);
-        else if (res.status === 400) openCheckout();
-      } catch (e) { console.warn('[Fluent] portal error', e); }
+        const res = await apiFetch('/billing/portal', { method: 'POST' });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.url) { openExternal(data.url); return; }
+        if (res.status === 400) { openCheckout(); return; }
+        console.warn('[Fluent] portal failed', res.status, data);
+        alert((data && data.detail) || 'Could not open billing. Please try again.');
+      } catch (e) {
+        console.warn('[Fluent] portal error', e);
+        alert('Could not open billing. Please try again.');
+      }
     }
 
     const upgradeBtn             = document.getElementById('settings-upgrade-btn');
@@ -814,15 +876,14 @@
       const newEmail = document.getElementById('settings-new-email').value.trim();
       const password = document.getElementById('settings-email-pw').value;
       if (!newEmail) { if (emailError) emailError.textContent = 'Enter a new email address.'; return; }
-      const token = localStorage.getItem('fluent_token');
+      const token = _token();
       if (!token) { if (emailError) emailError.textContent = 'Not signed in.'; return; }
       const submitBtn = emailForm.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
       try {
-        const res = await fetch(BACKEND_URL + '/auth/change-email', {
+        const res = await apiFetch('/auth/change-email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ new_email: newEmail, password }),
+          body: { new_email: newEmail, password },
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -857,15 +918,14 @@
         if (pwError) pwError.textContent = 'New password must be at least 8 characters.';
         return;
       }
-      const token = localStorage.getItem('fluent_token');
+      const token = _token();
       if (!token) { if (pwError) pwError.textContent = 'Not signed in.'; return; }
       const submitBtn = pwForm.querySelector('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
       try {
-        const res = await fetch(BACKEND_URL + '/auth/change-password', {
+        const res = await apiFetch('/auth/change-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ current_password: current, new_password: next }),
+          body: { current_password: current, new_password: next },
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -894,13 +954,10 @@
 
     if (deleteBtn) deleteBtn.addEventListener('click', async () => {
       if (!confirm('Delete your account? All data will be removed within 24 hours. This cannot be undone.')) return;
-      const token = localStorage.getItem('fluent_token');
+      const token = _token();
       if (!token) { window.showOnboarding && window.showOnboarding(); return; }
       try {
-        await fetch(BACKEND_URL + '/auth/delete-account', {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + token },
-        });
+        await apiFetch('/auth/delete-account', { method: 'DELETE' });
       } catch (_) {}
       localStorage.removeItem('fluent_token');
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.signOut) {
@@ -1010,9 +1067,9 @@
     // appears as soon as the user navigates back. Re-render the (hidden)
     // sessions list directly rather than calling loadSessions(), which would
     // switch the visible page and yank the user off the report they're viewing.
-    const token = localStorage.getItem('fluent_token');
+    const token = _token();
     if (token) {
-      fetch(BACKEND_URL + '/sessions', { headers: { 'Authorization': 'Bearer ' + token } })
+      apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
         .then(sessions => { if (sessions) renderSessionsList(sessions); })
         .catch(() => {});

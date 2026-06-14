@@ -15,6 +15,7 @@
     --rule:       #e8e8e6;
     --row-hover:  #fafaf9;
     --accent:     #C96442;
+    --accent-soft:#f6efec;
     --bg:         #ffffff;
   }
 
@@ -86,202 +87,59 @@
     font-weight: 500;
   }
 
-  /* ── Start button ───────────────────────────────────── */
-  .start-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 28px;
-    padding: 10px 18px 10px 14px;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background-color 140ms ease, transform 140ms ease;
+  /* ── Auto-record note ───────────────────────────────── */
+  .auto-note {
+    display: flex;
+    align-items: baseline;
+    gap: 11px;
+    margin: 24px 0 0;
+    font-size: 14.5px;
+    color: var(--gray-1);
+    letter-spacing: -0.004em;
+    line-height: 1.5;
+    max-width: 56ch;
   }
-
-  .start-button:hover {
-    background: #b85737;
-  }
-
-  .start-button:active {
-    transform: translateY(1px);
-  }
-
-  .start-button .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #fff;
-    flex-shrink: 0;
-  }
-
-  /* ── Recording bar (active state) ──────────────────── */
-  .session-control {
-    margin-top: 28px;
-  }
-
-  .recording-bar {
-    display: none;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 8px 10px 16px;
-    border: 1px solid var(--rule);
-    border-radius: 10px;
-    background: #fff;
-    width: max-content;
-    max-width: 100%;
-    min-width: 320px;
-  }
-
-  .session-control.is-recording .start-button { display: none; }
-  .session-control.is-recording .recording-bar { display: inline-flex; }
-
-  .rec-dot {
+  .auto-note .live-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--accent);
     flex-shrink: 0;
     position: relative;
+    top: 5px;
   }
-  .rec-dot::after {
+  .auto-note .live-dot::after {
     content: "";
     position: absolute;
     inset: -4px;
     border-radius: 50%;
     background: var(--accent);
-    opacity: 0.35;
-    animation: rec-pulse 1.4s ease-out infinite;
+    opacity: 0.28;
+    animation: ready-pulse 2.4s ease-out infinite;
   }
-  @keyframes rec-pulse {
-    0%   { transform: scale(0.6); opacity: 0.45; }
-    100% { transform: scale(1.8); opacity: 0; }
+  @keyframes ready-pulse {
+    0%   { transform: scale(0.6); opacity: 0.4; }
+    100% { transform: scale(1.9); opacity: 0; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    .auto-note .live-dot::after { animation: none; }
+  }
+  .auto-note b { color: var(--ink-2); font-weight: 500; }
 
-  .rec-label {
-    font-size: 13px;
-    color: var(--gray-1);
-    letter-spacing: -0.005em;
-  }
-
-  .rec-timer {
-    font-size: 14px;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    margin-left: -4px;
-  }
-
-  /* tiny live waveform */
-  .rec-wave {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    height: 18px;
-    margin: 0 4px;
-  }
-  .rec-wave span {
-    display: inline-block;
-    width: 2px;
-    background: var(--accent);
-    border-radius: 1px;
-    opacity: 0.85;
-    animation: rec-wave 1.1s ease-in-out infinite;
-  }
-  .rec-wave span:nth-child(1) { animation-delay: -1.05s; }
-  .rec-wave span:nth-child(2) { animation-delay: -0.85s; }
-  .rec-wave span:nth-child(3) { animation-delay: -0.65s; }
-  .rec-wave span:nth-child(4) { animation-delay: -0.45s; }
-  .rec-wave span:nth-child(5) { animation-delay: -0.25s; }
-  @keyframes rec-wave {
-    0%, 100% { height: 4px; }
-    50%      { height: 16px; }
-  }
-
-  .rec-divider {
-    width: 1px;
-    align-self: stretch;
-    background: var(--rule);
-    margin: 4px 2px;
-  }
-
-  .rec-stop {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--gray-1);
-    transition: background-color 120ms ease, color 120ms ease;
-  }
-  .rec-stop:hover {
-    background: #f6efec;
-    color: var(--accent);
-  }
-  .rec-stop .stop-square {
-    width: 10px;
-    height: 10px;
-    background: currentColor;
-    border-radius: 1.5px;
-  }
-
-  /* ── Up next ────────────────────────────────────────── */
-  .upnext-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--gray-3);
-    font-weight: 500;
-    margin: 64px 0 4px;
-  }
-
-  .upnext .session-date { color: var(--accent); }
-  .upnext .session-status {
-    font-size: 14px;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    min-width: 110px;
-    text-align: right;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: flex-end;
-  }
-  .upnext .session-status .auto-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    flex-shrink: 0;
-  }
-
-  /* ── Session list ───────────────────────────────────── */
+  /* ── Section labels ─────────────────────────────────── */
+  .upnext-label,
   .sessions-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.14em;
     color: var(--gray-3);
     font-weight: 500;
-    margin: 64px 0 4px;
+    margin: 60px 0 4px;
   }
 
-  .sessions {
-    margin-top: 8px;
-  }
+  .sessions { margin-top: 8px; }
 
+  /* ── Session row (shared grid) ──────────────────────── */
   .session {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto auto 12px;
@@ -296,13 +154,8 @@
     border-radius: 2px;
   }
 
-  .session:last-child {
-    border-bottom: 1px solid var(--rule);
-  }
-
-  .session:hover {
-    background-color: var(--row-hover);
-  }
+  .session:last-child { border-bottom: 1px solid var(--rule); }
+  .session:hover { background-color: var(--row-hover); }
 
   .session-name {
     font-size: 16px;
@@ -324,9 +177,8 @@
     white-space: nowrap;
   }
 
-  .session-count.has-suggestions {
-    color: var(--accent);
-  }
+  .session-count.has-suggestions { color: var(--accent); }
+  .session-count.no-transcript   { color: var(--gray-3); }
 
   .session-date     { min-width: 84px; text-align: right; }
   .session-duration { min-width: 64px; text-align: right; }
@@ -341,31 +193,50 @@
     transition: opacity 120ms ease, transform 120ms ease, color 120ms ease;
   }
 
-  .session:hover .session-chevron {
+  a.session:hover .session-chevron {
     opacity: 1;
     transform: translateX(0);
     color: var(--gray-2);
   }
+  a.session:hover .session-name { color: var(--ink); }
 
-  .session:hover .session-name {
-    color: var(--ink);
+  /* ── Coming up (scheduled calls Fluent will auto-record) ─ */
+  .upnext .session {
+    grid-template-columns: minmax(0, 1fr) auto auto minmax(122px, auto);
+    cursor: default;
+  }
+  .upnext .session:hover { background-color: transparent; }
+  .upnext .session-date { color: var(--accent); }
+
+  .session-status {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    color: var(--gray-2);
+    letter-spacing: -0.003em;
+    white-space: nowrap;
+  }
+  .session-status .auto-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
   }
 
   /* ── Narrow ─────────────────────────────────────────── */
   @media (max-width: 680px) {
     .page { padding: 64px 24px 120px; }
-    .recording-bar { min-width: 0; width: 100%; }
-    .rec-wave { display: none; }
+
     .session {
       grid-template-columns: minmax(0, 1fr) auto;
       grid-template-rows: auto auto;
       row-gap: 6px;
       column-gap: 16px;
     }
-    .session-name {
-      grid-column: 1 / 2;
-      grid-row: 1;
-    }
+    .session-name { grid-column: 1 / 2; grid-row: 1; }
     .session-count,
     .session-status {
       grid-column: 2 / 3;
@@ -381,6 +252,8 @@
     .session-date     { grid-column: 1 / 2; }
     .session-duration { grid-column: 2 / 3; text-align: right; }
     .session-chevron  { display: none; }
+
+    .upnext .session { grid-template-columns: minmax(0, 1fr) auto; }
   }
 </style>
 </head>
@@ -403,46 +276,46 @@
     <div class="page-label">Sessions</div>
     <p class="session-summary">11 sessions over the past three weeks &mdash; about four hours of recorded speech.</p>
 
-    <div class="session-control" id="sessionControl">
-      <button class="start-button" type="button" id="startBtn">
-        <span class="dot"></span>
-        Start session
-      </button>
-
-      <div class="recording-bar" role="status" aria-live="polite">
-        <span class="rec-dot" aria-hidden="true"></span>
-        <span class="rec-label">Recording</span>
-        <span class="rec-wave" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
-        </span>
-        <span class="rec-timer" id="recTimer">00:00</span>
-        <span class="rec-divider" aria-hidden="true"></span>
-        <button class="rec-stop" type="button" id="stopBtn" aria-label="Stop session">
-          <span class="stop-square" aria-hidden="true"></span>
-        </button>
-      </div>
-    </div>
+    <p class="auto-note">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Fluent is on. Your calendar meetings <b>record automatically</b> &mdash; each one starts the moment it begins, and lands here when it ends.</span>
+    </p>
   </header>
 
-  <div class="upnext-label">Up next</div>
+  <div class="upnext-label">Coming up</div>
   <section class="sessions upnext">
-    <a class="session" href="#">
+
+    <div class="session">
       <span class="session-name">Engineering sync</span>
       <span class="session-date">10:30</span>
       <span class="session-duration">30 min</span>
       <span class="session-status"><span class="auto-dot" aria-hidden="true"></span>Auto-record</span>
-      <span class="session-chevron" aria-hidden="true">&rsaquo;</span>
-    </a>
+    </div>
+
+    <div class="session">
+      <span class="session-name">1:1 with Sarah</span>
+      <span class="session-date">14:00</span>
+      <span class="session-duration">30 min</span>
+      <span class="session-status"><span class="auto-dot" aria-hidden="true"></span>Auto-record</span>
+    </div>
+
+    <div class="session">
+      <span class="session-name">Customer call &mdash; Northwind</span>
+      <span class="session-date">Tomorrow 09:00</span>
+      <span class="session-duration">45 min</span>
+      <span class="session-status"><span class="auto-dot" aria-hidden="true"></span>Auto-record</span>
+    </div>
+
   </section>
 
   <div class="sessions-label">History</div>
   <section class="sessions">
 
-    <a class="session" href="#">
+    <a class="session" href="Coaching Report — No transcript.html">
       <span class="session-name">Daily standup</span>
-      <span class="session-date">Today</span>
-      <span class="session-duration">6 min</span>
-      <span class="session-count has-suggestions">4 suggestions</span>
+      <span class="session-date">Yesterday</span>
+      <span class="session-duration">10 sec</span>
+      <span class="session-count no-transcript">No transcript</span>
       <span class="session-chevron" aria-hidden="true">&rsaquo;</span>
     </a>
 
@@ -529,43 +402,6 @@
   </section>
 
 </main>
-
-<script>
-  (function () {
-    const control = document.getElementById('sessionControl');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn  = document.getElementById('stopBtn');
-    const timerEl  = document.getElementById('recTimer');
-
-    let startedAt = null;
-    let tickHandle = null;
-
-    function fmt(ms) {
-      const total = Math.floor(ms / 1000);
-      const m = Math.floor(total / 60).toString().padStart(2, '0');
-      const s = (total % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
-    }
-
-    function tick() {
-      if (!startedAt) return;
-      timerEl.textContent = fmt(Date.now() - startedAt);
-    }
-
-    startBtn.addEventListener('click', () => {
-      startedAt = Date.now();
-      timerEl.textContent = '00:00';
-      control.classList.add('is-recording');
-      tickHandle = setInterval(tick, 250);
-    });
-
-    stopBtn.addEventListener('click', () => {
-      startedAt = null;
-      clearInterval(tickHandle);
-      control.classList.remove('is-recording');
-    });
-  })();
-</script>
 
 </body>
 </html>

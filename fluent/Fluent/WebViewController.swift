@@ -28,6 +28,10 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         config.userContentController.add(self, name: "authComplete")
         config.userContentController.add(self, name: "signOut")
         config.userContentController.add(self, name: "openURL")
+        // Generic authenticated backend proxy. The webview is a file:// origin,
+        // so JS fetch() to the API is blocked by CORS — settings/billing calls
+        // are routed through here and performed natively instead.
+        config.userContentController.add(self, name: "apiRequest")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -301,6 +305,56 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         }
     }
 
+    // MARK: - Authenticated backend proxy (JS → Swift → API → JS)
+
+    private static let apiBase = "https://www.tryfluent.co/api"
+
+    /// Perform an authenticated backend request natively (bypassing the file://
+    /// CORS restriction) and resolve the matching JS promise with the response.
+    private func handleApiRequest(_ req: [String: Any]) {
+        guard let id = req["id"] as? String,
+              let path = req["path"] as? String else { return }
+        let method = (req["method"] as? String ?? "GET").uppercased()
+
+        func resolve(ok: Bool, status: Int, bodyText: String) {
+            // Pass the raw response body as a JSON string; JS parses it.
+            let payload: [String: Any] = ["ok": ok, "status": status, "body": bodyText]
+            guard let data = try? JSONSerialization.data(withJSONObject: payload),
+                  let json = String(data: data, encoding: .utf8) else { return }
+            DispatchQueue.main.async {
+                self.webView.evaluateJavaScript("window.__apiResolve && window.__apiResolve('\(id)', \(json));")
+            }
+        }
+
+        guard let token = getToken() else {
+            resolve(ok: false, status: 401, bodyText: "{\"detail\":\"Not signed in.\"}")
+            return
+        }
+        guard let url = URL(string: WebViewController.apiBase + path) else {
+            resolve(ok: false, status: 0, bodyText: "{\"detail\":\"Bad URL.\"}")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 15
+        if let bodyObj = req["body"], !(bodyObj is NSNull) {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try? JSONSerialization.data(withJSONObject: bodyObj)
+        }
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error {
+                resolve(ok: false, status: 0, bodyText: "{\"detail\":\"\(error.localizedDescription)\"}")
+                return
+            }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let text = String(data: data ?? Data(), encoding: .utf8) ?? ""
+            resolve(ok: (200...299).contains(status), status: status, bodyText: text)
+        }.resume()
+    }
+
     // MARK: - WKScriptMessageHandler (JS → Swift: open a specific session)
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -321,6 +375,10 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
         if message.name == "openURL", let urlString = message.body as? String,
            let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
+            return
+        }
+        if message.name == "apiRequest", let body = message.body as? [String: Any] {
+            handleApiRequest(body)
             return
         }
         guard message.name == "openSession", let slug = message.body as? String else { return }

@@ -588,36 +588,48 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
     success_url = req.success_url or f"{FRONTEND_URL}/api/billing/checkout-success"
     cancel_url  = req.cancel_url  or f"{FRONTEND_URL}?checkout=cancel"
 
-    # Create or reuse Stripe customer
-    customer_id = user.get("stripe_customer_id")
-    if not customer_id:
-        customer = stripe.Customer.create(email=user["email"])
-        customer_id = customer.id
-        update_user_billing(user["id"], stripe_customer_id=customer_id)
+    try:
+        # Reuse the stored Stripe customer, but verify it still exists. A stale
+        # or deleted customer id (e.g. created under a different key, or removed)
+        # would otherwise make Session.create raise "No such customer" → 500.
+        customer_id = user.get("stripe_customer_id")
+        if customer_id:
+            try:
+                cust = stripe.Customer.retrieve(customer_id)
+                if getattr(cust, "deleted", False):
+                    customer_id = None
+            except stripe.StripeError:
+                customer_id = None
 
-    # If the customer already has a trialing subscription, cancel it so
-    # the new checkout starts an immediate paid plan (no trial carry-over).
-    existing_sub_id = user.get("stripe_subscription_id")
-    if existing_sub_id:
-        try:
-            import requests as _requests
-            r = _requests.get(f"https://api.stripe.com/v1/subscriptions/{existing_sub_id}",
-                              auth=(STRIPE_SECRET_KEY, ""), timeout=10)
-            existing = r.json()
-            if existing.get("status") == "trialing":
-                stripe.Subscription.cancel(existing_sub_id)
+        if not customer_id:
+            customer = stripe.Customer.create(email=user["email"])
+            customer_id = customer.id
+            update_user_billing(user["id"], stripe_customer_id=customer_id)
+
+        # If the customer already has a trialing subscription, cancel it so
+        # the new checkout starts an immediate paid plan (no trial carry-over).
+        existing_sub_id = user.get("stripe_subscription_id")
+        if existing_sub_id:
+            try:
+                existing = stripe.Subscription.retrieve(existing_sub_id)
+                if existing.get("status") == "trialing":
+                    stripe.Subscription.cancel(existing_sub_id)
+                    update_user_billing(user["id"], stripe_subscription_id=None)
+            except stripe.StripeError:
+                # Subscription gone/invalid — clear the stale id and continue.
                 update_user_billing(user["id"], stripe_subscription_id=None)
-        except stripe.StripeError:
-            pass
 
-    session = stripe.checkout.Session.create(
-        customer=customer_id,
-        payment_method_types=["card"],
-        line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
-        mode="subscription",
-        success_url=success_url,
-        cancel_url=cancel_url,
-    )
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            mode="subscription",
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+    except stripe.StripeError as e:
+        raise HTTPException(502, f"Could not start checkout: {e.user_message or str(e)}")
+
     return {"url": session.url}
 
 
