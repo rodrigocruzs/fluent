@@ -1,88 +1,87 @@
 # Fluent
 
-Mac menu bar app that passively records meetings and generates a post-meeting English coaching report.
+macOS app that passively records your meetings and generates a post-meeting English coaching report for non-native speakers.
 
-## Install
+## Architecture
 
-### 1. BlackHole (system audio capture)
+Fluent is three cooperating layers:
+
+1. **Native macOS app** — `fluent/Fluent.xcodeproj` (Swift). Menu-bar app with a
+   WKWebView UI (`frontend/`). Spawns and supervises the local engine, and
+   renders reports.
+2. **Local engine** — `fluent-engine/` (Python, headless). Runs as a Launch
+   Agent and exposes a local HTTP API on `127.0.0.1:2788` for the app to
+   start/stop recording. Captures mic + BlackHole system audio, transcribes
+   locally with `faster-whisper`, diarises by audio energy, writes
+   `~/.fluent/reports/latest.json`, and fires a Darwin notification
+   (`com.fluent.reportReady`) so the app shows the new report.
+3. **Backend** — `backend/` (FastAPI), deployed on Vercel at `tryfluent.co/api`.
+   Handles auth (JWT), session storage (Neon Postgres), Stripe billing, Google
+   OAuth + Calendar, and the Claude coaching call.
+
+## Prerequisites
+
+- macOS 14+
+- [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole) for system-audio
+  capture. The app installs and configures a Multi-Output Device on first launch;
+  to do it manually: `brew install blackhole-2ch`, then in **Audio MIDI Setup**
+  create a Multi-Output Device combining `BlackHole 2ch` + your speakers and set
+  it as system output.
+- For local development of the engine/backend: Python 3.11+.
+
+## Build & run the app
+
+The app is built with Xcode (project generated from `fluent/project.yml` via
+[XcodeGen](https://github.com/yonaskolb/XcodeGen)).
 
 ```bash
-brew install blackhole-2ch
+# Debug build + install to /Applications
+xcodebuild -project fluent/Fluent.xcodeproj -scheme Fluent -configuration Debug build
+
+# Full signed + notarized release DMG (Developer ID), then install
+bash release.sh
 ```
 
-Then in **Audio MIDI Setup** (Spotlight → "Audio MIDI Setup"):
-1. Click `+` → **Create Multi-Output Device**
-2. Add: `BlackHole 2ch` + your speakers/headphones
-3. Set this Multi-Output Device as your **system output** in System Settings → Sound
-4. Set **BlackHole 2ch** as your **input** in System Settings → Sound (or Fluent does it automatically)
+> Note: the app loads a **bundled copy** of `frontend/`. After editing
+> `frontend/*`, rebuild and reinstall for changes to take effect, and bump the
+> `report.js?v=NN` cache-buster in `frontend/report.html`.
 
-### 2. Python dependencies
+## Engine (local development)
 
 ```bash
-brew install portaudio
+cd fluent-engine
 pip install -r requirements.txt
+python main.py          # serves the control API on 127.0.0.1:2788
 ```
 
-For pyannote.audio you also need a Hugging Face token with access to
-`pyannote/speaker-diarization-3.1` (free, just accept the model terms):
+The first run downloads the `faster-whisper` tiny.en model into
+`~/.fluent/models/`. Config lives in `~/.fluent/config.json`.
+
+## Backend (local development)
 
 ```bash
-export HF_TOKEN=hf_your_token_here
+cd backend
+pip install -r requirements.txt
+ANTHROPIC_API_KEY=sk-ant-... uvicorn backend.main:app --reload --port 8000
 ```
 
-### 3. Configure
+Environment variables (DB URL, Stripe keys, Google OAuth, Anthropic key) are
+read from the environment / `.env.local` — never commit credentials.
 
-```bash
-python setup_config.py
-```
+## Reports
 
-Or edit `~/.fluent/config.json` directly:
-
-```json
-{
-  "native_language": "Spanish",
-  "job_context": "Senior product manager at a fintech company",
-  "whisper_api_key": "sk-...",
-  "claude_api_key": "sk-ant-..."
-}
-```
-
-### 4. Test audio capture first
-
-```bash
-python test_audio.py
-```
-
-Speak + play audio for 10s, then open the resulting WAV in QuickTime to confirm both streams mixed.
-
-### 5. Run
-
-```bash
-python app.py
-```
-
-A 🎙 icon appears in the menu bar. Click it to **Start session** before your meeting.
-
-## First run — speaker selection
-
-After your first session, Fluent will ask *"Which speaker are you?"* — diarisation discovers all voices in the room and needs to know which label is yours. Enter the number and click **Save & reprocess**. Fluent remembers it for all future sessions.
-
-## Report location
-
-Reports are saved to `~/.fluent/reports/` and open automatically in your browser after each session.
+Reports are written to `~/.fluent/reports/` and rendered inside the app.
 
 ## Project layout
 
 ```
-fluent/
-  audio.py       — mic + BlackHole capture
-  transcribe.py  — Whisper API
-  diarise.py     — pyannote speaker diarisation
-  coach.py       — Claude coaching prompt
-  pipeline.py    — orchestrates the above
-  report.py      — HTML report generator
-  config.py      — ~/.fluent/config.json
-app.py           — rumps menu bar app
-test_audio.py    — standalone audio test
-setup_config.py  — first-run config wizard
+fluent/            — Xcode project (Swift app) + project.yml (XcodeGen spec)
+  Fluent/          — Swift sources (AppDelegate, WebViewController, …)
+frontend/          — WebView UI: report.html, report.js, report.css
+fluent-engine/     — local Python engine (main.py + fluent/ package)
+  fluent/          — audio, transcribe, diarise, pipeline, coach, report, config
+backend/           — FastAPI backend (main.py, auth.py, database.py)
+api/index.py       — Vercel entrypoint (imports backend.main:app)
+website/           — landing page, privacy policy, reset-password, DMG
+release.sh         — build → sign → notarize → DMG → install
 ```
