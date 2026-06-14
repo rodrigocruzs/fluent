@@ -150,7 +150,7 @@
 <main class="container">
   <div class="page-header">
     <h1>Privacy Policy</h1>
-    <p>Last updated: May 29, 2026</p>
+    <p>Last updated: June 14, 2026</p>
   </div>
 
   <div class="content">
@@ -158,6 +158,7 @@
 
     <h2>1. What We Collect</h2>
     <p><strong>Account information.</strong> When you sign up, we collect your email address and a hashed password (or, if you use Google sign-in, your Google account name and email). We never store your plain-text password.</p>
+    <p><strong>Google Calendar data.</strong> If you sign in with Google and grant calendar access, Fluent reads a limited view of your primary calendar — the next few upcoming events (title, start/end time, and attendees) — to display an "Up Next" view in the app so you can prepare for your calls. We request read-only access (<code>calendar.readonly</code>). We do not modify your calendar, and we do not store the contents of your calendar events on our servers beyond what is needed to return this view to your device.</p>
     <p><strong>Audio and transcripts.</strong> Fluent captures system audio locally on your Mac during calls. Audio is transcribed on your device using a local Whisper model and is never transmitted to our servers. The resulting text transcript is sent to our servers solely to generate coaching feedback and is deleted from our servers after processing.</p>
     <p><strong>Coaching sessions.</strong> We store the coaching feedback generated from each session (issues found, suggestions, scores) in your account so you can review your history.</p>
     <p><strong>Billing information.</strong> Payments are processed by Stripe. We store only a Stripe customer ID and subscription status; we never see or store your card number or full payment details.</p>
@@ -180,18 +181,22 @@
     <h2>4. Third-Party Services</h2>
     <ul>
       <li><strong>Stripe</strong> — payment processing. <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a>.</li>
-      <li><strong>Google OAuth</strong> — optional sign-in. If used, Google provides us your name and email. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>.</li>
+      <li><strong>Google OAuth &amp; Google Calendar API</strong> — optional sign-in and calendar access. If used, Google provides us your name and email, and (with your consent) read-only access to your upcoming calendar events. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>. See our <a href="#limited-use">Limited Use disclosure</a> below.</li>
       <li><strong>Anthropic Claude API</strong> — generates coaching feedback from your transcript. Transcripts sent for coaching are subject to <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>. Anthropic does not use API inputs to train its models by default.</li>
       <li><strong>Neon</strong> — hosted Postgres database where account and session data is stored, operated in the US.</li>
     </ul>
 
-    <h2>5. Data Retention</h2>
+    <h2 id="limited-use">5. Google API Services — Limited Use Disclosure</h2>
+    <p>Fluent's use and transfer of information received from Google APIs to any other app will adhere to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the <a href="https://developers.google.com/terms/api-services-user-data-policy#limited-use" target="_blank" rel="noopener">Limited Use</a> requirements.</p>
+    <p>Specifically, the calendar data Fluent accesses through Google APIs is used solely to provide and improve the user-facing "Up Next" feature within the app. We do not transfer or sell this data to third parties, do not use it for advertising, and do not allow humans to read it except where required for security, to comply with applicable law, or with your explicit consent.</p>
+
+    <h2>6. Data Retention</h2>
     <p>Your account data and session history are retained as long as your account is active. You may delete your account at any time from the Fluent app settings, which permanently removes all your data from our servers within 30 days.</p>
 
-    <h2>6. Security</h2>
+    <h2>7. Security</h2>
     <p>Passwords are stored as bcrypt hashes. All data in transit is encrypted via HTTPS/TLS. We do not store raw audio or full call transcripts beyond what is needed to generate a single coaching response.</p>
 
-    <h2>7. Your Rights</h2>
+    <h2>8. Your Rights</h2>
     <p>You may at any time:</p>
     <ul>
       <li>Access or export your session history from within the app.</li>
@@ -200,13 +205,13 @@
     </ul>
     <p>If you are in the European Economic Area or the United Kingdom, you have additional rights under GDPR/UK GDPR, including the right to object to processing and to lodge a complaint with your local supervisory authority.</p>
 
-    <h2>8. Children</h2>
+    <h2>9. Children</h2>
     <p>Fluent is not directed at children under 13. We do not knowingly collect personal data from anyone under 13.</p>
 
-    <h2>9. Changes to This Policy</h2>
+    <h2>10. Changes to This Policy</h2>
     <p>We may update this policy from time to time. Material changes will be communicated via email or an in-app notice. The "Last updated" date at the top will always reflect the current version.</p>
 
-    <h2>10. Contact</h2>
+    <h2>11. Contact</h2>
     <p>Questions or requests about your data: <a href="mailto:hello@fluent.app">hello@fluent.app</a></p>
   </div>
 </main>
