@@ -14,11 +14,19 @@ use tauri::Manager;
 
 pub fn start(app: tauri::AppHandle) {
     thread::spawn(move || {
-        // 1. Give the webview + engine a moment, then inject the JWT and the
-        //    initial sessions list.
+        // 1. Give the webview + engine a moment, then decide the landing screen.
+        //    IMPORTANT: window.loadSessions() unconditionally shows the sessions
+        //    page and hides onboarding, so we must NOT call it when signed out —
+        //    otherwise the user is stranded on an empty sessions page with no way
+        //    to sign in. With a token: inject it + load sessions. Without one:
+        //    show onboarding (the Google sign-in screen).
         thread::sleep(Duration::from_secs(2));
-        inject_token(&app);
-        inject_sessions(&app);
+        if crate::token().is_some() {
+            inject_token(&app);
+            inject_sessions(&app);
+        } else {
+            crate::eval_in_webview(&app, "window.showOnboarding && window.showOnboarding();");
+        }
 
         // 2. Poll the engine /status for the analysing true->false edge.
         let client = reqwest::blocking::Client::new();
