@@ -32,7 +32,7 @@ from anthropic import Anthropic
 from posthog import Posthog
 
 _posthog = Posthog(
-    api_key=os.environ.get("POSTHOG_API_KEY", ""),
+    os.environ.get("POSTHOG_API_KEY", ""),
     host=os.environ.get("POSTHOG_HOST", "https://eu.i.posthog.com"),
     enable_exception_autocapture=True,
     # Serverless (Vercel): the function can be frozen/killed before the async
