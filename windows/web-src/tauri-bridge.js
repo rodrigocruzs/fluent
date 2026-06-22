@@ -12,8 +12,13 @@
  * Must load BEFORE report.js (injected into <head> by sync-frontend.mjs).
  */
 (function () {
-  const invoke = window.__TAURI__.core.invoke;
-  const opener = window.__TAURI__.opener; // open URLs in the system browser
+  const T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) {
+    console.error("[bridge] window.__TAURI__ not available — is withGlobalTauri enabled?");
+    return;
+  }
+  const invoke = T.core.invoke;
+  const opener = T.opener; // open URLs in the system browser
 
   // postMessage({ id, method, path, body }) -> Rust api_request -> __apiResolve.
   // Mirrors WebViewController.handleApiRequest exactly: resolves with
