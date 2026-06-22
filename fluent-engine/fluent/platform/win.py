@@ -94,6 +94,47 @@ def _downmix_n(pcm: bytes, channels: int) -> bytes:
     return out.tobytes()
 
 
+def make_pyaudio():
+    """Create the loopback-aware PyAudio instance.
+
+    pyaudiowpatch is a superset build of PyAudio that adds the WASAPI
+    loopback APIs (get_loopback_device_info_generator, etc.). The standard
+    `pyaudio.PyAudio` does NOT have them, so we must instantiate from
+    pyaudiowpatch here.
+    """
+    import pyaudiowpatch
+    return pyaudiowpatch.PyAudio()
+
+
+def _find_loopback_device(pa):
+    """Return the WASAPI loopback device matching the default speakers.
+
+    Uses pyaudiowpatch's helper which returns the loopback endpoint paired
+    with the current default output device directly, falling back to scanning
+    all loopback devices.
+    """
+    # Preferred: the patched helper hands back the default speakers' loopback.
+    try:
+        return pa.get_default_wasapi_loopback()
+    except Exception:
+        pass
+
+    try:
+        default_out = pa.get_device_info_by_index(
+            pa.get_default_output_device_info()["index"]
+        )
+        first = None
+        for info in pa.get_loopback_device_info_generator():
+            if first is None:
+                first = info
+            if default_out["name"] in info["name"]:
+                return info
+        return first  # fall back to the first loopback device, or None
+    except Exception as e:
+        print(f"WARNING: could not enumerate loopback devices ({e}); mic only.")
+        return None
+
+
 def open_system_capture(pa, on_chunk, rate, chunk, fmt):
     """Open the WASAPI loopback capture stream on Windows.
 
@@ -102,38 +143,17 @@ def open_system_capture(pa, on_chunk, rate, chunk, fmt):
     to 16 kHz mono int16 (via `_resample_to_16k_mono_int16`) before calling
     `on_chunk`, so the recorder's mixer is identical across platforms.
     Returns the open stream, or None if no loopback endpoint is found.
+    `pa` must be a pyaudiowpatch PyAudio instance (see make_pyaudio).
     """
-    try:
-        import pyaudiowpatch  # noqa: F401  (pyaudio is the patched build on Windows)
-    except ImportError:
-        print("WARNING: pyaudiowpatch not installed; recording mic only.")
-        return None
-
-    # Find the loopback device matching the default output speaker.
-    try:
-        default_speakers = pa.get_device_info_by_index(
-            pa.get_default_output_device_info()["index"]
-        )
-        loopback = None
-        for info in pa.get_loopback_device_info_generator():
-            if default_speakers["name"] in info["name"]:
-                loopback = info
-                break
-        if loopback is None:
-            # Fall back to the first available loopback device.
-            for info in pa.get_loopback_device_info_generator():
-                loopback = info
-                break
-    except Exception as e:
-        print(f"WARNING: could not find a loopback device ({e}); mic only.")
-        return None
-
+    loopback = _find_loopback_device(pa)
     if loopback is None:
         print("WARNING: no WASAPI loopback endpoint found; recording mic only.")
         return None
 
     src_rate = int(loopback["defaultSampleRate"])
     src_channels = int(loopback["maxInputChannels"])
+    print(f"[platform.win] loopback: {loopback['name']} "
+          f"({src_rate}Hz {src_channels}ch) -> 16kHz mono int16")
 
     def _callback(in_data, frame_count, time_info, status):
         on_chunk(_resample_to_16k_mono_int16(in_data, src_rate, src_channels))
@@ -141,9 +161,9 @@ def open_system_capture(pa, on_chunk, rate, chunk, fmt):
 
     # Open at the device's NATIVE format (float32, native rate/channels);
     # conversion to 16 kHz mono int16 happens in the callback.
-    import pyaudio
+    import pyaudiowpatch
     return pa.open(
-        format=pyaudio.paFloat32,
+        format=pyaudiowpatch.paFloat32,
         channels=src_channels,
         rate=src_rate,
         frames_per_buffer=chunk,

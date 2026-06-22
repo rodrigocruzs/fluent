@@ -27,6 +27,7 @@ save_token = _impl.save_token
 delete_token = _impl.delete_token
 notify_report_ready = _impl.notify_report_ready
 log_path = _impl.log_path
+make_pyaudio = _impl.make_pyaudio
 open_system_capture = _impl.open_system_capture
 
 __all__ = [
@@ -35,5 +36,6 @@ __all__ = [
     "delete_token",
     "notify_report_ready",
     "log_path",
+    "make_pyaudio",
     "open_system_capture",
 ]

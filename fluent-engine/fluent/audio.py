@@ -31,7 +31,7 @@ FORMAT = pyaudio.paInt16
 
 
 def list_input_devices() -> list[dict]:
-    pa = pyaudio.PyAudio()
+    pa = platform.make_pyaudio()
     devices = []
     for i in range(pa.get_device_count()):
         info = pa.get_device_info_by_index(i)
@@ -88,7 +88,7 @@ class AudioRecorder:
         self.start_time: Optional[float] = None
 
     def start(self) -> RecordingPaths:
-        self.pa = pyaudio.PyAudio()
+        self.pa = platform.make_pyaudio()
 
         base_dir = Path.home() / ".fluent"
         base_dir.mkdir(parents=True, exist_ok=True)

@@ -76,6 +76,12 @@ def log_path() -> Path:
     return Path("/tmp/fluent-engine.log")
 
 
+def make_pyaudio():
+    """Create the PyAudio instance used for capture (standard PyAudio on macOS)."""
+    import pyaudio
+    return pyaudio.PyAudio()
+
+
 def open_system_capture(pa, on_chunk, rate, chunk, fmt):
     """Open the system-audio capture stream (BlackHole) on macOS.
 
