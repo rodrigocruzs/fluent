@@ -29,5 +29,12 @@
     "icon": [
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["fluent"]
+      }
+    }
   }
 }

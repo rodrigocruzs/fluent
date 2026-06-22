@@ -70,6 +70,14 @@
     invoke("sign_out").catch((e) => console.error("[bridge] signOut failed", e));
   }
 
+  // authComplete: on macOS Swift used this to persist the token to the engine.
+  // Here the Rust deep-link handler already persists the token (Credential
+  // Manager + engine /signin) before firing this, so it's a safe acknowledgement
+  // hook — present so report.js's postMessage call site never hits undefined.
+  function authComplete(token) {
+    console.log("[bridge] authComplete received");
+  }
+
   // Install the emulated WebKit interface. Each handler exposes postMessage(...)
   // just like WKScriptMessageHandler, so report.js's existing call sites work.
   window.webkit = window.webkit || {};
@@ -78,6 +86,7 @@
     openSession: { postMessage: openSession },
     openURL: { postMessage: openURL },
     signOut: { postMessage: signOut },
+    authComplete: { postMessage: authComplete },
   });
 
   // The Rust host injects sessions / reports / token by calling these globals

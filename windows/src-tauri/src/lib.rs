@@ -31,6 +31,12 @@ fn get_token() -> Option<String> {
     entry.get_password().ok().filter(|t| !t.is_empty())
 }
 
+fn save_token(token: &str) {
+    if let Ok(entry) = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT) {
+        let _ = entry.set_password(token);
+    }
+}
+
 fn clear_token() {
     if let Ok(entry) = keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT) {
         let _ = entry.delete_password();
@@ -95,6 +101,10 @@ mod host_loop;
 
 mod tray;
 
+// ── Auth: fluent:// deep-link handler (M5) ──────────────────────────────────────
+
+mod auth;
+
 /// Shared host state.
 pub struct AppState {
     /// Last seen `analysing` flag from the engine /status, to detect the
@@ -105,10 +115,36 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // single-instance MUST be the first plugin: it captures a fluent://
+        // launch and forwards the URLs (argv) to the already-running app.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            let urls: Vec<String> = argv
+                .into_iter()
+                .filter(|a| a.starts_with("fluent://"))
+                .collect();
+            if !urls.is_empty() {
+                auth::handle_urls(app, urls);
+            }
+        }))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState { was_analysing: Mutex::new(false) })
         .invoke_handler(tauri::generate_handler![api_request, sign_out])
         .setup(|app| {
+            // 0. Register the runtime deep-link handler (covers the case where
+            //    the app is already running when fluent:// fires).
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    let urls: Vec<String> = event.urls().iter().map(|u| u.to_string()).collect();
+                    auth::handle_urls(&handle, urls);
+                });
+                // On dev/Windows, ensure the scheme is registered for the
+                // current executable so callbacks route back to us.
+                let _ = app.deep_link().register("fluent");
+            }
+
             // 1. Start & supervise the Python engine.
             engine::spawn_and_supervise(app.handle().clone());
 
@@ -131,6 +167,12 @@ pub(crate) fn backend_url() -> &'static str { BACKEND_URL }
 pub(crate) fn engine_url() -> &'static str { ENGINE_URL }
 pub(crate) fn engine_port() -> u16 { ENGINE_PORT }
 pub(crate) fn token() -> Option<String> { get_token() }
+
+/// Re-fetch and re-inject the sessions list (after sign-in). Runs the blocking
+/// HTTP on a background thread so it never blocks the deep-link callback.
+pub(crate) fn reinject_sessions(app: tauri::AppHandle) {
+    std::thread::spawn(move || host_loop::inject_sessions(&app));
+}
 
 /// Inject a JS call into the main webview (e.g. window.loadSessions(...)).
 pub(crate) fn eval_in_webview(app: &tauri::AppHandle, js: &str) {

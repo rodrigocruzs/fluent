@@ -62,7 +62,7 @@ fn inject_token(app: &tauri::AppHandle) {
     }
 }
 
-fn inject_sessions(app: &tauri::AppHandle) {
+pub fn inject_sessions(app: &tauri::AppHandle) {
     let sessions = backend_get_json(app, "/sessions").unwrap_or(Value::Array(vec![]));
     let up_next = backend_get_json(app, "/calendar/upcoming").unwrap_or(Value::Array(vec![]));
     let js = format!(
