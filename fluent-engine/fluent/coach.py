@@ -4,13 +4,14 @@ The backend holds the Anthropic API key; the client only needs a JWT.
 """
 
 import os
-import subprocess
 import httpx
+from fluent import platform
 from fluent.config import Config, BACKEND_URL
 
-KEYCHAIN_SERVICE = "fluent"
-KEYCHAIN_JWT_KEY = "jwt_token"
-
+# In-process cache so repeated coach()/save_session_remote() calls within one
+# pipeline run don't re-hit the OS credential store. Storage itself is
+# delegated to the platform layer (Keychain on macOS, Credential Manager on
+# Windows).
 _token_cache: str | None = None
 
 
@@ -18,35 +19,20 @@ def get_token() -> str | None:
     global _token_cache
     if _token_cache is not None:
         return _token_cache
-    result = subprocess.run(
-        ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY, "-w"],
-        capture_output=True, text=True
-    )
-    token = result.stdout.strip()
-    _token_cache = token if token else None
+    _token_cache = platform.get_token()
     return _token_cache
 
 
 def save_token(token: str):
     global _token_cache
     _token_cache = token
-    subprocess.run(
-        ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
-        capture_output=True
-    )
-    subprocess.run(
-        ["security", "add-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY, "-w", token],
-        capture_output=True
-    )
+    platform.save_token(token)
 
 
 def delete_token():
     global _token_cache
     _token_cache = None
-    subprocess.run(
-        ["security", "delete-generic-password", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_JWT_KEY],
-        capture_output=True
-    )
+    platform.delete_token()
 
 
 def register(email: str, password: str) -> str:

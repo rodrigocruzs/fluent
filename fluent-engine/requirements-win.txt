@@ -1,0 +1,4 @@
+# Windows-only engine dependencies.
+# Install with: pip install -r requirements-common.txt -r requirements-win.txt
+pyaudiowpatch>=0.2.12.5  # WASAPI loopback capture (driverless system audio)
+keyring>=24.0            # Windows Credential Manager for the JWT

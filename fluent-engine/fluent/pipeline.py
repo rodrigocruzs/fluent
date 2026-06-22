@@ -5,10 +5,10 @@ to wake the Swift frontend. No HTML generation — the frontend renders.
 """
 
 import json
-import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from fluent import platform
 from fluent.config import Config
 from fluent.transcribe import transcribe
 from fluent.diarise import diarise, filter_user_segments, LABEL_USER
@@ -17,33 +17,6 @@ from fluent.audio import RecordingPaths
 
 REPORTS_DIR = Path.home() / ".fluent" / "reports"
 LATEST_JSON = REPORTS_DIR / "latest.json"
-DARWIN_NOTIFICATION = "com.fluent.reportReady"
-
-
-def _notify_swift():
-    """Fire a Darwin notification to wake the Swift app."""
-    # Try notifyutil first (available on macOS without extra deps)
-    try:
-        subprocess.run(
-            ["notifyutil", "-p", DARWIN_NOTIFICATION],
-            capture_output=True, timeout=3,
-        )
-        return
-    except FileNotFoundError:
-        pass
-
-    # Fallback: post via CoreFoundation directly
-    try:
-        import ctypes, ctypes.util
-        cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
-        cf.CFNotificationCenterPostNotification.restype = None
-        center = cf.CFNotificationCenterGetDarwinNotifyCenter()
-        name_ref = cf.CFStringCreateWithCString(
-            None, DARWIN_NOTIFICATION.encode(), 0x08000100)
-        cf.CFNotificationCenterPostNotification(center, name_ref, None, None, True)
-        cf.CFRelease(name_ref)
-    except Exception as e:
-        print(f"[pipeline] Darwin notification error: {e}")
 
 
 def _session_name(now: datetime) -> str:
@@ -110,5 +83,5 @@ def run_pipeline(
         issues=issues,
     )
 
-    _notify_swift()
+    platform.notify_report_ready()
     return LATEST_JSON
