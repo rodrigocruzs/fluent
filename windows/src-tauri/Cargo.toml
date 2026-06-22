@@ -22,7 +22,11 @@ tauri-plugin-deep-link = "2.0.0"
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", features = ["json", "blocking"] }
+# rustls-tls is REQUIRED: reqwest 0.12 ships with NO TLS backend unless a
+# feature enables one, so https:// requests fail at the transport layer
+# (status 0, "error sending request") while http://127.0.0.1 still works.
+# rustls avoids a system OpenSSL dependency on Windows.
+reqwest = { version = "0.12", features = ["json", "blocking", "rustls-tls"] }
 url = "2"
 # Windows Credential Manager for the JWT (mirrors the macOS Keychain path).
 keyring = "2"
