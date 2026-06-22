@@ -97,6 +97,7 @@ def init_db():
 TRIAL_DAYS = 7
 
 def create_user(email: str, hashed_password: str) -> int:
+    """Insert a new user (always a fresh account). Returns user id."""
     now = time.time()
     trial_ends_at = now + TRIAL_DAYS * 86400
     with _conn() as conn:
@@ -239,8 +240,14 @@ def get_user_by_google_id(google_id: str) -> dict | None:
 
 def upsert_google_user(google_id: str, email: str, name: str,
                        access_token: str = "", refresh_token: str = "",
-                       token_expiry: float = 0) -> int:
-    """Create or update a Google-authenticated user. Returns user id."""
+                       token_expiry: float = 0) -> tuple[int, bool]:
+    """Create or update a Google-authenticated user.
+
+    Returns (user_id, is_new) where is_new is True only when this call
+    inserted a brand-new account (vs. updating an existing one on re-login).
+    The `xmax = 0` check is the standard Postgres trick for distinguishing an
+    INSERT from an ON CONFLICT UPDATE in a single statement.
+    """
     now = time.time()
     trial_ends_at = now + TRIAL_DAYS * 86400
     with _conn() as conn:
@@ -259,12 +266,12 @@ def upsert_google_user(google_id: str, email: str, name: str,
                             THEN EXCLUDED.google_refresh_token
                             ELSE users.google_refresh_token END,
                         google_token_expiry  = EXCLUDED.google_token_expiry
-                RETURNING id
+                RETURNING id, (xmax = 0) AS is_new
             """, (email.lower().strip(), now, trial_ends_at,
                   google_id, name, access_token, refresh_token, token_expiry))
             row = cur.fetchone()
         conn.commit()
-        return row[0]
+        return row[0], bool(row[1])
 
 
 def create_password_reset_token(user_id: int, token: str, ttl_seconds: int = 3600) -> None:

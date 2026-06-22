@@ -17,6 +17,7 @@ Run locally:
   ANTHROPIC_API_KEY=sk-ant-... uvicorn backend.main:app --reload --port 8000
 """
 
+import atexit
 import os
 import time
 from dotenv import load_dotenv
@@ -28,6 +29,18 @@ from pydantic import BaseModel, EmailStr
 import json
 import stripe
 from anthropic import Anthropic
+from posthog import Posthog
+
+_posthog = Posthog(
+    api_key=os.environ.get("POSTHOG_API_KEY", ""),
+    host=os.environ.get("POSTHOG_HOST", "https://eu.i.posthog.com"),
+    enable_exception_autocapture=True,
+    # Serverless (Vercel): the function can be frozen/killed before the async
+    # buffer flushes, silently dropping events. sync_mode sends each capture
+    # inline so events aren't lost. See PostHog "Serverless environments" docs.
+    sync_mode=True,
+)
+atexit.register(_posthog.shutdown)
 
 from backend.database import (
     init_db, create_user, get_user_by_email, get_user_by_id,
@@ -54,6 +67,101 @@ RESEND_FROM      = os.environ.get("RESEND_FROM_EMAIL", "Fluent <noreply@usefluen
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+
+def send_trial_started_email(email: str, name: str = "") -> None:
+    """Send the trial-started welcome email when a user first creates an account.
+
+    Best-effort: never raise. Account creation must succeed even if email fails
+    or Resend is unconfigured. Mirrors the branding of the password-reset email.
+    """
+    if not RESEND_API_KEY or not email:
+        return
+
+    greeting = f"Hi {name.split()[0]}," if name.strip() else "Hi there,"
+    app_url = FRONTEND_URL
+
+    try:
+        import resend
+        resend.api_key = RESEND_API_KEY
+        resend.Emails.send({
+            "from": RESEND_FROM,
+            "to": [email],
+            "subject": "Your 7-day free trial of Fluent has started",
+            "html": f"""<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+             background:#faf9f7;color:#1a1a1a;margin:0;padding:0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f7;padding:32px 0;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="max-width:520px;background:#fff;border-radius:16px;
+                    border:1px solid #ececec;padding:40px;">
+        <tr><td>
+          <div style="margin-bottom:28px;">
+            <div style="width:40px;height:40px;border-radius:10px;background:#C96442;
+                        display:inline-flex;align-items:center;justify-content:center;
+                        vertical-align:middle;">
+              <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
+                <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+                <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+                <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+              </svg>
+            </div>
+            <span style="font-size:20px;font-weight:600;letter-spacing:-0.02em;
+                         margin-left:10px;vertical-align:middle;">Fluent</span>
+          </div>
+
+          <p style="font-size:15px;color:#1a1a1a;line-height:1.6;margin:0 0 16px;">{greeting}</p>
+          <p style="font-size:15px;color:#1a1a1a;line-height:1.6;margin:0 0 8px;">
+            Your <strong>7-day free trial</strong> of Fluent has started. You now have full access to
+            real-time English coaching in every meeting.
+          </p>
+
+          <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:28px 0 12px;">Here's what you can do:</p>
+          <ul style="font-size:15px;color:#3a3a3a;line-height:1.6;margin:0;padding-left:20px;">
+            <li style="margin-bottom:12px;">
+              <strong>Get live feedback as you speak.</strong> Fluent listens during your calls and
+              suggests more natural, professional phrasing in real time.
+            </li>
+            <li style="margin-bottom:12px;">
+              <strong>Review every meeting afterwards.</strong> See a clear report of your grammar,
+              phrasing, and vocabulary improvements for each conversation.
+            </li>
+            <li style="margin-bottom:12px;">
+              <strong>Sound like a native speaker.</strong> Turn the way you already speak into
+              sharper, more confident business English.
+            </li>
+            <li style="margin-bottom:12px;">
+              <strong>Everything runs privately on your Mac.</strong> Audio is captured and transcribed
+              locally — your conversations stay yours.
+            </li>
+          </ul>
+
+          <div style="margin:32px 0 8px;">
+            <a href="{app_url}"
+               style="display:inline-block;background:#C96442;color:#fff;text-decoration:none;
+                      font-size:15px;font-weight:500;padding:12px 24px;border-radius:8px;">
+              Open Fluent
+            </a>
+          </div>
+
+          <p style="font-size:13px;color:#8a8a8a;margin:28px 0 0;line-height:1.5;">
+            Your trial runs for 7 days. You won't be charged until it ends, and you can cancel
+            anytime from Settings.
+          </p>
+        </td></tr>
+      </table>
+      <p style="font-size:12px;color:#b0b0b0;margin:20px 0 0;">Fluent · English coaching for every meeting</p>
+    </td></tr>
+  </table>
+</body>
+</html>""",
+        })
+    except Exception:
+        # Email is non-critical; swallow so signup always succeeds.
+        pass
 
 app = FastAPI(title="Fluent API")
 
@@ -122,6 +230,9 @@ def register(req: AuthRequest):
     if get_user_by_email(req.email):
         raise HTTPException(409, "An account with that email already exists.")
     user_id = create_user(req.email, hash_password(req.password))
+    send_trial_started_email(req.email, "")
+    _posthog.set(distinct_id=str(user_id), properties={"plan_status": "trial"})
+    _posthog.capture(distinct_id=str(user_id), event="user_signed_up", properties={"signup_method": "email"})
     return TokenResponse(token=create_token(user_id))
 
 
@@ -130,6 +241,7 @@ def login(req: AuthRequest):
     user = get_user_by_email(req.email)
     if not user or not verify_password(req.password, user["hashed_password"]):
         raise HTTPException(401, "Incorrect email or password.")
+    _posthog.capture(distinct_id=str(user["id"]), event="user_logged_in", properties={"login_method": "email"})
     return TokenResponse(token=create_token(user["id"]))
 
 
@@ -211,11 +323,19 @@ justify-content:center;min-height:100vh;margin:0;background:#fff;color:#1a1a1a}}
     if not google_id or not email:
         return _redirect_html("fluent://auth?error=missing_profile")
 
-    user_id = upsert_google_user(google_id, email, name,
-                                 access_token=access_token,
-                                 refresh_token=refresh_token,
-                                 token_expiry=token_expiry)
+    user_id, is_new = upsert_google_user(google_id, email, name,
+                                         access_token=access_token,
+                                         refresh_token=refresh_token,
+                                         token_expiry=token_expiry)
     jwt     = create_token(user_id)
+
+    # Welcome / trial-started email — only on first account creation.
+    if is_new:
+        send_trial_started_email(email, name)
+        _posthog.set(distinct_id=str(user_id), properties={"plan_status": "trial"})
+        _posthog.capture(distinct_id=str(user_id), event="user_signed_up", properties={"signup_method": "google"})
+    else:
+        _posthog.capture(distinct_id=str(user_id), event="user_logged_in", properties={"login_method": "google"})
 
     # Write token to a file the app polls (local only; silently skipped on Vercel)
     import pathlib
@@ -352,6 +472,7 @@ def change_email(req: ChangeEmailRequest, user: dict = Depends(_current_user)):
             stripe.Customer.modify(user["stripe_customer_id"], email=req.new_email)
         except stripe.StripeError:
             pass
+    _posthog.capture(distinct_id=str(user["id"]), event="email_changed")
     return {"ok": True}
 
 
@@ -362,6 +483,7 @@ def change_password(req: ChangePasswordRequest, user: dict = Depends(_current_us
     if len(req.new_password) < 8:
         raise HTTPException(400, "New password must be at least 8 characters.")
     update_user_password(user["id"], hash_password(req.new_password))
+    _posthog.capture(distinct_id=str(user["id"]), event="password_changed")
     return {"ok": True}
 
 
@@ -384,6 +506,7 @@ def forgot_password(req: ForgotPasswordRequest):
 
     token = secrets.token_urlsafe(32)
     create_password_reset_token(user["id"], token, ttl_seconds=3600)
+    _posthog.capture(distinct_id=str(user["id"]), event="password_reset_requested")
 
     reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
     resend.Emails.send({
@@ -442,6 +565,7 @@ def reset_password(req: ResetPasswordRequest):
     if user_id is None:
         raise HTTPException(400, "This reset link is invalid or has expired.")
     update_user_password(user_id, hash_password(req.new_password))
+    _posthog.capture(distinct_id=str(user_id), event="password_reset_completed")
     return {"ok": True}
 
 
@@ -453,6 +577,9 @@ def delete_account(user: dict = Depends(_current_user)):
             stripe.Subscription.cancel(user["stripe_subscription_id"])
         except stripe.StripeError:
             pass
+    _posthog.capture(distinct_id=str(user["id"]), event="account_deleted",
+                     properties={"had_subscription": bool(user.get("stripe_subscription_id")),
+                                 "plan_status": user.get("plan_status", "trial")})
     delete_user(user["id"])
     return {"ok": True}
 
@@ -630,6 +757,7 @@ def create_checkout(req: CheckoutRequest, user: dict = Depends(_current_user)):
     except stripe.StripeError as e:
         raise HTTPException(502, f"Could not start checkout: {e.user_message or str(e)}")
 
+    _posthog.capture(distinct_id=str(user["id"]), event="checkout_started")
     return {"url": session.url}
 
 
@@ -682,6 +810,7 @@ def billing_portal(user: dict = Depends(_current_user)):
         customer=customer_id,
         return_url=f"{FRONTEND_URL}",
     )
+    _posthog.capture(distinct_id=str(user["id"]), event="billing_portal_opened")
     return {"url": session.url}
 
 
@@ -715,6 +844,8 @@ async def stripe_webhook(request: Request):
                 plan_status="trial",
                 trial_ends_at=trial_ends_at,
             )
+            _posthog.capture(distinct_id=str(user["id"]), event="subscription_activated",
+                             properties={"stripe_subscription_id": sub_id})
 
     elif event["type"] == "customer.subscription.updated":
         customer_id = obj.get("customer")
@@ -744,12 +875,17 @@ async def stripe_webhook(request: Request):
                 plan_status="canceled",
                 current_period_end=current_period_end,
             )
+            _posthog.capture(distinct_id=str(user["id"]), event="subscription_cancelled",
+                             properties={"reason": event["type"]})
 
     elif event["type"] == "invoice.paid":
         customer_id = obj.get("customer")
         user = get_user_by_stripe_customer(customer_id)
         if user:
             update_user_billing(user["id"], plan_status="active")
+            _posthog.capture(distinct_id=str(user["id"]), event="subscription_renewed",
+                             properties={"amount_paid": obj.get("amount_paid", 0),
+                                         "currency": obj.get("currency", "usd")})
 
     return {"ok": True}
 
@@ -787,9 +923,15 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
         raw = raw.strip().rstrip("`")
 
     try:
-        return json.loads(raw)
+        issues = json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(500, "Model returned malformed JSON.")
+
+    _posthog.capture(distinct_id=str(user_id), event="coaching_session_analyzed",
+                     properties={"issue_count": len(issues) if isinstance(issues, list) else 0,
+                                 "transcript_length": len(req.transcript),
+                                 "job_context": req.job_context})
+    return issues
 
 
 # ── Sessions ─────────────────────────────────────────────────────────────────
@@ -814,6 +956,10 @@ def create_session(payload: SessionPayload, user_id: int = Depends(_current_user
         transcript=payload.transcript,
         issues=payload.issues,
     )
+    _posthog.capture(distinct_id=str(user_id), event="session_saved",
+                     properties={"issue_count": len(payload.issues),
+                                 "duration_seconds": payload.duration,
+                                 "has_transcript": bool(payload.transcript)})
     return {"id": session_id}
 
 
@@ -827,6 +973,8 @@ def get_session(slug: str, user_id: int = Depends(_current_user_id)):
     session = get_session_with_issues(user_id, slug)
     if not session:
         raise HTTPException(404, "Session not found.")
+    _posthog.capture(distinct_id=str(user_id), event="session_viewed",
+                     properties={"issue_count": len(session.get("issues", []))})
     return session
 
 
