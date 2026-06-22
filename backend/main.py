@@ -472,6 +472,7 @@ def change_email(req: ChangeEmailRequest, user: dict = Depends(_current_user)):
             stripe.Customer.modify(user["stripe_customer_id"], email=req.new_email)
         except stripe.StripeError:
             pass
+    _posthog.capture(distinct_id=str(user["id"]), event="email_changed")
     return {"ok": True}
 
 
@@ -482,6 +483,7 @@ def change_password(req: ChangePasswordRequest, user: dict = Depends(_current_us
     if len(req.new_password) < 8:
         raise HTTPException(400, "New password must be at least 8 characters.")
     update_user_password(user["id"], hash_password(req.new_password))
+    _posthog.capture(distinct_id=str(user["id"]), event="password_changed")
     return {"ok": True}
 
 
@@ -808,6 +810,7 @@ def billing_portal(user: dict = Depends(_current_user)):
         customer=customer_id,
         return_url=f"{FRONTEND_URL}",
     )
+    _posthog.capture(distinct_id=str(user["id"]), event="billing_portal_opened")
     return {"url": session.url}
 
 
@@ -970,6 +973,8 @@ def get_session(slug: str, user_id: int = Depends(_current_user_id)):
     session = get_session_with_issues(user_id, slug)
     if not session:
         raise HTTPException(404, "Session not found.")
+    _posthog.capture(distinct_id=str(user_id), event="session_viewed",
+                     properties={"issue_count": len(session.get("issues", []))})
     return session
 
 
