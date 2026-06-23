@@ -1,0 +1,5 @@
+# macOS-only engine dependencies.
+# Install with: pip install -r requirements-common.txt -r requirements-mac.txt
+pyobjc-framework-CoreAudio>=12.0
+pyobjc-framework-AVFoundation>=12.0
+pyobjc-framework-Cocoa>=12.0

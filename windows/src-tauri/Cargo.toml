@@ -1,0 +1,37 @@
+[package]
+name = "fluent-windows"
+version = "0.1.0"
+description = "Fluent for Windows"
+authors = ["Fluent"]
+edition = "2021"
+
+[lib]
+name = "fluent_windows_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = ["tray-icon"] }
+tauri-plugin-opener = "2.0.0"
+tauri-plugin-deep-link = "2.0.0"
+# Single-instance ensures a fluent:// callback is delivered to the already-
+# running app rather than spawning a second instance. Must be registered
+# FIRST (before deep-link) per the plugin docs.
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# rustls-tls is REQUIRED: reqwest 0.12 ships with NO TLS backend unless a
+# feature enables one, so https:// requests fail at the transport layer
+# (status 0, "error sending request") while http://127.0.0.1 still works.
+# rustls avoids a system OpenSSL dependency on Windows.
+reqwest = { version = "0.12", features = ["json", "blocking", "rustls-tls"] }
+url = "2"
+# Windows Credential Manager for the JWT (mirrors the macOS Keychain path).
+keyring = "2"
+
+[features]
+# This feature is used for production builds or when a dev server is not specified,
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,10 +1,15 @@
 """
-Audio capture: records mic + BlackHole (system audio) as two separate WAV
-files, then also writes a mixed file for transcription.
+Audio capture: records mic + system audio as two separate WAV files, then
+also writes a mixed file for transcription.
 
-Streams: mic → session_mic_*.wav
-         BlackHole → session_sys_*.wav
-         mixed → session_*.wav  (used for transcription)
+Streams: mic        → session_mic_*.wav
+         system     → session_sys_*.wav
+         mixed      → session_*.wav  (used for transcription)
+
+The system-audio stream is platform-specific (BlackHole on macOS, WASAPI
+loopback on Windows) and is opened via `platform.open_system_capture`, which
+always delivers 16 kHz mono int16 chunks — the same format as the mic — so
+the mixer below is identical on every platform.
 """
 
 import wave
@@ -17,23 +22,16 @@ from pathlib import Path
 from typing import Optional
 import pyaudio
 
+from fluent import platform
+
 RATE = 16000
 CHANNELS = 1
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
-BLACKHOLE_DEVICE_NAME = "BlackHole 2ch"
-
-
-def _find_device_index(pa: pyaudio.PyAudio, name: str) -> Optional[int]:
-    for i in range(pa.get_device_count()):
-        info = pa.get_device_info_by_index(i)
-        if name.lower() in info["name"].lower() and info["maxInputChannels"] > 0:
-            return i
-    return None
 
 
 def list_input_devices() -> list[dict]:
-    pa = pyaudio.PyAudio()
+    pa = platform.make_pyaudio()
     devices = []
     for i in range(pa.get_device_count()):
         info = pa.get_device_info_by_index(i)
@@ -90,11 +88,7 @@ class AudioRecorder:
         self.start_time: Optional[float] = None
 
     def start(self) -> RecordingPaths:
-        self.pa = pyaudio.PyAudio()
-        bh_idx = _find_device_index(self.pa, BLACKHOLE_DEVICE_NAME)
-
-        if bh_idx is None:
-            print(f"WARNING: '{BLACKHOLE_DEVICE_NAME}' not found. Recording mic only.")
+        self.pa = platform.make_pyaudio()
 
         base_dir = Path.home() / ".fluent"
         base_dir.mkdir(parents=True, exist_ok=True)
@@ -127,11 +121,12 @@ class AudioRecorder:
                     self._mic_buffer.append(in_data)
             return (None, pyaudio.paContinue)
 
-        def bh_callback(in_data, frame_count, time_info, status):
-            if self._running:
+        # System-audio chunks arrive already normalized to 16 kHz mono int16
+        # by the platform layer, so they can be buffered exactly like the mic.
+        def on_system_chunk(pcm: bytes):
+            if self._running and pcm:
                 with self._lock:
-                    self._bh_buffer.append(in_data)
-            return (None, pyaudio.paContinue)
+                    self._bh_buffer.append(pcm)
 
         self._mic_stream = self.pa.open(
             format=FORMAT, channels=CHANNELS, rate=RATE,
@@ -139,12 +134,9 @@ class AudioRecorder:
             frames_per_buffer=CHUNK, stream_callback=mic_callback,
         )
 
-        if bh_idx is not None:
-            self._bh_stream = self.pa.open(
-                format=FORMAT, channels=CHANNELS, rate=RATE,
-                input=True, input_device_index=bh_idx,
-                frames_per_buffer=CHUNK, stream_callback=bh_callback,
-            )
+        self._bh_stream = platform.open_system_capture(
+            self.pa, on_system_chunk, RATE, CHUNK, FORMAT,
+        )
 
         self._mixer_thread = threading.Thread(target=self._mix_loop, daemon=True)
         self._mixer_thread.start()

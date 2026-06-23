@@ -1,0 +1,6 @@
+# Cross-platform engine dependencies (macOS + Windows).
+# Installed on every platform alongside the OS-specific requirements file.
+# Transcription is cloud-based (Deepgram via the backend) — no local ML.
+anthropic>=0.28.0
+pyaudio>=0.2.14
+httpx>=0.27.0

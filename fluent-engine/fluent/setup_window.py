@@ -31,21 +31,12 @@ FONT_STATUS = ("-apple-system", 11)
 
 WIN_W, WIN_H = 400, 300
 
-MODELS_DIR  = Path.home() / ".fluent" / "models"
-MODEL_REPO  = "Systran/faster-whisper-tiny.en"
-
 
 def _center(win):
     win.update_idletasks()
     x = (win.winfo_screenwidth()  - WIN_W) // 2
     y = (win.winfo_screenheight() - WIN_H) // 2
     win.geometry(f"{WIN_W}x{WIN_H}+{x}+{y}")
-
-
-def _model_already_downloaded() -> bool:
-    """True if faster-whisper's HuggingFace cache for tiny.en is non-empty."""
-    blobs = MODELS_DIR / f"models--{MODEL_REPO.replace('/', '--')}" / "blobs"
-    return blobs.exists() and any(f for f in blobs.iterdir() if f.stat().st_size > 0)
 
 
 def run_setup_window():
@@ -136,42 +127,10 @@ def run_setup_window():
     # ── Step workers (run in threads) ─────────────────────────────────────────
 
     def step1_model():
+        # Transcription is now performed in the cloud (Deepgram via the
+        # backend); there is no local speech model to download.
         root.after(0, lambda: set_active(0))
-
-        if _model_already_downloaded():
-            root.after(0, lambda: set_skip(0, "Model ready"))
-            step2_audio()
-            return
-
-        try:
-            import tqdm as _tqdm_mod
-            _real_tqdm = _tqdm_mod.tqdm
-            progress_state = {"n": 0, "total": 1}
-
-            class _PatchedTqdm(_real_tqdm):
-                def __init__(self, *a, **kw):
-                    super().__init__(*a, **kw)
-                    if self.total:
-                        progress_state["total"] = self.total
-
-                def update(self, n=1):
-                    super().update(n)
-                    progress_state["n"] = progress_state["n"] + (n or 0)
-                    frac = progress_state["n"] / max(progress_state["total"], 1)
-                    root.after(0, lambda f=frac: set_progress(0, f))
-
-            _tqdm_mod.tqdm = _PatchedTqdm
-
-            # Use same download path as transcribe.py so the model is found
-            MODELS_DIR.mkdir(parents=True, exist_ok=True)
-            from faster_whisper import WhisperModel
-            WhisperModel("tiny.en", device="cpu", download_root=str(MODELS_DIR))
-
-            _tqdm_mod.tqdm = _real_tqdm
-            root.after(0, lambda: set_done(0, "Model ready"))
-        except Exception:
-            root.after(0, lambda: set_done(0, "Model ready"))
-
+        root.after(0, lambda: set_skip(0, "Ready"))
         step2_audio()
 
     def step2_audio():

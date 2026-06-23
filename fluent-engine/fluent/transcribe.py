@@ -1,27 +1,34 @@
 """
-Local transcription via faster-whisper (tiny.en model).
-Model is downloaded once to ~/.fluent/models/faster-whisper-tiny.en/
-by the setup window on first launch.
+Transcription via the Fluent backend, which proxies Deepgram.
+The engine uploads the recorded WAV; no local speech model is used.
 """
 
+import os
 from pathlib import Path
-from faster_whisper import WhisperModel
 
-MODELS_DIR  = Path.home() / ".fluent" / "models"
-MODEL_DIR   = MODELS_DIR / "faster-whisper-tiny.en"
-MODEL_SIZE  = "tiny.en"
+import httpx
 
-
-def _load_model() -> WhisperModel:
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    # Use local directory if the setup window already downloaded it;
-    # otherwise fall back to automatic HuggingFace download.
-    if (MODEL_DIR / "model.bin").exists():
-        return WhisperModel(str(MODEL_DIR), device="cpu")
-    return WhisperModel(MODEL_SIZE, device="cpu", download_root=str(MODELS_DIR))
+from fluent.config import BACKEND_URL
+from fluent.coach import get_token
 
 
 def transcribe(wav_path: Path, _api_key: str = "") -> str:
-    model = _load_model()
-    segments, _ = model.transcribe(str(wav_path), language="en", beam_size=1)
-    return " ".join(seg.text.strip() for seg in segments)
+    token = get_token()
+    if not token:
+        raise RuntimeError("Not logged in. Please sign in to Fluent.")
+
+    url = os.environ.get("FLUENT_BACKEND_URL", BACKEND_URL)
+    audio = Path(wav_path).read_bytes()
+    r = httpx.post(
+        f"{url}/transcribe",
+        content=audio,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "audio/wav",
+        },
+        timeout=180,
+    )
+    if r.status_code == 401:
+        raise RuntimeError("Session expired. Please sign in again.")
+    r.raise_for_status()
+    return r.json().get("transcript", "")

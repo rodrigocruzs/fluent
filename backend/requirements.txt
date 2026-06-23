@@ -1,11 +1,5 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-python-jose[cryptography]>=3.5.0
-bcrypt>=4.0.0
-anthropic>=0.28.0
-pydantic[email]>=2.0.0
-psycopg2-binary>=2.9.9
-python-dotenv>=1.0.0
-stripe>=9.0.0
-requests>=2.31.0
-posthog>=3.0.0
+# Single source of truth for backend Python deps lives in api/requirements.txt,
+# because that is the file Vercel installs (see vercel.json requirementsFile).
+# Local dev installs the exact same set via this include so the two can never
+# drift again (a past drift here took the whole /api surface down in prod).
+-r ../api/requirements.txt

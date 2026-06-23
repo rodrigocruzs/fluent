@@ -1,12 +1,5 @@
-rumps>=0.4.0
-pyaudio>=0.2.14
-openai>=1.30.0
-anthropic>=0.28.0
-faster-whisper>=1.0.0
-pyannote.audio>=3.1.1
-torch>=2.0.0
-torchaudio>=2.0.0
-pydub>=0.25.1
-pyobjc-framework-CoreAudio>=12.0
-pyobjc-framework-AVFoundation>=12.0
-pyobjc-framework-Cocoa>=12.0
+# macOS install entrypoint (referenced by setup_engine.sh).
+# Pulls in the cross-platform deps plus the macOS-only ones.
+# Windows uses: pip install -r requirements-common.txt -r requirements-win.txt
+-r requirements-common.txt
+-r requirements-mac.txt
