@@ -7,8 +7,9 @@
     "tauri": "tauri",
     "icons": "tauri icon src-tauri/icons/icon-source.png",
     "sync": "node sync-frontend.mjs",
+    "bundle-engine": "node bundle-engine.mjs",
     "predev": "node sync-frontend.mjs",
-    "prebuild": "node sync-frontend.mjs",
+    "prebuild": "node sync-frontend.mjs && node bundle-engine.mjs",
     "dev": "tauri dev",
     "build": "tauri build"
   },
