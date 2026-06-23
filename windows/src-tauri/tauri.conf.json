@@ -28,13 +28,30 @@
     "targets": ["nsis"],
     "icon": [
       "icons/icon.ico"
-    ]
+    ],
+    "resources": [
+      "engine-bundle/**/*"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   },
   "plugins": {
     "deep-link": {
       "desktop": {
         "schemes": ["fluent"]
       }
+    },
+    "updater": {
+      "endpoints": [
+        "https://www.tryfluent.co/windows/updates/latest.json"
+      ],
+      "pubkey": "REPLACE_WITH_UPDATER_PUBLIC_KEY"
     }
   }
 }
