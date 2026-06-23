@@ -934,6 +934,41 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
     return issues
 
 
+# ── Transcription ────────────────────────────────────────────────────────────
+
+DEEPGRAM_URL = "https://api.deepgram.com/v1/listen?model=nova-3&language=en&punctuate=true"
+MAX_AUDIO_BYTES = 25 * 1024 * 1024  # ~25 min of 16kHz mono int16 WAV
+
+
+@app.post("/transcribe")
+async def transcribe(request: Request, user_id: int = Depends(_current_user_id)):
+    import requests as _requests
+    audio = await request.body()
+    if len(audio) > MAX_AUDIO_BYTES:
+        raise HTTPException(413, "Audio too large.")
+    key = os.environ.get("DEEPGRAM_API_KEY", "")
+    if not key:
+        raise HTTPException(502, "transcription_failed")
+    try:
+        r = _requests.post(
+            DEEPGRAM_URL,
+            data=audio,
+            headers={
+                "Authorization": f"Token {key}",
+                "Content-Type": "audio/wav",
+            },
+            timeout=120,
+        )
+        r.raise_for_status()
+        result = r.json()
+        text = (
+            result["results"]["channels"][0]["alternatives"][0]["transcript"]
+        )
+    except Exception:
+        raise HTTPException(502, "transcription_failed")
+    return {"transcript": text}
+
+
 # ── Sessions ─────────────────────────────────────────────────────────────────
 
 class SessionPayload(BaseModel):
