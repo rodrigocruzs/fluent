@@ -922,10 +922,17 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
             raw = raw[4:]
         raw = raw.strip().rstrip("`")
 
+    # Degrade gracefully: if the model returns non-JSON (it occasionally
+    # explains in prose instead of emitting a JSON array — most likely on a
+    # sparse/empty transcript), treat it as "no issues" rather than 500ing.
+    # A 500 here would crash the engine pipeline and lose the whole session.
     try:
         issues = json.loads(raw)
+        if not isinstance(issues, list):
+            issues = []
     except json.JSONDecodeError:
-        raise HTTPException(500, "Model returned malformed JSON.")
+        print(f"[coach] non-JSON model output, returning []: {raw[:200]!r}")
+        issues = []
 
     _posthog.capture(distinct_id=str(user_id), event="coaching_session_analyzed",
                      properties={"issue_count": len(issues) if isinstance(issues, list) else 0,

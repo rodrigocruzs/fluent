@@ -50,8 +50,19 @@ def run_pipeline(
         f"[User spoke for {total_speaking:.1f}s]\n\n{transcript}"
     )
 
-    print("[pipeline] coaching ...")
-    issues = coach(user_transcript, config)
+    # Coaching must never lose the session. Skip it entirely when there's no
+    # speech to coach, and treat any coach failure as "no issues" so the report
+    # is still written and the session still saved to history.
+    issues = []
+    if transcript.strip():
+        print("[pipeline] coaching ...")
+        try:
+            issues = coach(user_transcript, config)
+        except Exception as e:
+            print(f"[pipeline] coaching failed, saving session without issues: {e}")
+            issues = []
+    else:
+        print("[pipeline] empty transcript — skipping coaching")
     print(f"[pipeline] {len(issues)} issue(s)")
 
     now = datetime.now()
