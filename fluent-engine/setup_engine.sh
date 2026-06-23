@@ -117,14 +117,15 @@ fi
 
 echo "[setup] Dependencies installed."
 
-# ── 4b. Verify the heavy deps actually import ─────────────────────────────────
-# pip can report success while leaving a broken/partial install (e.g. an aborted
-# torch wheel). Import the critical modules so we never mark the engine "ready"
-# when it would crash on startup.
+# ── 4b. Verify the deps actually import ───────────────────────────────────────
+# pip can report success while leaving a broken/partial install. Import the
+# critical modules so we never mark the engine "ready" when it would crash on
+# startup. Transcription is cloud-based (Deepgram via the backend), so these are
+# the lightweight runtime deps — no torch/whisper/pyannote.
 echo "[setup] Verifying dependencies import cleanly ..."
 if ! "$PYTHON" - <<'PYCHECK'
 import sys
-mods = ["torch", "torchaudio", "faster_whisper", "pyannote.audio", "anthropic"]
+mods = ["anthropic", "pyaudio", "httpx"]
 missing = []
 for m in mods:
     try:
