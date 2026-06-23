@@ -36,9 +36,20 @@ def run_pipeline(
     Runs the full pipeline, writes latest.json, wakes Swift frontend.
     Returns path to latest.json on success.
     """
+    # Transcription must never silently lose a recording. If it fails (network,
+    # backend, audio too long), save the session anyway with a clear marker so
+    # the user sees what happened instead of being dropped back to an empty
+    # Sessions list. Coaching is skipped automatically when the transcript is
+    # empty (see below).
     print(f"[pipeline] transcribing {paths.mixed} ...")
-    transcript = transcribe(paths.mixed)
-    print(f"[pipeline] {len(transcript)} chars")
+    transcript = ""
+    transcribe_error = ""
+    try:
+        transcript = transcribe(paths.mixed)
+        print(f"[pipeline] {len(transcript)} chars")
+    except Exception as e:
+        transcribe_error = str(e)
+        print(f"[pipeline] transcription failed, saving session anyway: {e}")
 
     print("[pipeline] diarising ...")
     segments = diarise(paths.mixed, mic_path=paths.mic, sys_path=paths.sys)
@@ -67,12 +78,18 @@ def run_pipeline(
 
     now = datetime.now()
     name = (session_name or "").strip() or _session_name(now)
+    # If transcription failed, store a readable note as the transcript so the
+    # saved session explains itself instead of appearing empty.
+    saved_transcript = transcript
+    if transcribe_error and not transcript.strip():
+        saved_transcript = f"⚠️ Transcription failed: {transcribe_error}"
     payload = {
         "date": now.strftime("%B %d, %Y"),
         "name": name,
         "duration": duration,
-        "transcript": transcript,
+        "transcript": saved_transcript,
         "issues": issues,
+        "transcribe_error": transcribe_error,
     }
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -90,7 +107,7 @@ def run_pipeline(
         name=payload["name"],
         date=payload["date"],
         duration=duration,
-        transcript=transcript,
+        transcript=saved_transcript,
         issues=issues,
     )
 

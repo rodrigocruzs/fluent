@@ -944,7 +944,10 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
 # ── Transcription ────────────────────────────────────────────────────────────
 
 DEEPGRAM_URL = "https://api.deepgram.com/v1/listen?model=nova-3&language=en&punctuate=true"
-MAX_AUDIO_BYTES = 25 * 1024 * 1024  # ~25 min of 16kHz mono int16 WAV
+# Note: Vercel's serverless functions reject request bodies over ~4.5MB before
+# they reach this handler (HTTP 413 FUNCTION_PAYLOAD_TOO_LARGE), so the engine
+# uploads compressed AAC/m4a. This cap is a secondary guard only.
+MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
 
 @app.post("/transcribe")
@@ -956,13 +959,15 @@ async def transcribe(request: Request, user_id: int = Depends(_current_user_id))
     key = os.environ.get("DEEPGRAM_API_KEY", "")
     if not key:
         raise HTTPException(502, "transcription_failed")
+    # Forward the uploaded format to Deepgram (it also auto-detects from bytes).
+    content_type = request.headers.get("content-type", "audio/wav")
     try:
         r = _requests.post(
             DEEPGRAM_URL,
             data=audio,
             headers={
                 "Authorization": f"Token {key}",
-                "Content-Type": "audio/wav",
+                "Content-Type": content_type,
             },
             timeout=120,
         )
