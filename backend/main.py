@@ -134,8 +134,8 @@ def send_trial_started_email(email: str, name: str = "") -> None:
               sharper, more confident business English.
             </li>
             <li style="margin-bottom:12px;">
-              <strong>Everything runs privately on your Mac.</strong> Audio is captured and transcribed
-              locally — your conversations stay yours.
+              <strong>Your audio is never stored.</strong> Calls are transcribed on the fly and the
+              audio is discarded immediately — only the text is used to coach you.
             </li>
           </ul>
 

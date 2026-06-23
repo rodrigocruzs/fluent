@@ -2,7 +2,7 @@
 First-launch setup window — shown once after onboarding.
 
 Three sequential steps, each with a status label and progress bar:
-  1. Download Whisper model (~75 MB)
+  1. Initialize (transcription is cloud-based; no model download)
   2. Install BlackHole + configure audio device
   3. Request microphone permission
 
@@ -74,7 +74,7 @@ def run_setup_window():
 
     rows: list[dict] = []
     for label_text in [
-        "Downloading speech recognition model",
+        "Preparing Fluent",
         "Configuring audio",
         "Requesting microphone access",
     ]:

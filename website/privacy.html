@@ -167,7 +167,7 @@
     <h2>1. What We Collect</h2>
     <p><strong>Account information.</strong> When you sign up, we collect your email address and a hashed password (or, if you use Google sign-in, your Google account name and email). We never store your plain-text password.</p>
     <p><strong>Google Calendar data.</strong> If you sign in with Google and grant calendar access, Fluent reads a limited view of your primary calendar — the next few upcoming events (title, start/end time, and attendees) — to display an "Up Next" view in the app so you can prepare for your calls. We request read-only access (<code>calendar.readonly</code>). We do not modify your calendar, and we do not store the contents of your calendar events on our servers beyond what is needed to return this view to your device.</p>
-    <p><strong>Audio and transcripts.</strong> Fluent captures system audio locally on your Mac during calls. Audio is transcribed on your device using a local Whisper model and is never transmitted to our servers. The resulting text transcript is sent to our servers solely to generate coaching feedback and is deleted from our servers after processing.</p>
+    <p><strong>Audio and transcripts.</strong> Fluent captures system audio on your device during calls. To transcribe it, the audio is sent securely to our backend and on to our speech-to-text provider (Deepgram), which returns a text transcript. We do not store your audio: it exists only for the moment of transcription and is discarded immediately afterward — it is never written to our database or retained on our servers. The resulting text transcript is then used to generate coaching feedback and is deleted from our servers after processing.</p>
     <p><strong>Coaching sessions.</strong> We store the coaching feedback generated from each session (issues found, suggestions, scores) in your account so you can review your history.</p>
     <p><strong>Billing information.</strong> Payments are processed by Stripe. We store only a Stripe customer ID and subscription status; we never see or store your card number or full payment details.</p>
     <p><strong>Usage data.</strong> We collect basic server logs (timestamps, endpoint paths, HTTP status codes) for debugging and reliability purposes. These logs do not contain the content of your calls or transcripts.</p>
@@ -183,13 +183,14 @@
     <p>We do not sell, rent, or share your personal data with third parties for their own marketing purposes.</p>
 
     <h2>3. Audio Privacy</h2>
-    <p>Your call audio is processed entirely on your Mac using a local AI model. Raw audio is never uploaded to our servers or any cloud service. Only the text transcript is briefly sent to our backend to generate feedback, and it is not retained after the response is returned to your device.</p>
+    <p>Your call audio is captured on your device and sent securely (over encrypted HTTPS/TLS) to our backend solely to be transcribed by our speech-to-text provider. We never store your audio — it is held only for the duration of the transcription request and discarded immediately, and it is never saved to our database or any long-term storage. Only the resulting text transcript is used to generate coaching feedback, and that transcript is not retained after the response is returned to your device.</p>
     <p>Fluent requires macOS microphone and audio permissions to function. You can revoke these at any time in System Settings → Privacy & Security, which will stop Fluent from capturing audio.</p>
 
     <h2>4. Third-Party Services</h2>
     <ul>
       <li><strong>Stripe</strong> — payment processing. <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a>.</li>
       <li><strong>Google OAuth &amp; Google Calendar API</strong> — optional sign-in and calendar access. If used, Google provides us your name and email, and (with your consent) read-only access to your upcoming calendar events. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>. See our <a href="#limited-use">Limited Use disclosure</a> below.</li>
+      <li><strong>Deepgram</strong> — speech-to-text transcription. Call audio is sent to Deepgram solely to produce a text transcript and is not retained by us. <a href="https://deepgram.com/privacy" target="_blank" rel="noopener">Deepgram Privacy Policy</a>.</li>
       <li><strong>Anthropic Claude API</strong> — generates coaching feedback from your transcript. Transcripts sent for coaching are subject to <a href="https://www.anthropic.com/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>. Anthropic does not use API inputs to train its models by default.</li>
       <li><strong>Neon</strong> — hosted Postgres database where account and session data is stored, operated in the US.</li>
     </ul>
