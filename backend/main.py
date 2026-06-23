@@ -134,8 +134,8 @@ def send_trial_started_email(email: str, name: str = "") -> None:
               sharper, more confident business English.
             </li>
             <li style="margin-bottom:12px;">
-              <strong>Your audio is never stored.</strong> Calls are transcribed on the fly and the
-              audio is discarded immediately — only the text is used to coach you.
+              <strong>Your audio is never retained.</strong> Calls are transcribed and the
+              audio is deleted immediately — only the text is used to coach you.
             </li>
           </ul>
 
@@ -950,34 +950,137 @@ DEEPGRAM_URL = "https://api.deepgram.com/v1/listen?model=nova-3&language=en&punc
 MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
 
-@app.post("/transcribe")
-async def transcribe(request: Request, user_id: int = Depends(_current_user_id)):
+def _deepgram_transcribe(*, data: bytes | None = None,
+                         source_url: str | None = None,
+                         content_type: str = "audio/wav") -> str:
+    """
+    Call Deepgram's prerecorded API either by uploading bytes (short clips) or
+    by handing it a URL to fetch (long sessions stored in R2). Returns the
+    transcript text. Raises HTTPException(502) on any failure.
+    """
     import requests as _requests
-    audio = await request.body()
-    if len(audio) > MAX_AUDIO_BYTES:
-        raise HTTPException(413, "Audio too large.")
     key = os.environ.get("DEEPGRAM_API_KEY", "")
     if not key:
         raise HTTPException(502, "transcription_failed")
-    # Forward the uploaded format to Deepgram (it also auto-detects from bytes).
-    content_type = request.headers.get("content-type", "audio/wav")
     try:
-        r = _requests.post(
-            DEEPGRAM_URL,
-            data=audio,
-            headers={
-                "Authorization": f"Token {key}",
-                "Content-Type": content_type,
-            },
-            timeout=120,
-        )
+        if source_url is not None:
+            r = _requests.post(
+                DEEPGRAM_URL,
+                json={"url": source_url},
+                headers={"Authorization": f"Token {key}",
+                         "Content-Type": "application/json"},
+                timeout=300,
+            )
+        else:
+            r = _requests.post(
+                DEEPGRAM_URL,
+                data=data,
+                headers={"Authorization": f"Token {key}",
+                         "Content-Type": content_type},
+                timeout=120,
+            )
         r.raise_for_status()
         result = r.json()
-        text = (
-            result["results"]["channels"][0]["alternatives"][0]["transcript"]
-        )
+        return result["results"]["channels"][0]["alternatives"][0]["transcript"]
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(502, "transcription_failed")
+
+
+@app.post("/transcribe")
+async def transcribe(request: Request, user_id: int = Depends(_current_user_id)):
+    """Short-clip fast path: audio uploaded directly in the request body."""
+    audio = await request.body()
+    if len(audio) > MAX_AUDIO_BYTES:
+        raise HTTPException(413, "Audio too large.")
+    # Forward the uploaded format to Deepgram (it also auto-detects from bytes).
+    content_type = request.headers.get("content-type", "audio/wav")
+    text = _deepgram_transcribe(data=audio, content_type=content_type)
+    return {"transcript": text}
+
+
+# ── Large-session transcription via R2 (bypasses Vercel's 4.5MB body limit) ───
+#
+# Long recordings can't be POSTed through the Vercel function body, so the
+# engine uploads the compressed audio straight to R2 with a presigned PUT, then
+# asks the backend to transcribe it. Deepgram fetches the object by presigned
+# GET URL — the bytes never pass through this function. The object is deleted
+# immediately after transcription (and a bucket lifecycle rule auto-expires any
+# stragglers within 24h), so audio is never retained.
+
+R2_BUCKET = os.environ.get("R2_BUCKET", "")
+R2_UPLOAD_PREFIX = "transcribe/"
+PRESIGN_TTL = 900  # 15 minutes
+
+
+def _r2_client():
+    import boto3
+    account = os.environ.get("R2_ACCOUNT_ID", "")
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{account}.r2.cloudflarestorage.com",
+        aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID", ""),
+        aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY", ""),
+        region_name="auto",
+    )
+
+
+def _r2_configured() -> bool:
+    return bool(R2_BUCKET and os.environ.get("R2_ACCOUNT_ID")
+                and os.environ.get("R2_ACCESS_KEY_ID")
+                and os.environ.get("R2_SECRET_ACCESS_KEY"))
+
+
+class TranscribeInitPayload(BaseModel):
+    content_type: str = "audio/mp4"
+
+
+@app.post("/transcribe/init")
+def transcribe_init(payload: TranscribeInitPayload,
+                    user_id: int = Depends(_current_user_id)):
+    """Mint a presigned PUT URL the engine uploads to, plus the object key."""
+    if not _r2_configured():
+        raise HTTPException(503, "large_upload_unavailable")
+    import uuid
+    key = f"{R2_UPLOAD_PREFIX}{user_id}/{uuid.uuid4().hex}"
+    client = _r2_client()
+    put_url = client.generate_presigned_url(
+        "put_object",
+        Params={"Bucket": R2_BUCKET, "Key": key,
+                "ContentType": payload.content_type},
+        ExpiresIn=PRESIGN_TTL,
+    )
+    return {"key": key, "put_url": put_url}
+
+
+class TranscribeStartPayload(BaseModel):
+    key: str
+
+
+@app.post("/transcribe/start")
+def transcribe_start(payload: TranscribeStartPayload,
+                     user_id: int = Depends(_current_user_id)):
+    """Transcribe an already-uploaded R2 object, then delete it."""
+    if not _r2_configured():
+        raise HTTPException(503, "large_upload_unavailable")
+    # Scope the key to this user so one user can't transcribe another's object.
+    if not payload.key.startswith(f"{R2_UPLOAD_PREFIX}{user_id}/"):
+        raise HTTPException(403, "forbidden")
+    client = _r2_client()
+    get_url = client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": R2_BUCKET, "Key": payload.key},
+        ExpiresIn=PRESIGN_TTL,
+    )
+    try:
+        text = _deepgram_transcribe(source_url=get_url)
+    finally:
+        # Never retain audio: delete regardless of transcription outcome.
+        try:
+            client.delete_object(Bucket=R2_BUCKET, Key=payload.key)
+        except Exception:
+            pass
     return {"transcript": text}
 
 
