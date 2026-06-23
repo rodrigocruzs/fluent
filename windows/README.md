@@ -51,3 +51,74 @@ listener on port 2788 first, then supervises the engine with restart/backoff.
   file and lives in `src/` directly.
 - The JWT is read from Windows Credential Manager (service `fluent`, account
   `jwt_token`) — the same entry the engine writes via `platform/win.py`.
+
+## Packaging (M6) — building the installer
+
+`npm run build` produces the NSIS installer. Its `prebuild` step runs both
+`sync-frontend.mjs` and `bundle-engine.mjs`:
+
+- **`bundle-engine.mjs`** builds `src-tauri/engine-bundle/` — a full CPython
+  venv with the (torch-free) engine deps plus the staged engine source. Tauri
+  ships this folder as a resource (`bundle.resources`), so the installed app
+  runs the engine without the user installing Python. **Build on Windows** —
+  the C-extension wheels (`pyaudio`, `pyaudiowpatch`) are platform-specific.
+- At runtime `engine.rs` resolves the bundled `engine-bundle/venv/Scripts/
+  python.exe` + `main.py` from the Tauri resource dir (falling back to the dev
+  M2 venv when running from the repo).
+
+The installer also configures:
+
+- **WebView2**: `downloadBootstrapper` — installs the runtime if missing
+  (preinstalled on Windows 11; fetched on Windows 10).
+- **NSIS**: `currentUser` install — no admin elevation.
+
+```powershell
+cd windows
+npm install
+npm run icons          # one-time
+npm run build          # -> src-tauri/target/release/bundle/nsis/Fluent_x.y.z_x64-setup.exe
+```
+
+### Auto-update — one-time key generation (required before first build)
+
+The updater needs a signing keypair. Generate it once:
+
+```powershell
+npm run tauri signer generate -- -w %USERPROFILE%\.tauri\fluent-updater.key
+```
+
+This prints (and writes) a **private key** (keep secret — never commit; store
+in a password manager / CI secret) and a **public key**. Put the public key in
+`src-tauri/tauri.conf.json` → `plugins.updater.pubkey`, replacing
+`REPLACE_WITH_UPDATER_PUBLIC_KEY`. Until this is done, `npm run build` will
+fail (by design — it prevents shipping an unverifiable updater).
+
+To sign update artifacts at build time, set the private key in the environment:
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $env:USERPROFILE\.tauri\fluent-updater.key -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<the password you set>"
+npm run build
+```
+
+The build emits a `.sig` next to the installer. Publish the installer + a
+`latest.json` manifest (version, notes, signature, download URL) at the
+configured endpoint (`https://www.tryfluent.co/windows/updates/latest.json`).
+
+### Authenticode signing (later — needs a code-signing cert)
+
+Builds are **unsigned** today (no cert yet). Unsigned installers trigger a
+Windows SmartScreen "unknown publisher" warning — fine for internal testers
+("More info → Run anyway"), not for public distribution.
+
+When you have an OV/EV cert (or Azure Trusted Signing), add a signing config
+under `bundle.windows` in `tauri.conf.json`. Examples:
+
+- **Cert store (thumbprint):**
+  `"certificateThumbprint": "<hex>", "digestAlgorithm": "sha256",
+  "timestampUrl": "http://timestamp.digicert.com"`
+- **PFX file or Azure:** use `"signCommand": "<tool> %1"` invoking SignTool /
+  `trusted-signing-cli`, reading secrets from env vars.
+
+This is the only step between an unsigned test build and a public-ready,
+SmartScreen-clean installer.
