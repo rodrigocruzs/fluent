@@ -105,6 +105,10 @@ mod tray;
 
 mod auth;
 
+// ── Auto-update (M6) ────────────────────────────────────────────────────────────
+
+mod update;
+
 /// Shared host state.
 pub struct AppState {
     /// Last seen `analysing` flag from the engine /status, to detect the
@@ -128,6 +132,8 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(AppState { was_analysing: Mutex::new(false) })
         .invoke_handler(tauri::generate_handler![api_request, sign_out])
         .setup(|app| {
@@ -154,6 +160,16 @@ pub fn run() {
             // 3. Once the webview is ready: inject sessions, then poll for
             //    report-ready and re-inject as needed.
             host_loop::start(app.handle().clone());
+
+            // 4. Check for updates in the background (non-blocking). If an
+            //    update is found it is downloaded and installed, then the app
+            //    relaunches. Silently ignores failures (e.g. offline).
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    update::check_and_install(handle).await;
+                });
+            }
 
             Ok(())
         })

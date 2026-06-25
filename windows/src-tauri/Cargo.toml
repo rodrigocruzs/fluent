@@ -20,6 +20,10 @@ tauri-plugin-deep-link = "2.0.0"
 # running app rather than spawning a second instance. Must be registered
 # FIRST (before deep-link) per the plugin docs.
 tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
+# Auto-update: updater downloads/installs signed updates; process enables the
+# app to relaunch itself after an update is applied.
+tauri-plugin-updater = "2.0.0"
+tauri-plugin-process = "2.0.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # rustls-tls is REQUIRED: reqwest 0.12 ships with NO TLS backend unless a

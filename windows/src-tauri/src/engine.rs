@@ -13,20 +13,28 @@ const MIN_HEALTHY_SECS: u64 = 30;
 
 /// Locate the engine directory and its venv Python.
 ///
-/// In dev the layout is repo/windows/src-tauri -> repo/fluent-engine, with the
-/// venv created during M2 at fluent-engine/venv. In a packaged build this will
-/// point at the bundled embeddable Python instead (handled in M6).
-fn engine_paths() -> Option<(PathBuf, PathBuf)> {
-    // CARGO_MANIFEST_DIR = repo/windows/src-tauri at build time; at runtime in
-    // dev the cwd is the same crate dir, so resolve relative to current exe's
-    // ancestors as a fallback.
-    let candidates = [
-        // dev: relative to the crate manifest
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fluent-engine"),
-        // running from repo root
-        std::env::current_dir().unwrap_or_default().join("fluent-engine"),
-        std::env::current_dir().unwrap_or_default().join("../fluent-engine"),
-    ];
+/// Production (installed): the pre-built bundle ships as a Tauri resource at
+/// `<resource_dir>/engine-bundle/` (see bundle-engine.mjs + tauri.conf
+/// bundle.resources), with venv\Scripts\python.exe + main.py inside.
+/// Dev: the M2 venv at repo/fluent-engine/venv, resolved relative to the crate
+/// or the current dir.
+fn engine_paths(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
+    use tauri::Manager;
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    // Production: the bundled engine resource. resource_dir() points at the
+    // installed resources root; bundle-engine.mjs stages everything under
+    // engine-bundle/.
+    if let Ok(res) = app.path().resource_dir() {
+        candidates.push(res.join("engine-bundle"));
+    }
+
+    // Dev fallbacks: the repo's fluent-engine with its M2 venv.
+    candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../fluent-engine"));
+    candidates.push(std::env::current_dir().unwrap_or_default().join("fluent-engine"));
+    candidates.push(std::env::current_dir().unwrap_or_default().join("../fluent-engine"));
+
     for engine_dir in candidates {
         let py = engine_dir.join("venv").join("Scripts").join("python.exe");
         let main = engine_dir.join("main.py");
@@ -59,12 +67,12 @@ fn kill_stale_listener(port: u16) {
 }
 
 /// Spawn the engine and keep it alive on a background thread.
-pub fn spawn_and_supervise(_app: tauri::AppHandle) {
+pub fn spawn_and_supervise(app: tauri::AppHandle) {
     thread::spawn(move || {
-        let (py, engine_dir) = match engine_paths() {
+        let (py, engine_dir) = match engine_paths(&app) {
             Some(p) => p,
             None => {
-                eprintln!("[engine] could not locate venv python + main.py; engine not started");
+                eprintln!("[engine] could not locate python + main.py; engine not started");
                 return;
             }
         };
