@@ -17,19 +17,22 @@ SILENCE_RMS = 200
 def _wav_rms(path: Path) -> float:
     if not path.exists() or path.stat().st_size < 44:
         return 0.0
-    total_sq = 0
-    total_n = 0
-    with wave.open(str(path), "rb") as wf:
-        while True:
-            data = wf.readframes(16000)
-            if not data:
-                break
-            samples = struct.unpack(f"<{len(data) // 2}h", data)
-            total_sq += sum(s * s for s in samples)
-            total_n += len(samples)
-    if total_n == 0:
+    try:
+        total_sq = 0
+        total_n = 0
+        with wave.open(str(path), "rb") as wf:
+            while True:
+                data = wf.readframes(16000)
+                if not data:
+                    break
+                samples = struct.unpack(f"<{len(data) // 2}h", data)
+                total_sq += sum(s * s for s in samples)
+                total_n += len(samples)
+        if total_n == 0:
+            return 0.0
+        return (total_sq / total_n) ** 0.5
+    except (wave.Error, struct.error, OSError, EOFError):
         return 0.0
-    return (total_sq / total_n) ** 0.5
 
 
 def system_audio_captured(sys_path: Path) -> bool:

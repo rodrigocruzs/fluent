@@ -27,3 +27,9 @@ def test_loud_file_is_captured(tmp_path):
     p = tmp_path / "loud.wav"
     _write_wav(p, [8000, -8000] * 8000)  # 1s of loud tone
     assert system_audio_captured(p) is True
+
+
+def test_corrupt_file_is_not_captured(tmp_path):
+    p = tmp_path / "corrupt.wav"
+    p.write_bytes(b"RIFFxxxxWAVEfmt garbage that is not a valid wav body" + b"\x00" * 20)
+    assert system_audio_captured(p) is False
