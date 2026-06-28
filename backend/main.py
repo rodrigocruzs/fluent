@@ -1106,6 +1106,8 @@ class SessionPayload(BaseModel):
     duration: float = 0
     transcript: str = ""
     issues: list[dict] = []
+    segments: list[dict] = []
+    system_audio_captured: bool = True
 
 
 @app.post("/sessions")
@@ -1118,6 +1120,8 @@ def create_session(payload: SessionPayload, user_id: int = Depends(_current_user
         duration=payload.duration,
         transcript=payload.transcript,
         issues=payload.issues,
+        segments=payload.segments,
+        system_audio_captured=payload.system_audio_captured,
     )
     _posthog.capture(distinct_id=str(user_id), event="session_saved",
                      properties={"issue_count": len(payload.issues),

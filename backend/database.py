@@ -68,10 +68,19 @@ def init_db():
                     date        TEXT    NOT NULL,
                     duration    FLOAT   NOT NULL DEFAULT 0,
                     transcript  TEXT    NOT NULL DEFAULT '',
+                    segments    TEXT    NOT NULL DEFAULT '[]',
+                    system_audio_captured BOOLEAN NOT NULL DEFAULT TRUE,
                     created_at  FLOAT   NOT NULL,
                     UNIQUE (user_id, slug)
                 )
             """)
+            for col, definition in [
+                ("segments",              "TEXT NOT NULL DEFAULT '[]'"),
+                ("system_audio_captured", "BOOLEAN NOT NULL DEFAULT TRUE"),
+            ]:
+                cur.execute(f"""
+                    ALTER TABLE sessions ADD COLUMN IF NOT EXISTS {col} {definition}
+                """)
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS issues (
                     id          SERIAL PRIMARY KEY,
@@ -136,19 +145,27 @@ def get_user_by_id(user_id: int) -> dict | None:
 
 def save_session(user_id: int, slug: str, name: str, date: str,
                  duration: float, transcript: str,
-                 issues: list[dict]) -> int:
+                 issues: list[dict],
+                 segments: list[dict] | None = None,
+                 system_audio_captured: bool = True) -> int:
+    import json
+    segments_json = json.dumps(segments or [])
     with _conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                INSERT INTO sessions (user_id, slug, name, date, duration, transcript, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO sessions (user_id, slug, name, date, duration, transcript,
+                                      segments, system_audio_captured, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (user_id, slug) DO UPDATE
-                    SET name       = EXCLUDED.name,
-                        date       = EXCLUDED.date,
-                        duration   = EXCLUDED.duration,
-                        transcript = EXCLUDED.transcript
+                    SET name                  = EXCLUDED.name,
+                        date                  = EXCLUDED.date,
+                        duration              = EXCLUDED.duration,
+                        transcript            = EXCLUDED.transcript,
+                        segments              = EXCLUDED.segments,
+                        system_audio_captured = EXCLUDED.system_audio_captured
                 RETURNING id
-            """, (user_id, slug, name, date, duration, transcript, time.time()))
+            """, (user_id, slug, name, date, duration, transcript,
+                  segments_json, system_audio_captured, time.time()))
             session_id = cur.fetchone()[0]
 
             cur.execute("DELETE FROM issues WHERE session_id = %s", (session_id,))
@@ -314,7 +331,8 @@ def get_session_with_issues(user_id: int, slug: str) -> dict | None:
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
-                SELECT id, slug, name, date, duration, transcript
+                SELECT id, slug, name, date, duration, transcript,
+                       segments, system_audio_captured
                 FROM sessions WHERE user_id = %s AND slug = %s
             """, (user_id, slug))
             session = cur.fetchone()
@@ -325,5 +343,10 @@ def get_session_with_issues(user_id: int, slug: str) -> dict | None:
                 FROM issues WHERE session_id = %s ORDER BY number
             """, (session["id"],))
             session = dict(session)
+            import json
+            try:
+                session["segments"] = json.loads(session.get("segments") or "[]")
+            except (ValueError, TypeError):
+                session["segments"] = []
             session["issues"] = cur.fetchall()
             return session
