@@ -1199,3 +1199,24 @@ mark.flag.is-active .num { color: var(--accent); }
 .settings-invoice-amount { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 50px; text-align: right; }
 .settings-invoice-link   { color: var(--gray-2); text-decoration: none; font-size: 12px; }
 .settings-invoice-link:hover { color: var(--ink-2); }
+
+/* ── Speaker-labeled turns ── */
+.transcript .turn { margin: 0 0 1.1em; }
+.transcript .turn-speaker {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--gray-3);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.transcript .turn-you .turn-speaker { color: var(--ink-2); }
+.transcript .turn-text { margin: 0; }
+
+.transcript .capture-notice {
+  font-size: 13px;
+  color: var(--gray-3);
+  font-style: italic;
+  margin: 0 0 1.4em;
+}
