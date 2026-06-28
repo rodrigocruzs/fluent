@@ -39,86 +39,24 @@
     return m ? `${m[1]}:${m[2]}` : '';
   }
 
-  // ── Alignment ────────────────────────────────────────────────────────────
-
-  function align() {
-    const margin = document.getElementById('margin');
-    const flags  = Array.from(document.querySelectorAll('mark.flag'));
-    const notes  = Array.from(document.querySelectorAll('.note'));
-    if (!margin || !flags.length) return;
-
-    const stacked = window.matchMedia('(max-width: 900px)').matches;
-    if (stacked) {
-      notes.forEach(n => { n.style.top = ''; });
-      margin.style.height = '';
-      return;
-    }
-
-    const marginTop = margin.getBoundingClientRect().top + window.scrollY;
-    const GAP = 24;
-    let lastBottom = 0;
-
-    flags.forEach(flag => {
-      const id   = flag.dataset.issue;
-      const note = document.querySelector(`.note[data-issue="${id}"]`);
-      if (!note) return;
-      const flagTop = flag.getBoundingClientRect().top + window.scrollY - marginTop;
-      const top = Math.max(flagTop, lastBottom + GAP);
-      note.style.top = top + 'px';
-      lastBottom = top + note.offsetHeight;
-    });
-
-    margin.style.height = (lastBottom + 16) + 'px';
-  }
-
-  // ── Hover linking ─────────────────────────────────────────────────────────
-
-  function wireHovers() {
-    document.querySelectorAll('mark.flag').forEach(flag => {
-      const id = flag.dataset.issue;
-      flag.addEventListener('mouseenter', () => setActive(id, true));
-      flag.addEventListener('mouseleave', () => setActive(id, false));
-      flag.addEventListener('click', () => {
-        const note = document.getElementById('note-' + id);
-        if (note) note.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    });
-    document.querySelectorAll('.note').forEach(note => {
-      const id = note.dataset.issue;
-      note.style.cursor = 'pointer';
-      note.addEventListener('mouseenter', () => setActive(id, true));
-      note.addEventListener('mouseleave', () => setActive(id, false));
-      note.addEventListener('click', () => {
-        const flag = document.getElementById('flag-' + id);
-        if (flag) flag.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    });
-  }
-
-  function setActive(id, on) {
-    const flag = document.querySelector(`mark.flag[data-issue="${id}"]`);
-    const note = document.querySelector(`.note[data-issue="${id}"]`);
-    if (flag) flag.classList.toggle('is-active', on);
-    if (note) note.classList.toggle('is-active', on);
-  }
-
   // ── Build transcript with inline marks ───────────────────────────────────
 
   function buildTranscript(issues, transcriptText, segments) {
+    // Underline phrases that became coaching patterns. No numbers, no margin
+    // notes — the transcript is a calm record, not the focus of the page.
+    const markFor = (original) =>
+      `<mark class="flag">${esc(original)}</mark>`;
+
     // Speaker-labeled chronological turns when diarized segments exist.
     if (Array.isArray(segments) && segments.length) {
       return segments.map((seg) => {
         let text = esc(seg.text || '');
-        // Only the user's ("You") turns carry inline issue marks.
+        // Only the user's ("You") turns carry inline anchors.
         if (seg.speaker === 'You') {
-          issues.forEach((issue, idx) => {
-            const n = idx + 1;
+          issues.forEach((issue) => {
             const original = issue.original || '';
             if (!original || !(seg.text || '').includes(original)) return;
-            const mark =
-              `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
-              `<span class="num">${n}</span></mark>`;
-            text = text.replace(esc(original), () => mark);
+            text = text.replace(esc(original), () => markFor(original));
           });
         }
         const who = esc(seg.speaker || 'Speaker');
@@ -129,41 +67,303 @@
     }
 
     // Flat fallback (old sessions, or no diarization). Escape first, then
-    // insert issue marks against the escaped text (mirrors the segments path).
+    // insert anchors against the escaped text (mirrors the segments path).
     const rawText = transcriptText || '';
     let text = esc(rawText);
-    issues.forEach((issue, idx) => {
-      const n = idx + 1;
+    issues.forEach((issue) => {
       const original = issue.original || '';
       if (!original || !rawText.includes(original)) return;
-      const replacement =
-        `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
-        `<span class="num">${n}</span></mark>`;
-      text = text.replace(esc(original), () => replacement);
+      text = text.replace(esc(original), () => markFor(original));
     });
     const paras = text.split(/\n\n+/).filter(p => p.trim());
     if (!paras.length) paras.push(text);
     return paras.map(p => `<p>${p}</p>`).join('\n');
   }
 
-  // ── Build notes column ────────────────────────────────────────────────────
+  // ── Coaching model ────────────────────────────────────────────────────────
+  // Maps the flat issue list (category / original / improved / explanation)
+  // into a richer coaching structure. Resilient to missing fields. Diagnosis
+  // and "rule to remember" are generated client-side from the category when the
+  // backend doesn't supply them.
 
-  function buildNotes(issues) {
-    return issues.map((issue, idx) => {
-      const n = idx + 1;
+  const MEETING_TYPES = [
+    'Internal Team Meeting',
+    '1:1 with Manager',
+    'Candidate Interview',
+    'Customer Call',
+    'Technical Discussion',
+    'Stakeholder Update',
+    'Behavioral Interview',
+    'Other',
+  ];
+  const DEFAULT_MEETING_TYPE = 'Internal Team Meeting';
+
+  // Short, lower-cased phrase describing the setting, used inside "why this
+  // matters" sentences ("In internal meetings, …").
+  function meetingContext(type) {
+    switch (type) {
+      case '1:1 with Manager':    return 'in a 1:1 with your manager';
+      case 'Candidate Interview': return 'in a candidate interview';
+      case 'Customer Call':       return 'on a customer call';
+      case 'Technical Discussion':return 'in a technical discussion';
+      case 'Stakeholder Update':  return 'in a stakeholder update';
+      case 'Behavioral Interview':return 'in a behavioral interview';
+      case 'Other':               return 'in a professional conversation';
+      default:                    return 'in internal meetings';
+    }
+  }
+
+  // Per-category coaching scaffolding. DEFAULT covers anything unmapped.
+  const CATEGORY_COACHING = {
+    'Clarity': {
+      diagnosis: 'You used wording that made your point less clear.',
+      rule: 'Use the simplest natural business phrase that preserves the meaning.',
+      why: 'unclear phrasing can make technical or commercial points harder for others to act on.',
+    },
+    'Confidence': {
+      diagnosis: 'Your phrasing softened a point you could have stated plainly.',
+      rule: 'State your view directly; drop hedges that weaken it.',
+      why: 'tentative wording can make a solid point land as uncertain.',
+    },
+    'Directness': {
+      diagnosis: 'You led with context before getting to the point.',
+      rule: 'Answer first, then explain why.',
+      why: 'burying the conclusion makes your point harder to follow.',
+    },
+    'Natural Business English': {
+      diagnosis: 'A phrase came across as slightly unnatural for the setting.',
+      rule: 'Prefer the phrasing a fluent colleague would naturally use.',
+      why: 'unnatural phrasing can pull attention away from your message.',
+    },
+    'Professional Tone': {
+      diagnosis: 'The tone was a little off for the moment.',
+      rule: 'Match the level of formality the room expects.',
+      why: 'tone shapes how seriously your point is taken.',
+    },
+    'Executive Communication': {
+      diagnosis: 'The message could be tighter and more decisive.',
+      rule: 'Lead with the decision or ask, then support it briefly.',
+      why: 'senior audiences act faster on a crisp, decisive message.',
+    },
+    'DEFAULT': {
+      diagnosis: 'There was a clearer, more natural way to make this point.',
+      rule: 'Use the simplest natural business phrase that preserves the meaning.',
+      why: 'clearer phrasing makes it easier for others to follow and act on your point.',
+    },
+  };
+
+  function coachingFor(category) {
+    return CATEGORY_COACHING[category] || CATEGORY_COACHING.DEFAULT;
+  }
+
+  // Per-category "biggest lesson" headline + description builder.
+  const LESSON_BY_CATEGORY = {
+    'Directness': {
+      headline: 'Lead with the answer.',
+      desc: (ctx) => `Several of your responses started with context before the conclusion. ${capFirst(ctx)}, this can make your point harder to follow. Try answering directly first, then explaining why.`,
+    },
+    'Clarity': {
+      headline: 'Say it the simple way.',
+      desc: (ctx) => `A few of your points were phrased in a way that took an extra beat to parse. ${capFirst(ctx)}, the simplest wording that keeps your meaning is usually the strongest. Aim for the clearest version first.`,
+    },
+    'Confidence': {
+      headline: 'State it, don’t soften it.',
+      desc: (ctx) => `You hedged a few points that you could have stated plainly. ${capFirst(ctx)}, confident, direct wording helps your ideas land. Make the claim, then back it up.`,
+    },
+    'DEFAULT': {
+      headline: 'Make each point easier to act on.',
+      desc: (ctx) => `A few moments could have been phrased more clearly. ${capFirst(ctx)}, small wording changes make it easier for others to follow and act on what you say.`,
+    },
+  };
+
+  function capFirst(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  // Group issues by category to drive occurrence counts and the biggest lesson.
+  function countByCategory(issues) {
+    const counts = {};
+    issues.forEach(i => {
+      const c = i.category || 'Clarity';
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function topCategory(issues) {
+    const counts = countByCategory(issues);
+    let best = null, bestN = 0;
+    Object.keys(counts).forEach(c => { if (counts[c] > bestN) { best = c; bestN = counts[c]; } });
+    return best;
+  }
+
+  // ── Section renderers ─────────────────────────────────────────────────────
+
+  function renderMeetingTypeSelector(current) {
+    const opts = MEETING_TYPES.map(t =>
+      `<option value="${esc(t)}"${t === current ? ' selected' : ''}>${esc(t)}</option>`
+    ).join('');
+    return `
+      <div class="meeting-type">
+        <span class="meeting-type-label">Coaching based on:</span>
+        <span class="meeting-type-select-wrap">
+          <select class="meeting-type-select" id="meeting-type-select" aria-label="Meeting type">${opts}</select>
+          <span class="meeting-type-caret" aria-hidden="true"><svg width="9" height="6" viewBox="0 0 9 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </span>
+      </div>`;
+  }
+
+  function renderHero(hasIssues, meetingType) {
+    if (!hasIssues) {
       return `
-      <article class="note" data-issue="${n}" id="note-${n}">
-        <div class="note-head">
-          <span class="note-num">${n}</span>
-          <span class="note-category">${esc(issue.category || 'Phrasing')}</span>
+      <div class="coaching-hero">
+        <h2 class="coaching-hero-title">Nothing major to improve from this short recording.</h2>
+        <p class="coaching-hero-sub" id="hero-sub">A couple of things you did well are below.</p>
+      </div>`;
+    }
+    return `
+      <div class="coaching-hero">
+        <h2 class="coaching-hero-title">Your biggest opportunities from this meeting</h2>
+        <p class="coaching-hero-sub" id="hero-sub">Based on this being ${heroContext(meetingType)}.</p>
+      </div>`;
+  }
+
+  // "an Internal Team Meeting" / "a Customer Call" with correct article.
+  function heroContext(type) {
+    const article = /^[AEIOU]/i.test(type) ? 'an' : 'a';
+    return `${article} ${esc(type)}`;
+  }
+
+  function renderBiggestLesson(coaching, meetingType) {
+    const { headline, desc } = coaching.lesson;
+    return `
+      <section class="lesson">
+        <div class="lesson-eyebrow">Today’s biggest lesson</div>
+        <h3 class="lesson-headline">${esc(headline)}</h3>
+        <p class="lesson-desc" id="lesson-desc">${esc(desc(meetingContext(meetingType)))}</p>
+      </section>`;
+  }
+
+  function renderPatterns(patterns, meetingType) {
+    if (!patterns.length) return '';
+    const items = patterns.map((p, idx) => renderPattern(p, idx, meetingType)).join('\n');
+    return `<section class="patterns">${items}</section>`;
+  }
+
+  function renderPattern(p, idx, meetingType) {
+    const c = coachingFor(p.category);
+    const why = p.whyMatters
+      ? esc(p.whyMatters)
+      : `${capFirst(meetingContext(meetingType))}, ${esc(c.why)}`;
+    const countLine = p.count > 1
+      ? `<p class="pattern-count">Seen ${p.count} times today.</p>`
+      : '';
+    const tryThis = p.tryThis ? `
+        <div class="pattern-block">
+          <div class="pattern-block-label">Try this next time</div>
+          <p class="pattern-try">${esc(p.tryThis)}</p>
+        </div>` : '';
+    const said = p.said ? `
+        <div class="pattern-block">
+          <div class="pattern-block-label">What you said</div>
+          <p class="pattern-said">${esc(p.said)}</p>
+        </div>` : '';
+    return `
+      <article class="pattern" data-why-template="${p.whyMatters ? '' : esc(c.why)}">
+        <div class="pattern-category">${esc(p.category || 'Clarity')}</div>
+        <p class="pattern-diagnosis">${esc(p.diagnosis || c.diagnosis)}</p>
+        <div class="pattern-why">
+          <span class="pattern-why-label">Why this matters</span>
+          <span class="pattern-why-text" data-meeting-why="${p.whyMatters ? '0' : '1'}">${why}</span>
         </div>
-        <p class="note-said-label">You said</p>
-        <p class="note-said">${esc(issue.original || '')}</p>
-        <p class="note-try-label">Try this</p>
-        <p class="note-try">${esc(issue.improved || issue.better_phrasing || '')}</p>
-        <p class="note-explain">${esc(issue.explanation || '')}</p>
-      </article>`.trim();
-    }).join('\n');
+        ${said}${tryThis}
+        <p class="pattern-rule"><span class="pattern-rule-label">Rule to remember</span> ${esc(p.rule || c.rule)}</p>
+        ${countLine}
+      </article>`;
+  }
+
+  function renderStrengths(strengths) {
+    if (!strengths.length) return '';
+    const items = strengths.map(s =>
+      `<li class="strength">${esc(s)}</li>`
+    ).join('\n');
+    return `
+      <section class="strengths">
+        <div class="strengths-eyebrow">What you did well</div>
+        <ul class="strengths-list">${items}</ul>
+      </section>`;
+  }
+
+  function renderTranscriptSection(transcriptHTML) {
+    return `
+      <section class="transcript-section">
+        <button class="transcript-toggle" id="transcript-toggle" type="button" aria-expanded="false">
+          <span class="transcript-toggle-arrow" aria-hidden="true">&rsaquo;</span>
+          <span class="transcript-toggle-label">Show transcript</span>
+        </button>
+        <div class="transcript transcript-collapsed" id="transcript-body" hidden>
+          ${transcriptHTML}
+        </div>
+      </section>`;
+  }
+
+  // Builds the full coaching model from raw data + the chosen meeting type.
+  function buildCoaching(issues, data, meetingType) {
+    const counts = countByCategory(issues);
+    const patterns = issues.map(issue => {
+      const category = issue.category || 'Clarity';
+      const c = coachingFor(category);
+      return {
+        category,
+        diagnosis: c.diagnosis,
+        whyMatters: issue.explanation || '',
+        said: issue.original || '',
+        tryThis: issue.improved || issue.better_phrasing || '',
+        rule: c.rule,
+        count: counts[category] || 1,
+      };
+    });
+
+    // Biggest lesson: backend-supplied, else synthesized from the top category.
+    let lesson;
+    if (data.biggest_lesson && data.biggest_lesson.headline) {
+      const bl = data.biggest_lesson;
+      lesson = {
+        headline: bl.headline,
+        desc: () => bl.description || '',
+      };
+    } else {
+      const top = topCategory(issues) || 'DEFAULT';
+      lesson = LESSON_BY_CATEGORY[top] || LESSON_BY_CATEGORY.DEFAULT;
+    }
+
+    const strengths = (Array.isArray(data.strengths) && data.strengths.length)
+      ? data.strengths.slice(0, 3)
+      : [
+          'You explained the business context clearly.',
+          'You kept a professional tone.',
+          'You moved the conversation forward.',
+        ];
+
+    return { patterns, lesson, strengths };
+  }
+
+  // Meeting-type persistence. Keyed by session slug.
+  // TODO: persist meeting type to the backend (e.g. PATCH /sessions/:slug) so it
+  // syncs across devices and can inform future coaching. localStorage is a
+  // client-only stopgap.
+  function meetingTypeKey(slug) { return 'fluent_meeting_type_' + (slug || 'unknown'); }
+
+  function getMeetingType(data) {
+    const slug = data.slug || '';
+    try {
+      const saved = localStorage.getItem(meetingTypeKey(slug));
+      if (saved && MEETING_TYPES.includes(saved)) return saved;
+    } catch (_) {}
+    if (data.meeting_type && MEETING_TYPES.includes(data.meeting_type)) return data.meeting_type;
+    return DEFAULT_MEETING_TYPE;
+  }
+
+  function saveMeetingType(slug, type) {
+    try { localStorage.setItem(meetingTypeKey(slug), type); } catch (_) {}
   }
 
   // ── Sessions view ─────────────────────────────────────────────────────────
@@ -311,9 +511,11 @@
 
     const hasTranscript = transcript.trim().length > 0 || segments.length > 0;
 
+    const meetingType = getMeetingType(data);
+
     let body;
     if (!hasTranscript) {
-      // Nothing was captured — don't pretend to grade silence.
+      // Nothing was captured — don't pretend to grade silence. Unchanged.
       body = `
   <div class="no-transcript">
     <div class="no-transcript-eyebrow">No transcript</div>
@@ -322,36 +524,23 @@
     <p class="no-transcript-hint">If you expected feedback, check your microphone and make sure recording continues while you&rsquo;re speaking.</p>
   </div>`;
     } else {
-      const n = issues.length;
-      const summaryText = n === 0
-        ? 'No suggestions — your English sounded natural and fluent.'
-        : n === 1
-          ? `1 suggestion across ${durationStr(duration)} of your speech.`
-          : `${n} suggestions across ${durationStr(duration)} of your speech.`;
+      const hasIssues = issues.length > 0;
+      const coaching  = buildCoaching(issues, data, meetingType);
 
       const captureNotice = (!systemCaptured && segments.length === 0)
         ? '<p class="capture-notice">Only your microphone was captured this session — other participants weren&rsquo;t recorded.</p>'
         : '';
       const transcriptHTML = captureNotice + buildTranscript(issues, transcript, segments);
-      const noIssuesNote   = n === 0
-        ? '<p class="empty">Nothing to flag — great session.</p>'
-        : '';
-      const notesHTML = buildNotes(issues);
+
+      const lessonHTML   = hasIssues ? renderBiggestLesson(coaching, meetingType) : '';
+      const patternsHTML = hasIssues ? renderPatterns(coaching.patterns, meetingType) : '';
 
       body = `
-  <p class="report-summary">${esc(summaryText)}</p>
-  ${noIssuesNote}
-  <div class="layout">
-    <aside class="margin" id="margin">
-      ${n === 0 ? '' : notesHTML}
-    </aside>
-    <section>
-      <div class="transcript-label">Transcript</div>
-      <div class="transcript">
-        ${transcriptHTML}
-      </div>
-    </section>
-  </div>`;
+  ${renderHero(hasIssues, meetingType)}
+  ${lessonHTML}
+  ${patternsHTML}
+  ${renderStrengths(coaching.strengths)}
+  ${renderTranscriptSection(transcriptHTML)}`;
     }
 
     page.innerHTML = `
@@ -359,16 +548,74 @@
     <button class="back-link" onclick="window.showSessions && window.showSessions()"><span class="arrow">&larr;</span> Sessions</button>
     <h1 class="report-title">${esc(title)}</h1>
     <div class="session-meta">${metaParts.join(' &middot; ')}</div>
+    ${renderMeetingTypeSelector(meetingType)}
   </header>
   ${body}`;
 
     page.classList.add('visible');
 
+    // Stash what live re-rendering needs (meeting-type changes update hero,
+    // lesson, and pattern "why this matters" without a full reload).
+    _reportState = { slug, issues, data };
+
     requestAnimationFrame(() => {
-      wireHovers();
-      align();
+      wireMeetingTypeSelector();
+      wireTranscriptToggle();
     });
   };
+
+  // ── Live meeting-type wiring ──────────────────────────────────────────────
+
+  let _reportState = null;
+
+  function wireMeetingTypeSelector() {
+    const sel = document.getElementById('meeting-type-select');
+    if (!sel) return;
+    sel.addEventListener('change', () => {
+      const type = sel.value;
+      if (_reportState) saveMeetingType(_reportState.slug, type);
+      rerenderMeetingTypeDependent(type);
+    });
+  }
+
+  // Re-render only the parts that name the meeting type, in place.
+  function rerenderMeetingTypeDependent(type) {
+    if (!_reportState) return;
+    const { issues, data } = _reportState;
+
+    const sub = document.getElementById('hero-sub');
+    if (sub && issues.length) sub.innerHTML = `Based on this being ${heroContext(type)}.`;
+
+    const lessonDesc = document.getElementById('lesson-desc');
+    if (lessonDesc && issues.length) {
+      const coaching = buildCoaching(issues, data, type);
+      lessonDesc.textContent = coaching.lesson.desc(meetingContext(type));
+    }
+
+    // Each pattern's "why this matters" — only the generated ones (no backend
+    // explanation), which begin with the meeting context.
+    document.querySelectorAll('.pattern').forEach(el => {
+      const whyEl = el.querySelector('.pattern-why-text');
+      if (!whyEl || whyEl.dataset.meetingWhy !== '1') return;
+      const tmpl = el.dataset.whyTemplate || '';
+      whyEl.textContent = `${capFirst(meetingContext(type))}, ${tmpl}`;
+    });
+  }
+
+  function wireTranscriptToggle() {
+    const btn  = document.getElementById('transcript-toggle');
+    const body = document.getElementById('transcript-body');
+    if (!btn || !body) return;
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      const next = !expanded;
+      btn.setAttribute('aria-expanded', String(next));
+      btn.classList.toggle('is-open', next);
+      body.hidden = !next;
+      btn.querySelector('.transcript-toggle-label').textContent =
+        next ? 'Hide transcript' : 'Show transcript';
+    });
+  }
 
   window.showOnboarding = function () {
     const page          = document.getElementById('page');
@@ -845,8 +1092,6 @@
     });
   })();
 
-  window.addEventListener('resize', align);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(align);
 
   // ── Recording controls ────────────────────────────────────────────────────
 
