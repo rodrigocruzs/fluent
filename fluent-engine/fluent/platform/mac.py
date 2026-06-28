@@ -111,3 +111,28 @@ def open_system_capture(pa, on_chunk, rate, chunk, fmt):
         input=True, input_device_index=idx,
         frames_per_buffer=chunk, stream_callback=_callback,
     )
+
+
+def is_fluent_output_active() -> bool:
+    """True if the system default output routes through the Fluent aggregate
+    device (so other participants' audio reaches BlackHole). Best-effort:
+    returns True on any error so it never blocks recording.
+    """
+    try:
+        from fluent import blackhole
+        import ctypes, struct
+        sel_def_out = struct.unpack(">I", b"dOut")[0]
+        sel_glob = struct.unpack(">I", b"glob")[0]
+        addr = blackhole._Addr(sel_def_out, sel_glob, 0)
+        sz = ctypes.c_uint32(4)
+        buf = ctypes.create_string_buffer(4)
+        err = blackhole._ca.AudioObjectGetPropertyData(
+            ctypes.c_uint32(blackhole.kAudioObjectSystemObject),
+            ctypes.byref(addr), 0, None, ctypes.byref(sz), buf)
+        if err != 0:
+            return True
+        cur_id = struct.unpack("<I", buf.raw[:4])[0]
+        name = blackhole._device_name(cur_id)
+        return blackhole.MULTI_OUTPUT_NAME.lower() in name.lower()
+    except Exception:
+        return True

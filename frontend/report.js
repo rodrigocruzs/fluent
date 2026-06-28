@@ -104,19 +104,43 @@
 
   // ── Build transcript with inline marks ───────────────────────────────────
 
-  function buildTranscript(issues, transcriptText) {
-    let text = transcriptText || '';
+  function buildTranscript(issues, transcriptText, segments) {
+    // Speaker-labeled chronological turns when diarized segments exist.
+    if (Array.isArray(segments) && segments.length) {
+      return segments.map((seg) => {
+        let text = esc(seg.text || '');
+        // Only the user's ("You") turns carry inline issue marks.
+        if (seg.speaker === 'You') {
+          issues.forEach((issue, idx) => {
+            const n = idx + 1;
+            const original = issue.original || '';
+            if (!original || !(seg.text || '').includes(original)) return;
+            const mark =
+              `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
+              `<span class="num">${n}</span></mark>`;
+            text = text.replace(esc(original), () => mark);
+          });
+        }
+        const who = esc(seg.speaker || 'Speaker');
+        const cls = seg.speaker === 'You' ? 'turn turn-you' : 'turn';
+        return `<div class="${cls}"><span class="turn-speaker">${who}</span>` +
+               `<p class="turn-text">${text}</p></div>`;
+      }).join('\n');
+    }
 
+    // Flat fallback (old sessions, or no diarization). Escape first, then
+    // insert issue marks against the escaped text (mirrors the segments path).
+    const rawText = transcriptText || '';
+    let text = esc(rawText);
     issues.forEach((issue, idx) => {
       const n = idx + 1;
       const original = issue.original || '';
-      if (!original || !text.includes(original)) return;
+      if (!original || !rawText.includes(original)) return;
       const replacement =
         `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
         `<span class="num">${n}</span></mark>`;
-      text = text.replace(original, () => replacement);
+      text = text.replace(esc(original), () => replacement);
     });
-
     const paras = text.split(/\n\n+/).filter(p => p.trim());
     if (!paras.length) paras.push(text);
     return paras.map(p => `<p>${p}</p>`).join('\n');
@@ -268,6 +292,8 @@
     const sessionsPage = document.getElementById('sessions-page');
     const issues       = Array.isArray(data.issues) ? data.issues : (Array.isArray(data) ? data : []);
     const transcript   = data.transcript || '';
+    const segments     = Array.isArray(data.segments) ? data.segments : [];
+    const systemCaptured = data.system_audio_captured !== false;
     const duration     = data.duration   || 0;
     const slug         = data.slug || '';
     const date         = data.date       || formatSessionName(slug) || new Date().toLocaleDateString('en-US', {
@@ -283,7 +309,7 @@
     // Meta line: "June 13, 2026 · 09:31 · 10 sec"
     const metaParts = [esc(date), time && esc(time), esc(durationLong(duration))].filter(Boolean);
 
-    const hasTranscript = transcript.trim().length > 0;
+    const hasTranscript = transcript.trim().length > 0 || segments.length > 0;
 
     let body;
     if (!hasTranscript) {
@@ -303,7 +329,10 @@
           ? `1 suggestion across ${durationStr(duration)} of your speech.`
           : `${n} suggestions across ${durationStr(duration)} of your speech.`;
 
-      const transcriptHTML = buildTranscript(issues, transcript);
+      const captureNotice = (!systemCaptured && segments.length === 0)
+        ? '<p class="capture-notice">Only your microphone was captured this session — other participants weren&rsquo;t recorded.</p>'
+        : '';
+      const transcriptHTML = captureNotice + buildTranscript(issues, transcript, segments);
       const noIssuesNote   = n === 0
         ? '<p class="empty">Nothing to flag — great session.</p>'
         : '';

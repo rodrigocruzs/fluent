@@ -52,7 +52,9 @@ def login(email: str, password: str) -> str:
 
 
 def save_session_remote(slug: str, name: str, date: str,
-                        duration: float, transcript: str, issues: list) -> None:
+                        duration: float, transcript: str, issues: list,
+                        segments: list | None = None,
+                        system_audio_captured: bool = True) -> None:
     """POST the completed session to the backend for persistent storage."""
     token = get_token()
     if not token:
@@ -68,6 +70,8 @@ def save_session_remote(slug: str, name: str, date: str,
                 "duration": duration,
                 "transcript": transcript,
                 "issues": issues,
+                "segments": segments or [],
+                "system_audio_captured": system_audio_captured,
             },
             headers={"Authorization": f"Bearer {token}"},
             timeout=15,

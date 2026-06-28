@@ -1,5 +1,5 @@
 """
-Orchestrates: transcribe → diarise → coach.
+Orchestrates: transcribe → attribute speakers → coach.
 Writes ~/.fluent/reports/latest.json and fires a Darwin notification
 to wake the Swift frontend. No HTML generation — the frontend renders.
 """
@@ -10,8 +10,9 @@ from pathlib import Path
 
 from fluent import platform
 from fluent.config import Config
-from fluent.transcribe import transcribe
-from fluent.diarise import diarise, filter_user_segments, LABEL_USER
+from fluent.transcribe import transcribe, transcribe_mic
+from fluent.speakers import attribute
+from fluent.audio_check import system_audio_captured
 from fluent.coach import coach, save_session_remote
 from fluent.audio import RecordingPaths
 
@@ -43,29 +44,37 @@ def run_pipeline(
     # empty (see below).
     print(f"[pipeline] transcribing {paths.mixed} ...")
     transcript = ""
+    utterances: list[dict] = []
     transcribe_error = ""
     try:
-        transcript = transcribe(paths.mixed)
-        print(f"[pipeline] {len(transcript)} chars")
+        transcript, utterances = transcribe(paths.mixed)
+        print(f"[pipeline] {len(transcript)} chars, {len(utterances)} utterances")
     except Exception as e:
         transcribe_error = str(e)
         print(f"[pipeline] transcription failed, saving session anyway: {e}")
 
-    print("[pipeline] diarising ...")
-    segments = diarise(paths.mixed, mic_path=paths.mic, sys_path=paths.sys)
-    user_segments = filter_user_segments(segments, LABEL_USER)
-    total_speaking = sum(s["duration"] for s in user_segments)
-    print(f"[pipeline] user speaking: {total_speaking:.1f}s")
+    # Did we actually capture the other participants?
+    sys_captured = system_audio_captured(paths.sys)
+    print(f"[pipeline] system audio captured: {sys_captured}")
 
-    user_transcript = (
-        f"[User spoke for {total_speaking:.1f}s]\n\n{transcript}"
-    )
+    # Build speaker-labeled segments. Mic transcript is the "You" oracle.
+    segments: list[dict] = []
+    if utterances:
+        mic_utterances = transcribe_mic(paths.mic)
+        segments = attribute(utterances, mic_utterances)
+    print(f"[pipeline] {len(segments)} segment(s)")
+
+    # Coaching input: only the user's ("You") speech. Fall back to the flat
+    # transcript when we have no segments (diarization unavailable / old path).
+    you_text = "\n".join(s["text"] for s in segments if s["speaker"] == "You")
+    coaching_source = you_text if you_text.strip() else transcript
+    user_transcript = coaching_source
 
     # Coaching must never lose the session. Skip it entirely when there's no
     # speech to coach, and treat any coach failure as "no issues" so the report
     # is still written and the session still saved to history.
     issues = []
-    if transcript.strip():
+    if coaching_source.strip():
         print("[pipeline] coaching ...")
         try:
             issues = coach(user_transcript, config)
@@ -88,6 +97,8 @@ def run_pipeline(
         "name": name,
         "duration": duration,
         "transcript": saved_transcript,
+        "segments": segments,
+        "system_audio_captured": sys_captured,
         "issues": issues,
         "transcribe_error": transcribe_error,
     }
@@ -109,6 +120,8 @@ def run_pipeline(
         duration=duration,
         transcript=saved_transcript,
         issues=issues,
+        segments=segments,
+        system_audio_captured=sys_captured,
     )
 
     platform.notify_report_ready()

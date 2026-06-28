@@ -64,7 +64,7 @@ def _backend_url() -> str:
     return os.environ.get("FLUENT_BACKEND_URL", BACKEND_URL)
 
 
-def _transcribe_direct(audio: bytes, content_type: str, token: str) -> str:
+def _transcribe_direct(audio: bytes, content_type: str, token: str) -> tuple[str, list[dict]]:
     """Short clip: upload the bytes directly in the request body."""
     r = httpx.post(
         f"{_backend_url()}/transcribe",
@@ -76,10 +76,11 @@ def _transcribe_direct(audio: bytes, content_type: str, token: str) -> str:
     if r.status_code == 401:
         raise RuntimeError("Session expired. Please sign in again.")
     r.raise_for_status()
-    return r.json().get("transcript", "")
+    body = r.json()
+    return body.get("transcript", ""), body.get("utterances", []) or []
 
 
-def _transcribe_via_r2(audio: bytes, content_type: str, token: str) -> str:
+def _transcribe_via_r2(audio: bytes, content_type: str, token: str) -> tuple[str, list[dict]]:
     """Long session: presigned PUT to R2, then ask the backend to transcribe."""
     url = _backend_url()
     auth = {"Authorization": f"Bearer {token}"}
@@ -107,10 +108,17 @@ def _transcribe_via_r2(audio: bytes, content_type: str, token: str) -> str:
     if start.status_code == 401:
         raise RuntimeError("Session expired. Please sign in again.")
     start.raise_for_status()
-    return start.json().get("transcript", "")
+    body = start.json()
+    return body.get("transcript", ""), body.get("utterances", []) or []
 
 
-def transcribe(wav_path: Path, _api_key: str = "") -> str:
+def transcribe(wav_path: Path, _api_key: str = "") -> tuple[str, list[dict]]:
+    """Transcribe a WAV file and return (flat_transcript, utterances).
+
+    Chooses the direct upload path for small clips and the R2 path for long
+    sessions. Both helpers now return a tuple so the return type is always
+    ``tuple[str, list[dict]]``.
+    """
     token = get_token()
     if not token:
         raise RuntimeError("Not logged in. Please sign in to Fluent.")
@@ -119,3 +127,18 @@ def transcribe(wav_path: Path, _api_key: str = "") -> str:
     if len(audio) <= DIRECT_UPLOAD_LIMIT:
         return _transcribe_direct(audio, content_type, token)
     return _transcribe_via_r2(audio, content_type, token)
+
+
+def transcribe_mic(wav_path: Path) -> list[dict]:
+    """Transcribe the mic-only WAV as the "You" oracle.
+
+    Returns the utterances (speaker indices ignored by the caller). Never
+    raises — returns [] on any failure so attribution degrades gracefully to
+    generic "Speaker N" labels rather than losing the session.
+    """
+    try:
+        _text, utterances = transcribe(wav_path)
+        return utterances
+    except Exception as e:
+        print(f"[transcribe] mic transcription failed: {e}")
+        return []
