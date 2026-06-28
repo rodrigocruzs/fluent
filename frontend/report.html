@@ -36,6 +36,12 @@
         <p class="profile-empty-text">Once Fluent has analysed a meeting, you’ll see the kind of communicator you’re becoming, what you did well, and what to focus on next.</p>
       </div>
 
+      <!-- Loading state: shown while the profile is being generated from meetings -->
+      <div class="profile-loading" id="profile-loading" style="display:none">
+        <span class="profile-loading-dot" aria-hidden="true"></span>
+        <span class="profile-loading-text">Building your profile…</span>
+      </div>
+
       <!-- Filled state: populated once a profile exists -->
       <div class="profile-body" id="profile-body" style="display:none">
         <h2 class="profile-type" id="profile-type"></h2>
@@ -324,6 +330,6 @@
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
 
-<script src="report.js?v=26"></script>
+<script src="report.js?v=27"></script>
 </body>
 </html>

@@ -475,10 +475,16 @@
   // Last profile we rendered, so showSessions() can re-render without refetching.
   let _lastProfile = null;
 
-  function renderCommunicationProfile(profile) {
-    const section = document.getElementById('profile-section');
-    const emptyEl = document.getElementById('profile-empty');
-    const bodyEl  = document.getElementById('profile-body');
+  // Render the profile section in one of three states: filled (a real profile),
+  // loading (opts.loading — generation in flight), or the empty "created after
+  // your first meeting" message. Pass `profile` to update the cached value;
+  // pass undefined to re-render the last known state (e.g. on page re-entry).
+  function renderCommunicationProfile(profile, opts) {
+    opts = opts || {};
+    const section  = document.getElementById('profile-section');
+    const emptyEl  = document.getElementById('profile-empty');
+    const loadEl   = document.getElementById('profile-loading');
+    const bodyEl   = document.getElementById('profile-body');
     if (!section || !emptyEl || !bodyEl) return;
 
     if (profile !== undefined) _lastProfile = profile;
@@ -486,39 +492,56 @@
 
     section.style.display = '';
 
-    if (!_hasProfile(p)) {
-      // No analysed meetings yet — show the "created after your first meeting"
-      // message instead of fabricated coaching.
-      emptyEl.style.display = '';
-      bodyEl.style.display  = 'none';
+    if (_hasProfile(p)) {
+      emptyEl.style.display = 'none';
+      if (loadEl) loadEl.style.display = 'none';
+      bodyEl.style.display  = '';
+
+      const typeEl = document.getElementById('profile-type');
+      const descEl = document.getElementById('profile-description');
+      if (typeEl) typeEl.textContent = p.type;
+      if (descEl) descEl.textContent = p.description || PROFILE_DESCRIPTIONS[p.type] || '';
+
+      const bullets = (items) => (Array.isArray(items) ? items : []).slice(0, 3)
+        .map(t => `<li>${esc(t)}</li>`).join('');
+      const strengthsEl = document.getElementById('profile-strengths');
+      const oppsEl      = document.getElementById('profile-opportunities');
+      if (strengthsEl) strengthsEl.innerHTML = bullets(p.strengths);
+      if (oppsEl)      oppsEl.innerHTML      = bullets(p.opportunities);
       return;
     }
 
-    emptyEl.style.display = 'none';
-    bodyEl.style.display  = '';
-
-    const typeEl = document.getElementById('profile-type');
-    const descEl = document.getElementById('profile-description');
-    if (typeEl) typeEl.textContent = p.type;
-    if (descEl) descEl.textContent = p.description || PROFILE_DESCRIPTIONS[p.type] || '';
-
-    const bullets = (items) => (Array.isArray(items) ? items : []).slice(0, 3)
-      .map(t => `<li>${esc(t)}</li>`).join('');
-    const strengthsEl = document.getElementById('profile-strengths');
-    const oppsEl      = document.getElementById('profile-opportunities');
-    if (strengthsEl) strengthsEl.innerHTML = bullets(p.strengths);
-    if (oppsEl)      oppsEl.innerHTML      = bullets(p.opportunities);
+    bodyEl.style.display = 'none';
+    if (opts.loading && loadEl) {
+      // Generation is in flight (e.g. first load for a user with history) —
+      // show "Building your profile…" instead of the first-meeting message.
+      emptyEl.style.display = 'none';
+      loadEl.style.display  = '';
+    } else {
+      // No analysed meetings yet — show the "created after your first meeting"
+      // message instead of fabricated coaching.
+      if (loadEl) loadEl.style.display = 'none';
+      emptyEl.style.display = '';
+    }
   }
 
   // Fetch the profile from the backend (web/Windows path). On Mac, Swift injects
   // it through loadSessions instead, since the file:// webview can't fetch.
-  function loadProfile(token) {
+  // `hasSessions` lets us show "Building your profile…" while the backend
+  // generates one on-demand for a user who already has meetings, rather than
+  // flashing the empty "first meeting" message.
+  function loadProfile(token, hasSessions) {
     token = token || _token();
     if (!token) return;
+    // Only show the loading state when we don't already have a profile and the
+    // user has history to build one from.
+    if (hasSessions && !_hasProfile(_lastProfile)) {
+      renderCommunicationProfile(undefined, { loading: true });
+    }
     apiFetch('/profile')
       .then(r => r.ok ? r.json() : null)
       .then(profile => renderCommunicationProfile(profile || null))
-      .catch(() => {});
+      .catch(() => renderCommunicationProfile(_lastProfile));
   }
 
   window.loadSessions = function (sessions, upNext, profile) {
@@ -544,8 +567,9 @@
     if (profile !== undefined) {
       renderCommunicationProfile(profile);
     } else {
+      const hasSessions = Array.isArray(sessions) && sessions.length > 0;
       renderCommunicationProfile(null);  // honest default until /profile responds
-      loadProfile(_token());
+      loadProfile(_token(), hasSessions);
     }
     renderSessionsList(sessions);
   };
@@ -963,17 +987,24 @@
     _resetBillingDetailsFlag();
     loadUpNext();
     renderCommunicationProfile();  // re-render last known profile
-    loadProfile();                 // refresh in case a new meeting changed it
 
     // Re-fetch the History list every time we open it, so sessions recorded
     // while a report was on screen still appear (the post-recording refresh in
-    // loadReport is skipped while the report page is visible).
+    // loadReport is skipped while the report page is visible). We also use the
+    // count to decide whether to show "Building your profile…" while /profile
+    // is generated on-demand for a user who already has meetings.
     const token = _token();
     if (token) {
       apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
-        .then(sessions => { if (sessions) renderSessionsList(sessions); })
-        .catch(() => {});
+        .then(sessions => {
+          if (sessions) renderSessionsList(sessions);
+          const hasSessions = Array.isArray(sessions) && sessions.length > 0;
+          loadProfile(token, hasSessions);  // refresh in case a meeting changed it
+        })
+        .catch(() => loadProfile(token));
+    } else {
+      loadProfile();
     }
   };
 
