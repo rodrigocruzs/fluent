@@ -1070,12 +1070,20 @@ def _regenerate_profile_safely(user_id: int) -> None:
 def get_profile(user_id: int = Depends(_current_user_id)):
     """
     The user's communication profile, generated from real meeting analysis.
-    Returns null until the first meeting has been analysed — the client shows an
-    empty state in that case.
+
+    Normally the profile is (re)generated in the background after each session
+    save. But users with meetings recorded before this feature existed have no
+    stored profile yet, so on a cache miss we generate it on-demand from their
+    existing meetings, store it, and return it. Only when there are genuinely no
+    analysable meetings do we return null (the client shows an empty state).
     """
     raw = get_communication_profile(user_id)
     if not raw:
-        return None
+        profile = _generate_communication_profile(user_id)
+        if not profile:
+            return None  # no analysable meetings yet → honest empty state
+        save_communication_profile(user_id, json.dumps(profile, ensure_ascii=False))
+        return profile
     try:
         return json.loads(raw)
     except (json.JSONDecodeError, TypeError):

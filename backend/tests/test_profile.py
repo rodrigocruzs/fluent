@@ -105,10 +105,39 @@ def _post_session(client):
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_profile_is_null_before_any_meeting(client):
-    """Empty state: no profile until the first meeting is analysed."""
+    """Empty state: with no meetings at all, /profile returns null."""
     resp = client.get("/profile")
     assert resp.status_code == 200
     assert resp.json() is None
+
+
+def test_profile_generated_lazily_for_preexisting_meetings(client, monkeypatch, store):
+    """
+    A user who recorded meetings before the feature existed has no stored
+    profile. GET /profile should generate one on-demand from those meetings,
+    persist it, and return it — not show the empty state.
+    """
+    store["recent_sessions"] = [{
+        "name": "Old planning call", "date": "2026-06-20",
+        "transcript": "We discussed the roadmap and I walked through the trade-offs.",
+        "issues": [],
+    }]
+    model_output = json.dumps({
+        "type": "Strategic Communicator",
+        "description": "You connect details to priorities, risks and business outcomes.",
+        "strengths": ["Framed trade-offs clearly", "Tied detail to the roadmap",
+                      "Kept the discussion focused"],
+        "opportunities": ["State the recommendation up front",
+                          "Quantify the risks", "Invite dissent explicitly"],
+    })
+    monkeypatch.setattr(main, "Anthropic", _make_fake_anthropic(model_output))
+
+    assert store["profile_json"] is None  # nothing stored going in
+    profile = client.get("/profile").json()
+    assert profile["type"] == "Strategic Communicator"
+    assert store["profile_json"] is not None  # generated + persisted
+    # Persisted, so a second read returns the cached copy (no regeneration).
+    assert client.get("/profile").json()["type"] == "Strategic Communicator"
 
 
 def test_session_save_generates_and_persists_profile(client, monkeypatch, store):
