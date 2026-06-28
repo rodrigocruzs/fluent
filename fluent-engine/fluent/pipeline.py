@@ -1,5 +1,5 @@
 """
-Orchestrates: transcribe → diarise → coach.
+Orchestrates: transcribe → attribute speakers → coach.
 Writes ~/.fluent/reports/latest.json and fires a Darwin notification
 to wake the Swift frontend. No HTML generation — the frontend renders.
 """
@@ -11,7 +11,6 @@ from pathlib import Path
 from fluent import platform
 from fluent.config import Config
 from fluent.transcribe import transcribe, transcribe_mic
-from fluent.diarise import diarise, filter_user_segments, LABEL_USER
 from fluent.speakers import attribute
 from fluent.audio_check import system_audio_captured
 from fluent.coach import coach, save_session_remote
