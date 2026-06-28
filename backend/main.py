@@ -943,7 +943,9 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
 
 # ── Transcription ────────────────────────────────────────────────────────────
 
-DEEPGRAM_URL = "https://api.deepgram.com/v1/listen?model=nova-3&language=en&punctuate=true"
+DEEPGRAM_URL = ("https://api.deepgram.com/v1/listen"
+                "?model=nova-3&language=en&punctuate=true"
+                "&diarize=true&utterances=true")
 # Note: Vercel's serverless functions reject request bodies over ~4.5MB before
 # they reach this handler (HTTP 413 FUNCTION_PAYLOAD_TOO_LARGE), so the engine
 # uploads compressed AAC/m4a. This cap is a secondary guard only.
@@ -952,11 +954,13 @@ MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
 def _deepgram_transcribe(*, data: bytes | None = None,
                          source_url: str | None = None,
-                         content_type: str = "audio/wav") -> str:
+                         content_type: str = "audio/wav") -> tuple[str, list[dict]]:
     """
     Call Deepgram's prerecorded API either by uploading bytes (short clips) or
-    by handing it a URL to fetch (long sessions stored in R2). Returns the
-    transcript text. Raises HTTPException(502) on any failure.
+    by handing it a URL to fetch (long sessions stored in R2). Returns
+    (flat_transcript, utterances) where each utterance is
+    {"speaker", "transcript", "start", "end"}. Raises HTTPException(502) on
+    any failure.
     """
     import requests as _requests
     key = os.environ.get("DEEPGRAM_API_KEY", "")
@@ -981,7 +985,16 @@ def _deepgram_transcribe(*, data: bytes | None = None,
             )
         r.raise_for_status()
         result = r.json()
-        return result["results"]["channels"][0]["alternatives"][0]["transcript"]
+        flat = result["results"]["channels"][0]["alternatives"][0]["transcript"]
+        raw = result["results"].get("utterances", []) or []
+        utterances = [
+            {"speaker": int(u.get("speaker", 0)),
+             "transcript": u.get("transcript", ""),
+             "start": float(u.get("start", 0.0)),
+             "end": float(u.get("end", 0.0))}
+            for u in raw
+        ]
+        return flat, utterances
     except HTTPException:
         raise
     except Exception:
@@ -996,8 +1009,8 @@ async def transcribe(request: Request, user_id: int = Depends(_current_user_id))
         raise HTTPException(413, "Audio too large.")
     # Forward the uploaded format to Deepgram (it also auto-detects from bytes).
     content_type = request.headers.get("content-type", "audio/wav")
-    text = _deepgram_transcribe(data=audio, content_type=content_type)
-    return {"transcript": text}
+    text, utterances = _deepgram_transcribe(data=audio, content_type=content_type)
+    return {"transcript": text, "utterances": utterances}
 
 
 # ── Large-session transcription via R2 (bypasses Vercel's 4.5MB body limit) ───
@@ -1074,14 +1087,14 @@ def transcribe_start(payload: TranscribeStartPayload,
         ExpiresIn=PRESIGN_TTL,
     )
     try:
-        text = _deepgram_transcribe(source_url=get_url)
+        text, utterances = _deepgram_transcribe(source_url=get_url)
     finally:
         # Never retain audio: delete regardless of transcription outcome.
         try:
             client.delete_object(Bucket=R2_BUCKET, Key=payload.key)
         except Exception:
             pass
-    return {"transcript": text}
+    return {"transcript": text, "utterances": utterances}
 
 
 # ── Sessions ─────────────────────────────────────────────────────────────────
