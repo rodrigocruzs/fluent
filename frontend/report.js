@@ -128,16 +128,18 @@
       }).join('\n');
     }
 
-    // Flat fallback (old sessions, or no diarization).
-    let text = transcriptText || '';
+    // Flat fallback (old sessions, or no diarization). Escape first, then
+    // insert issue marks against the escaped text (mirrors the segments path).
+    const rawText = transcriptText || '';
+    let text = esc(rawText);
     issues.forEach((issue, idx) => {
       const n = idx + 1;
       const original = issue.original || '';
-      if (!original || !text.includes(original)) return;
+      if (!original || !rawText.includes(original)) return;
       const replacement =
         `<mark class="flag" data-issue="${n}" id="flag-${n}">${esc(original)}` +
         `<span class="num">${n}</span></mark>`;
-      text = text.replace(original, () => replacement);
+      text = text.replace(esc(original), () => replacement);
     });
     const paras = text.split(/\n\n+/).filter(p => p.trim());
     if (!paras.length) paras.push(text);
