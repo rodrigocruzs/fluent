@@ -22,7 +22,7 @@ import os
 import time
 from dotenv import load_dotenv
 load_dotenv(".env.local", override=True)  # must run before any module reads os.environ
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
@@ -49,6 +49,8 @@ from backend.database import (
     update_user_billing, get_user_by_stripe_customer,
     get_user_by_google_id, upsert_google_user,
     create_password_reset_token, consume_password_reset_token,
+    get_recent_sessions_for_profile,
+    save_communication_profile, get_communication_profile,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
 
@@ -202,6 +204,49 @@ Rules:
 - Only flag real issues. If something is correct and natural, ignore it.
 - Be specific — don't give generic grammar advice.
 - If the sentence is fine, return an empty array.
+- Return JSON only, no preamble, no markdown."""
+
+
+# Profile generation. Fed recent meetings (transcripts + the issues we already
+# flagged) and asked to summarise the user as a communicator — the kind of calm,
+# executive coaching summary shown on the home page. Strengths and opportunities
+# only; never weaknesses, mistakes, or scores.
+PROFILE_TYPES = [
+    "Clear Explainer",
+    "Thoughtful Collaborator",
+    "Strategic Communicator",
+    "Direct Decision-Maker",
+    "Diplomatic Challenger",
+    "Confident Presenter",
+    "Developing Communicator",
+]
+
+PROFILE_SYSTEM = """You are an executive communication coach for non-native English professionals.
+
+You will receive a JSON array of the user's recent meetings, newest first. Each meeting has a transcript of what the user said and a list of language issues already flagged. Weight the most recent meetings more heavily.
+
+Summarise the user as a communicator. Pick the ONE profile type that best fits, from exactly this list:
+- Clear Explainer — good at making complex ideas easier to understand.
+- Thoughtful Collaborator — builds on others' ideas and creates space for discussion.
+- Strategic Communicator — connects details to priorities, risks and business outcomes.
+- Direct Decision-Maker — communicates recommendations clearly and gets to the point quickly.
+- Diplomatic Challenger — challenges ideas constructively without sounding aggressive.
+- Confident Presenter — speaks with structure, presence and conviction.
+- Developing Communicator — still building consistency across clarity, confidence and structure.
+
+Return JSON only, with this exact structure:
+{
+  "type": "<one of the seven types above, verbatim>",
+  "description": "<the one-line description for that type>",
+  "strengths": ["<specific thing they did well>", "...", "..."],
+  "opportunities": ["<specific thing to focus on next meeting>", "...", "..."]
+}
+
+Rules:
+- Exactly 3 strengths and 3 opportunities, each a short phrase grounded in the actual meetings.
+- Frame this as a professional coaching summary, not a personality test.
+- Strengths describe what they did well. Opportunities are forward-looking ("Lead with the answer before adding context", "Reduce hedging words"). Never say "weaknesses", "mistakes", or "you are bad at"; never give scores.
+- If the meetings are too thin to judge, use "Developing Communicator" and keep the points general but honest.
 - Return JSON only, no preamble, no markdown."""
 
 
@@ -941,6 +986,102 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
     return issues
 
 
+# ── Communication Profile ─────────────────────────────────────────────────────
+
+def _strip_code_fence(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```", 2)[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip().rstrip("`")
+    return raw
+
+
+def _generate_communication_profile(user_id: int) -> dict | None:
+    """
+    Build the communication profile from the user's recent meetings. Returns the
+    profile dict, or None if there's nothing to analyse yet (no sessions) or the
+    model output can't be used. Never raises — profile generation is best-effort
+    and must not break the session-save path.
+    """
+    if not ANTHROPIC_API_KEY:
+        return None
+
+    sessions = get_recent_sessions_for_profile(user_id, limit=8)
+    # Need at least one meeting with something the user actually said.
+    if not any((s.get("transcript") or "").strip() for s in sessions):
+        return None
+
+    meetings = [
+        {
+            "name": s.get("name", ""),
+            "date": s.get("date", ""),
+            "transcript": (s.get("transcript") or "")[:6000],
+            "issues": s.get("issues", []),
+        }
+        for s in sessions
+    ]
+
+    try:
+        client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            system=PROFILE_SYSTEM,
+            messages=[{"role": "user", "content": json.dumps(meetings, ensure_ascii=False)}],
+            timeout=90,
+        )
+        profile = json.loads(_strip_code_fence(response.content[0].text))
+    except Exception as e:
+        print(f"[profile] generation failed: {e}")
+        return None
+
+    if not isinstance(profile, dict):
+        return None
+    # Validate the type against the fixed list; coerce anything unexpected.
+    if profile.get("type") not in PROFILE_TYPES:
+        profile["type"] = "Developing Communicator"
+
+    def _three(items) -> list[str]:
+        if not isinstance(items, list):
+            return []
+        return [str(x).strip() for x in items if str(x).strip()][:3]
+
+    return {
+        "type": profile["type"],
+        "description": str(profile.get("description", "")).strip(),
+        "strengths": _three(profile.get("strengths")),
+        "opportunities": _three(profile.get("opportunities")),
+    }
+
+
+def _regenerate_profile_safely(user_id: int) -> None:
+    """Regenerate and persist the profile, swallowing any error."""
+    try:
+        profile = _generate_communication_profile(user_id)
+        if profile:
+            save_communication_profile(user_id, json.dumps(profile, ensure_ascii=False))
+    except Exception as e:
+        print(f"[profile] regenerate failed for user {user_id}: {e}")
+
+
+@app.get("/profile")
+def get_profile(user_id: int = Depends(_current_user_id)):
+    """
+    The user's communication profile, generated from real meeting analysis.
+    Returns null until the first meeting has been analysed — the client shows an
+    empty state in that case.
+    """
+    raw = get_communication_profile(user_id)
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+
 # ── Transcription ────────────────────────────────────────────────────────────
 
 DEEPGRAM_URL = ("https://api.deepgram.com/v1/listen"
@@ -1111,7 +1252,8 @@ class SessionPayload(BaseModel):
 
 
 @app.post("/sessions")
-def create_session(payload: SessionPayload, user_id: int = Depends(_current_user_id)):
+def create_session(payload: SessionPayload, background: BackgroundTasks,
+                   user_id: int = Depends(_current_user_id)):
     session_id = save_session(
         user_id=user_id,
         slug=payload.slug,
@@ -1127,6 +1269,9 @@ def create_session(payload: SessionPayload, user_id: int = Depends(_current_user
                      properties={"issue_count": len(payload.issues),
                                  "duration_seconds": payload.duration,
                                  "has_transcript": bool(payload.transcript)})
+    # Refresh the communication profile from the user's meetings (incl. this one)
+    # without blocking the save response — it makes a Claude call.
+    background.add_task(_regenerate_profile_safely, user_id)
     return {"id": session_id}
 
 

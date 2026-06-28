@@ -26,6 +26,37 @@
       <p class="session-summary" id="sessions-summary"></p>
     </header>
 
+    <!-- Communication Profile: a calm coaching summary, populated by report.js -->
+    <section class="profile" id="profile-section" style="display:none">
+      <div class="profile-label">Your communication profile</div>
+
+      <!-- Empty state: shown until the first meeting has been analysed -->
+      <div class="profile-empty" id="profile-empty" style="display:none">
+        <p class="profile-empty-title">Your profile is created after your first meeting.</p>
+        <p class="profile-empty-text">Once Fluent has analysed a meeting, you’ll see the kind of communicator you’re becoming, what you did well, and what to focus on next.</p>
+      </div>
+
+      <!-- Filled state: populated once a profile exists -->
+      <div class="profile-body" id="profile-body" style="display:none">
+        <h2 class="profile-type" id="profile-type"></h2>
+        <p class="profile-description" id="profile-description"></p>
+
+        <div class="profile-columns">
+          <div class="profile-column">
+            <div class="profile-column-label">What you did well recently</div>
+            <ul class="profile-list" id="profile-strengths"></ul>
+          </div>
+          <div class="profile-column">
+            <div class="profile-column-label">Opportunities for your next meeting</div>
+            <ul class="profile-list" id="profile-opportunities"></ul>
+          </div>
+        </div>
+
+        <!-- TODO: link to a full Communication Profile page (not built yet) -->
+        <a class="profile-link" href="#" id="profile-view-full">View full profile</a>
+      </div>
+    </section>
+
     <div class="upnext-label">Coming Up</div>
     <section class="sessions upnext" id="upnext-list">
       <div class="session">
@@ -293,6 +324,6 @@
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
 
-<script src="report.js?v=25"></script>
+<script src="report.js?v=26"></script>
 </body>
 </html>

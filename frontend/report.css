@@ -326,6 +326,120 @@ body {
   font-weight: 500;
 }
 
+/* ── Communication Profile ─────────────────────────────────
+   A calm coaching summary above Coming Up. No cards, no scores. */
+.profile {
+  margin-top: -16px;
+  padding-bottom: 8px;
+}
+
+.profile-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gray-3);
+  font-weight: 500;
+}
+
+.profile-empty {
+  margin-top: 12px;
+  max-width: 56ch;
+}
+
+.profile-empty-title {
+  font-size: 18px;
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.profile-empty-text {
+  font-size: 15px;
+  color: var(--gray-1);
+  line-height: 1.55;
+  margin: 8px 0 0;
+}
+
+.profile-type {
+  font-size: 22px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 12px 0 0;
+  line-height: 1.3;
+}
+
+.profile-description {
+  font-size: 16px;
+  color: var(--gray-1);
+  line-height: 1.55;
+  margin: 8px 0 0;
+  max-width: 52ch;
+}
+
+.profile-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin-top: 36px;
+}
+
+.profile-column-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gray-3);
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.profile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 15px;
+  color: var(--ink-2);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.profile-list li:last-child { margin-bottom: 0; }
+
+.profile-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.profile-link {
+  display: inline-block;
+  margin-top: 32px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease;
+}
+
+.profile-link:hover { border-bottom-color: var(--accent); }
+
+@media (max-width: 560px) {
+  .profile-columns { grid-template-columns: 1fr; gap: 32px; }
+}
+
 /* ── Recording page (a "Coming up" meeting being recorded) ── */
 .recording-masthead { margin-bottom: 64px; }
 

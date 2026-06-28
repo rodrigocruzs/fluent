@@ -55,6 +55,8 @@ def init_db():
                 ("google_access_token",    "TEXT"),
                 ("google_refresh_token",   "TEXT"),
                 ("google_token_expiry",    "FLOAT"),
+                # Communication Profile: JSON blob regenerated after each session.
+                ("communication_profile",  "TEXT"),
             ]:
                 cur.execute(f"""
                     ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {definition}
@@ -195,6 +197,66 @@ def get_sessions(user_id: int) -> list[dict]:
                 ORDER BY s.created_at DESC
             """, (user_id,))
             return cur.fetchall()
+
+
+def get_recent_sessions_for_profile(user_id: int, limit: int = 8) -> list[dict]:
+    """
+    Most-recent sessions with their transcript and full issue list, used to
+    generate the communication profile. Ordered newest-first so the prompt can
+    weight recent meetings more heavily.
+    """
+    import json
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, slug, name, date, duration, transcript
+                FROM sessions
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+                LIMIT %s
+            """, (user_id, limit))
+            sessions = cur.fetchall()
+            if not sessions:
+                return []
+            ids = tuple(s["id"] for s in sessions)
+            cur.execute("""
+                SELECT session_id, category, original, improved, explanation
+                FROM issues
+                WHERE session_id IN %s
+                ORDER BY session_id, number
+            """, (ids,))
+            by_session: dict[int, list[dict]] = {}
+            for row in cur.fetchall():
+                by_session.setdefault(row["session_id"], []).append({
+                    "category": row["category"],
+                    "original": row["original"],
+                    "improved": row["improved"],
+                    "explanation": row["explanation"],
+                })
+            for s in sessions:
+                s["issues"] = by_session.get(s["id"], [])
+            return sessions
+
+
+def save_communication_profile(user_id: int, profile_json: str) -> None:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET communication_profile = %s WHERE id = %s",
+                (profile_json, user_id),
+            )
+        conn.commit()
+
+
+def get_communication_profile(user_id: int) -> str | None:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT communication_profile FROM users WHERE id = %s",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
 
 
 def update_user_password(user_id: int, hashed_password: str) -> None:
