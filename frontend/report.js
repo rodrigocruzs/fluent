@@ -211,11 +211,28 @@
       </div>`;
   }
 
-  function renderHero(hasIssues, meetingType) {
-    if (!hasIssues) {
+  // mode: 'coaching' (has improvement patterns), 'wentWell' (no issues but real
+  // backend strengths to celebrate), 'clean' (a substantial meeting with nothing
+  // to flag), or 'thin' (too little speech to coach — no praise).
+  function renderHero(mode, meetingType) {
+    if (mode === 'thin') {
       return `
       <div class="coaching-hero">
-        <h2 class="coaching-hero-title">Nothing major to improve from this short recording.</h2>
+        <h2 class="coaching-hero-title">Not much to coach from this one.</h2>
+        <p class="coaching-hero-sub" id="hero-sub">This recording was too short to pull out a meaningful communication pattern. Your next longer meeting will have more to work with.</p>
+      </div>`;
+    }
+    if (mode === 'clean') {
+      return `
+      <div class="coaching-hero">
+        <h2 class="coaching-hero-title">Nothing major to improve from this meeting.</h2>
+        <p class="coaching-hero-sub" id="hero-sub">Your communication came across clearly — there wasn&rsquo;t a pattern worth flagging this time.</p>
+      </div>`;
+    }
+    if (mode === 'wentWell') {
+      return `
+      <div class="coaching-hero">
+        <h2 class="coaching-hero-title">Nothing major to improve from this meeting.</h2>
         <p class="coaching-hero-sub" id="hero-sub">A couple of things you did well are below.</p>
       </div>`;
     }
@@ -225,6 +242,28 @@
         <p class="coaching-hero-sub" id="hero-sub">Based on this being ${heroContext(meetingType)}.</p>
       </div>`;
   }
+
+  // Count the user's own spoken words — from "You" diarized turns when present,
+  // otherwise the flat transcript (single-speaker sessions). Used to tell a
+  // genuinely thin recording apart from a substantial one that simply had no
+  // issues to flag.
+  function userWordCount(transcriptText, segments) {
+    let text;
+    if (Array.isArray(segments) && segments.length) {
+      const youTurns = segments.filter(s => s.speaker === 'You');
+      // If diarization ran but tagged no "You" turns, fall back to all turns.
+      const turns = youTurns.length ? youTurns : segments;
+      text = turns.map(s => s.text || '').join(' ');
+    } else {
+      text = transcriptText || '';
+    }
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    return words.length;
+  }
+
+  // Below this many of the user's own words, with no issues found, we treat the
+  // session as too thin to coach (calm empty state, no fabricated strengths).
+  const MIN_WORDS_TO_COACH = 25;
 
   // "an Internal Team Meeting" / "a Customer Call" with correct article.
   function heroContext(type) {
@@ -335,13 +374,11 @@
       lesson = LESSON_BY_CATEGORY[top] || LESSON_BY_CATEGORY.DEFAULT;
     }
 
+    // Strengths come only from the backend — we never fabricate praise. A
+    // session with no real strengths data shows no "What you did well" section.
     const strengths = (Array.isArray(data.strengths) && data.strengths.length)
       ? data.strengths.slice(0, 3)
-      : [
-          'You explained the business context clearly.',
-          'You kept a professional tone.',
-          'You moved the conversation forward.',
-        ];
+      : [];
 
     return { patterns, lesson, strengths };
   }
@@ -527,6 +564,24 @@
       const hasIssues = issues.length > 0;
       const coaching  = buildCoaching(issues, data, meetingType);
 
+      // Pick a hero mode:
+      //  - coaching: we found improvement patterns.
+      //  - wentWell: no issues, but the backend gave real strengths to show.
+      //  - clean:    no issues, no strengths data, but the user spoke enough
+      //              that "nothing to flag" is a genuine compliment.
+      //  - thin:     no issues and barely any of the user's own speech — a very
+      //              short recording. Calm empty state, no invented praise.
+      let mode;
+      if (hasIssues) {
+        mode = 'coaching';
+      } else if (coaching.strengths.length) {
+        mode = 'wentWell';
+      } else if (userWordCount(transcript, segments) >= MIN_WORDS_TO_COACH) {
+        mode = 'clean';
+      } else {
+        mode = 'thin';
+      }
+
       const captureNotice = (!systemCaptured && segments.length === 0)
         ? '<p class="capture-notice">Only your microphone was captured this session — other participants weren&rsquo;t recorded.</p>'
         : '';
@@ -536,7 +591,7 @@
       const patternsHTML = hasIssues ? renderPatterns(coaching.patterns, meetingType) : '';
 
       body = `
-  ${renderHero(hasIssues, meetingType)}
+  ${renderHero(mode, meetingType)}
   ${lessonHTML}
   ${patternsHTML}
   ${renderStrengths(coaching.strengths)}
