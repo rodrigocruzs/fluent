@@ -569,8 +569,8 @@ body {
 
 .session {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto 12px;
-  column-gap: 32px;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto 12px;
+  column-gap: 24px;
   align-items: baseline;
   padding: 20px 8px;
   margin: 0 -8px;
@@ -613,6 +613,58 @@ body {
 }
 
 .session-count.has-suggestions { color: var(--accent); }
+
+/* ── Meeting-type chip (session rows) ── */
+.session-type {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+}
+
+.session-type-select {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-1);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  padding: 5px 22px 5px 11px;
+  margin: 0;
+  max-width: 170px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.session-type-select:hover {
+  border-color: var(--gray-4);
+  color: var(--ink-2);
+}
+
+.session-type-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.session-type-caret {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  margin-top: -3px;
+  display: inline-flex;
+  color: var(--gray-3);
+  pointer-events: none;
+}
+
+.session-type-caret svg { display: block; }
+.session-type-select:hover + .session-type-caret { color: var(--gray-2); }
 
 .session-date     { min-width: 84px;  text-align: right; }
 .session-duration { min-width: 64px;  text-align: right; }
@@ -1086,8 +1138,8 @@ mark.flag {
   .rec-wave { display: none; }
   .session {
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    row-gap: 6px;
+    grid-template-rows: auto auto auto;
+    row-gap: 8px;
     column-gap: 16px;
   }
   .session-name     { grid-column: 1 / 2; grid-row: 1; }
@@ -1095,6 +1147,7 @@ mark.flag {
   .session-status   { grid-column: 2 / 3; grid-row: 1; min-width: 0; }
   .session-date     { grid-column: 1 / 2; grid-row: 2; min-width: 0; text-align: left; }
   .session-duration { grid-column: 2 / 3; grid-row: 2; min-width: 0; text-align: right; }
+  .session-type     { grid-column: 1 / 3; grid-row: 3; }
   .session-chevron  { display: none; }
 }
 

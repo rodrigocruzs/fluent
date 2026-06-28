@@ -389,18 +389,37 @@
   // client-only stopgap.
   function meetingTypeKey(slug) { return 'fluent_meeting_type_' + (slug || 'unknown'); }
 
-  function getMeetingType(data) {
-    const slug = data.slug || '';
+  // Resolve a meeting type from a slug alone (used by the History list, which
+  // has the slug but not the full session payload). Saved localStorage choice
+  // wins, then any backend-provided type, else the default.
+  function meetingTypeForSlug(slug, backendType) {
     try {
       const saved = localStorage.getItem(meetingTypeKey(slug));
       if (saved && MEETING_TYPES.includes(saved)) return saved;
     } catch (_) {}
-    if (data.meeting_type && MEETING_TYPES.includes(data.meeting_type)) return data.meeting_type;
+    if (backendType && MEETING_TYPES.includes(backendType)) return backendType;
     return DEFAULT_MEETING_TYPE;
+  }
+
+  function getMeetingType(data) {
+    return meetingTypeForSlug(data.slug || '', data.meeting_type);
   }
 
   function saveMeetingType(slug, type) {
     try { localStorage.setItem(meetingTypeKey(slug), type); } catch (_) {}
+  }
+
+  // A compact meeting-type <select> chip for a session row. Shares the same
+  // persistence key as the session page, so a change here shows up there too.
+  function renderMeetingTypeChip(slug, current) {
+    const opts = MEETING_TYPES.map(t =>
+      `<option value="${esc(t)}"${t === current ? ' selected' : ''}>${esc(t)}</option>`
+    ).join('');
+    return `
+      <span class="session-type">
+        <select class="session-type-select" data-slug="${esc(slug)}" aria-label="Meeting type">${opts}</select>
+        <span class="session-type-caret" aria-hidden="true"><svg width="8" height="5" viewBox="0 0 9 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </span>`;
   }
 
   // ── Sessions view ─────────────────────────────────────────────────────────
@@ -486,39 +505,60 @@
       const dur = session.duration ? durationStr(session.duration) : '';
       const dateLabel = formatSessionDate(session.slug || session.date || '');
       const name = session.name || formatSessionName(session.slug || session.date || '');
+      const slug = session.slug || session.date || '';
+      const meetingType = meetingTypeForSlug(slug, session.meeting_type);
 
-      const btn = document.createElement('button');
-      btn.className = 'session';
-      btn.innerHTML = `
+      // Row is a div (not a button) so it can hold an interactive <select>.
+      const row = document.createElement('div');
+      row.className = 'session';
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.innerHTML = `
         <span class="session-name">${esc(name)}</span>
+        ${renderMeetingTypeChip(slug, meetingType)}
         <span class="session-date">${esc(dateLabel)}</span>
         <span class="session-duration">${esc(dur)}</span>
         <span class="session-count${n > 0 ? ' has-suggestions' : ''}">${esc(countLabel)}</span>
         <span class="session-chevron" aria-hidden="true">&rsaquo;</span>`;
-      btn.addEventListener('click', () => {
+
+      const open = () => {
         console.log('[Fluent] session clicked:', session.slug, 'data:', !!session.data);
         if (session.data) {
           window.loadReport(session.data);
           return;
         }
-        const slug = session.slug || session.date;
-        console.log('[Fluent] slug:', slug);
+        const s = session.slug || session.date;
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openSession) {
-          console.log('[Fluent] sending openSession to Swift');
-          window.webkit.messageHandlers.openSession.postMessage(slug);
+          window.webkit.messageHandlers.openSession.postMessage(s);
         } else {
           const token = _token();
-          console.log('[Fluent] no Swift bridge, token present:', !!token);
           if (!token) return;
-          const url = BACKEND_URL + '/sessions/' + encodeURIComponent(slug);
-          console.log('[Fluent] fetching:', url);
+          const url = BACKEND_URL + '/sessions/' + encodeURIComponent(s);
           fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
-            .then(r => { console.log('[Fluent] response status:', r.status); return r.ok ? r.json() : null; })
-            .then(data => { console.log('[Fluent] session data:', data); if (data) window.loadReport(data); })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => { if (data) window.loadReport(data); })
             .catch(e => { console.error('[Fluent] fetch error:', e); });
         }
+      };
+
+      row.addEventListener('click', open);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
-      listEl.appendChild(btn);
+
+      // The type chip is its own control: changing it must not open the report.
+      const select = row.querySelector('.session-type-select');
+      if (select) {
+        ['click', 'mousedown', 'keydown'].forEach(evt =>
+          select.addEventListener(evt, e => e.stopPropagation()));
+        select.addEventListener('change', e => {
+          e.stopPropagation();
+          saveMeetingType(slug, select.value);
+          // TODO: persist meeting type to backend (PATCH /sessions/:slug).
+        });
+      }
+
+      listEl.appendChild(row);
     });
   };
 
