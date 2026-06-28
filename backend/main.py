@@ -988,10 +988,10 @@ def _deepgram_transcribe(*, data: bytes | None = None,
         flat = result["results"]["channels"][0]["alternatives"][0]["transcript"]
         raw = result["results"].get("utterances", []) or []
         utterances = [
-            {"speaker": int(u.get("speaker", 0)),
+            {"speaker": int(u.get("speaker") or 0),
              "transcript": u.get("transcript", ""),
-             "start": float(u.get("start", 0.0)),
-             "end": float(u.get("end", 0.0))}
+             "start": float(u.get("start") or 0.0),
+             "end": float(u.get("end") or 0.0)}
             for u in raw
         ]
         return flat, utterances
