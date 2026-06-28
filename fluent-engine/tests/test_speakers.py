@@ -41,3 +41,14 @@ def test_other_speakers_numbered_in_first_appearance_order():
     ]
     segs = attribute(mixed, [])
     assert [s["speaker"] for s in segs] == ["Speaker 1", "Speaker 2", "Speaker 1"]
+
+
+def test_no_match_above_threshold_falls_back_to_speakers():
+    # Mic has speech, but its text does not match any mixed utterance,
+    # so no Deepgram index should be labeled "You".
+    mixed = [U(0, "completely different words here", 0.0, 2.0),
+             U(1, "yet more unrelated content", 2.0, 4.0)]
+    mic = [{"transcript": "zzz qqq xyz nothing alike", "start": 0.0, "end": 2.0}]
+    segs = attribute(mixed, mic)
+    assert "You" not in [s["speaker"] for s in segs]
+    assert [s["speaker"] for s in segs] == ["Speaker 1", "Speaker 2"]

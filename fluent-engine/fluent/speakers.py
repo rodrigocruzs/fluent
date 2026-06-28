@@ -49,7 +49,9 @@ def _you_index(mixed_utterances: list[dict], mic_utterances: list[dict]) -> int 
             score[mu["speaker"]] = score.get(mu["speaker"], 0.0) + best * (dur + 1.0)
     if not score:
         return None
-    return max(score, key=score.get)
+    # Break ties toward the lowest speaker index for determinism.
+    best_score = max(score.values())
+    return min(idx for idx, sc in score.items() if sc == best_score)
 
 
 def attribute(mixed_utterances: list[dict], mic_utterances: list[dict]) -> list[dict]:
