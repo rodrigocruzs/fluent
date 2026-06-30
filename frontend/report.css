@@ -327,18 +327,21 @@ body {
 }
 
 /* ── Communication Profile ─────────────────────────────────
-   A calm coaching summary above Coming Up. No cards, no scores. */
+   A calm coaching summary above Coming Up, in a soft panel. */
 .profile {
-  margin-top: -16px;
-  padding-bottom: 8px;
+  margin-top: 4px;
+  padding: 32px 36px;
+  background: linear-gradient(180deg, #fcfbfa 0%, #faf9f7 100%);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
 }
 
 .profile-label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--gray-3);
-  font-weight: 500;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .profile-empty {
@@ -417,8 +420,10 @@ body {
 .profile-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  margin-top: 36px;
+  gap: 40px;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
 }
 
 .profile-column-label {
@@ -459,20 +464,36 @@ body {
 }
 
 .profile-link {
-  display: inline-block;
-  margin-top: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 28px;
+  padding: 7px 14px;
   font-size: 13px;
   color: var(--accent);
   text-decoration: none;
   font-weight: 500;
-  border-bottom: 1px solid transparent;
-  transition: border-color 120ms ease;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-.profile-link:hover { border-bottom-color: var(--accent); }
+.profile-link:hover {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.profile-link .profile-link-arrow {
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+.profile-link:hover .profile-link-arrow { transform: translateX(2px); }
 
 @media (max-width: 560px) {
-  .profile-columns { grid-template-columns: 1fr; gap: 32px; }
+  .profile { padding: 24px 22px; }
+  .profile-columns { grid-template-columns: 1fr; gap: 28px; }
 }
 
 /* ── Recording page (a "Coming up" meeting being recorded) ── */
