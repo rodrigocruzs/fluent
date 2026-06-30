@@ -105,20 +105,55 @@ The build emits a `.sig` next to the installer. Publish the installer + a
 `latest.json` manifest (version, notes, signature, download URL) at the
 configured endpoint (`https://www.tryfluent.co/windows/updates/latest.json`).
 
-### Authenticode signing (later — needs a code-signing cert)
+### Authenticode signing (Azure Trusted Signing)
 
-Builds are **unsigned** today (no cert yet). Unsigned installers trigger a
-Windows SmartScreen "unknown publisher" warning — fine for internal testers
-("More info → Run anyway"), not for public distribution.
+Signing is configured via `bundle.windows.signCommand` in `tauri.conf.json`:
 
-When you have an OV/EV cert (or Azure Trusted Signing), add a signing config
-under `bundle.windows` in `tauri.conf.json`. Examples:
+```
+trusted-signing-cli -e https://neu.codesigning.azure.net/ -a fluent -c fluent-public %1
+```
 
-- **Cert store (thumbprint):**
-  `"certificateThumbprint": "<hex>", "digestAlgorithm": "sha256",
-  "timestampUrl": "http://timestamp.digicert.com"`
-- **PFX file or Azure:** use `"signCommand": "<tool> %1"` invoking SignTool /
-  `trusted-signing-cli`, reading secrets from env vars.
+This signs the built installer with **Azure Trusted Signing** (a.k.a. Artifact
+Signing), Public Trust profile, issued to **NEW HARBOR CAPITAL LTD**. Signed
+builds are SmartScreen-clean (no "unknown publisher" warning). The identity is:
 
-This is the only step between an unsigned test build and a public-ready,
-SmartScreen-clean installer.
+- Endpoint: `https://neu.codesigning.azure.net/` (North Europe)
+- Account: `fluent` · Certificate profile: `fluent-public`
+
+**One-time setup on the build machine (Windows):**
+
+1. Install the signing CLI (needs the Rust toolchain):
+   ```powershell
+   cargo install trusted-signing-cli
+   ```
+2. Authenticate to Azure. `trusted-signing-cli` uses the standard Azure
+   credential chain, so either:
+   - `az login` (Azure CLI) as a user holding the **"Trusted Signing
+     Certificate Profile Signer"** role on the `fluent` account, OR
+   - a service principal via env vars: `AZURE_TENANT_ID`,
+     `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` (recommended for CI).
+
+**Build a signed installer:**
+
+```powershell
+cd windows
+# updater key (as above)
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content $env:USERPROFILE\.tauri\fluent-updater.key -Raw
+$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<updater key password>"
+# Azure auth: either `az login` beforehand, or set AZURE_* env vars here
+npm run build
+```
+
+Tauri runs the `signCommand` on the produced `.exe`. **Verify** the result:
+
+```powershell
+signtool verify /pa /v src-tauri\target\release\bundle\nsis\Fluent_*-setup.exe
+```
+
+Expect "Successfully verified" with NEW HARBOR CAPITAL LTD as the signer. If
+`signtool` isn't on PATH it ships with the Windows SDK (under
+`...\Windows Kits\10\bin\<ver>\x64\signtool.exe`).
+
+> If `signCommand` is present but Azure auth is missing, the build fails at the
+> sign step. To produce an unsigned test build, temporarily remove the
+> `signCommand` line.
