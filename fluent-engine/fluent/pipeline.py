@@ -32,6 +32,7 @@ def run_pipeline(
     duration: float,
     config: Config,
     session_name: str | None = None,
+    meeting_type: str | None = None,
 ) -> Path | None:
     """
     Runs the full pipeline, writes latest.json, wakes Swift frontend.
@@ -101,6 +102,7 @@ def run_pipeline(
         "system_audio_captured": sys_captured,
         "issues": issues,
         "transcribe_error": transcribe_error,
+        "meeting_type": meeting_type,
     }
 
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -122,6 +124,7 @@ def run_pipeline(
         issues=issues,
         segments=segments,
         system_audio_captured=sys_captured,
+        meeting_type=meeting_type,
     )
 
     platform.notify_report_ready()

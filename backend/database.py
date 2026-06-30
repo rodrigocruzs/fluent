@@ -72,6 +72,7 @@ def init_db():
                     transcript  TEXT    NOT NULL DEFAULT '',
                     segments    TEXT    NOT NULL DEFAULT '[]',
                     system_audio_captured BOOLEAN NOT NULL DEFAULT TRUE,
+                    meeting_type TEXT,
                     created_at  FLOAT   NOT NULL,
                     UNIQUE (user_id, slug)
                 )
@@ -79,6 +80,7 @@ def init_db():
             for col, definition in [
                 ("segments",              "TEXT NOT NULL DEFAULT '[]'"),
                 ("system_audio_captured", "BOOLEAN NOT NULL DEFAULT TRUE"),
+                ("meeting_type",          "TEXT"),
             ]:
                 cur.execute(f"""
                     ALTER TABLE sessions ADD COLUMN IF NOT EXISTS {col} {definition}
@@ -149,25 +151,29 @@ def save_session(user_id: int, slug: str, name: str, date: str,
                  duration: float, transcript: str,
                  issues: list[dict],
                  segments: list[dict] | None = None,
-                 system_audio_captured: bool = True) -> int:
+                 system_audio_captured: bool = True,
+                 meeting_type: str | None = None) -> int:
     import json
     segments_json = json.dumps(segments or [])
     with _conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO sessions (user_id, slug, name, date, duration, transcript,
-                                      segments, system_audio_captured, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                      segments, system_audio_captured, meeting_type, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (user_id, slug) DO UPDATE
                     SET name                  = EXCLUDED.name,
                         date                  = EXCLUDED.date,
                         duration              = EXCLUDED.duration,
                         transcript            = EXCLUDED.transcript,
                         segments              = EXCLUDED.segments,
-                        system_audio_captured = EXCLUDED.system_audio_captured
+                        system_audio_captured = EXCLUDED.system_audio_captured,
+                        -- Keep an existing meeting type if this save doesn't
+                        -- carry one, so a session-page edit isn't overwritten.
+                        meeting_type          = COALESCE(EXCLUDED.meeting_type, sessions.meeting_type)
                 RETURNING id
             """, (user_id, slug, name, date, duration, transcript,
-                  segments_json, system_audio_captured, time.time()))
+                  segments_json, system_audio_captured, meeting_type, time.time()))
             session_id = cur.fetchone()[0]
 
             cur.execute("DELETE FROM issues WHERE session_id = %s", (session_id,))
@@ -189,6 +195,7 @@ def get_sessions(user_id: int) -> list[dict]:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
                 SELECT s.id, s.slug, s.name, s.date, s.duration, s.transcript,
+                       s.meeting_type,
                        COUNT(i.id) AS issue_count
                 FROM sessions s
                 LEFT JOIN issues i ON i.session_id = s.id
@@ -394,7 +401,7 @@ def get_session_with_issues(user_id: int, slug: str) -> dict | None:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute("""
                 SELECT id, slug, name, date, duration, transcript,
-                       segments, system_audio_captured
+                       segments, system_audio_captured, meeting_type
                 FROM sessions WHERE user_id = %s AND slug = %s
             """, (user_id, slug))
             session = cur.fetchone()

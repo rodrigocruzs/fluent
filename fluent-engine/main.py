@@ -40,7 +40,8 @@ class Engine:
             except Exception as e:
                 return {"ok": False, "error": str(e)}
 
-    def stop(self, session_name: str | None = None) -> dict:
+    def stop(self, session_name: str | None = None,
+             meeting_type: str | None = None) -> dict:
         with self._lock:
             if not self._recording:
                 return {"ok": False, "error": "not recording"}
@@ -50,7 +51,7 @@ class Engine:
         self._analysing = True
         threading.Thread(
             target=self._run_pipeline,
-            args=(paths, duration, session_name),
+            args=(paths, duration, session_name, meeting_type),
             daemon=True,
         ).start()
         return {"ok": True, "recording": False}
@@ -58,13 +59,16 @@ class Engine:
     def status(self) -> dict:
         return {"recording": self._recording, "analysing": self._analysing}
 
-    def _run_pipeline(self, paths: RecordingPaths, duration: float, session_name: str | None = None):
+    def _run_pipeline(self, paths: RecordingPaths, duration: float,
+                      session_name: str | None = None,
+                      meeting_type: str | None = None):
         if duration < self.MIN_DURATION_SECS:
             print(f"[engine] session too short ({duration:.1f}s < {self.MIN_DURATION_SECS}s), skipping pipeline", file=sys.stderr)
             self._analysing = False
             return
         try:
-            run_pipeline(paths=paths, duration=duration, config=self.config, session_name=session_name)
+            run_pipeline(paths=paths, duration=duration, config=self.config,
+                         session_name=session_name, meeting_type=meeting_type)
         except Exception as e:
             print(f"[engine] pipeline error: {e}", file=sys.stderr)
         finally:
@@ -94,7 +98,8 @@ def make_handler(engine: Engine):
             elif self.path == "/stop":
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length)) if length else {}
-                self._json(engine.stop(session_name=body.get("session_name")))
+                self._json(engine.stop(session_name=body.get("session_name"),
+                                       meeting_type=body.get("meeting_type")))
             elif self.path == "/signin":
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length)) if length else {}

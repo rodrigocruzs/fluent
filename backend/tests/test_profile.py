@@ -89,8 +89,8 @@ def client(monkeypatch, store):
     main.app.dependency_overrides.clear()
 
 
-def _post_session(client):
-    return client.post("/sessions", json={
+def _post_session(client, **overrides):
+    payload = {
         "slug": "2026-06-28-standup",
         "name": "Daily standup",
         "date": "2026-06-28",
@@ -99,10 +99,32 @@ def _post_session(client):
         "issues": [],
         "segments": [],
         "system_audio_captured": True,
-    })
+    }
+    payload.update(overrides)
+    return client.post("/sessions", json=payload)
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
+
+
+def test_session_save_forwards_meeting_type(client, monkeypatch):
+    """A meeting_type on the payload is passed through to save_session."""
+    captured = {}
+    monkeypatch.setattr(main, "save_session",
+                        lambda **kwargs: (captured.update(kwargs), 1)[1])
+
+    assert _post_session(client, meeting_type="Customer Call").status_code == 200
+    assert captured.get("meeting_type") == "Customer Call"
+
+
+def test_session_save_meeting_type_defaults_to_none(client, monkeypatch):
+    """Omitting meeting_type passes None (so an existing value is preserved)."""
+    captured = {}
+    monkeypatch.setattr(main, "save_session",
+                        lambda **kwargs: (captured.update(kwargs), 1)[1])
+
+    assert _post_session(client).status_code == 200
+    assert captured.get("meeting_type") is None
 
 def test_profile_is_null_before_any_meeting(client):
     """Empty state: with no meetings at all, /profile returns null."""

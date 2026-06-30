@@ -1257,6 +1257,7 @@ class SessionPayload(BaseModel):
     issues: list[dict] = []
     segments: list[dict] = []
     system_audio_captured: bool = True
+    meeting_type: str | None = None
 
 
 @app.post("/sessions")
@@ -1272,6 +1273,7 @@ def create_session(payload: SessionPayload, background: BackgroundTasks,
         issues=payload.issues,
         segments=payload.segments,
         system_audio_captured=payload.system_audio_captured,
+        meeting_type=payload.meeting_type,
     )
     _posthog.capture(distinct_id=str(user_id), event="session_saved",
                      properties={"issue_count": len(payload.issues),

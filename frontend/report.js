@@ -961,12 +961,13 @@
     }).join('');
 
     list.querySelectorAll('.upnext-record-btn').forEach((btn, i) => {
-      const title = events[i] && events[i].title ? events[i].title : 'Recording';
+      const title   = events[i] && events[i].title ? events[i].title : 'Recording';
+      const eventId = events[i] && events[i].id ? events[i].id : '';
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        // TODO: carry the chosen meeting type into the recorded session so it
-        // shows on the session page / History (currently stored per event id).
-        openRecordingPage(title);
+        // Carry the chosen meeting type into the recording so it lands on the
+        // saved session (shown on the session page / History afterwards).
+        openRecordingPage(title, upnextTypeForEvent(eventId));
       });
     });
 
@@ -1029,7 +1030,7 @@
   };
 
   // Open the dedicated recording page for a "Coming up" meeting and start recording.
-  window.openRecordingPage = function (title) {
+  window.openRecordingPage = function (title, meetingType) {
     const page          = document.getElementById('page');
     const sessionsPage  = document.getElementById('sessions-page');
     const settingsPage  = document.getElementById('settings-page');
@@ -1044,8 +1045,9 @@
     if (titleEl)        titleEl.textContent = title || 'Recording';
     if (recordingPage)  recordingPage.style.display = '';
 
-    // Remember the meeting title so the created session keeps this name.
+    // Remember the meeting title + type so the created session keeps them.
     _sessionName = title || null;
+    _sessionType = (meetingType && MEETING_TYPES.includes(meetingType)) ? meetingType : null;
 
     // Reset the recording control to a clean "recording" state, then start.
     resetRecLabel();
@@ -1334,6 +1336,9 @@
   // Title of the meeting being recorded (from a "Coming up" row), so the
   // created session keeps that name instead of a generic "Morning session".
   let _sessionName = null;
+  // Meeting type chosen on the "Coming up" row, carried into the saved session
+  // so it shows on the session page / History (null = let the user set it later).
+  let _sessionType = null;
 
   function fmtTime(ms) {
     const total = Math.floor(ms / 1000);
@@ -1397,7 +1402,9 @@
 
   async function stopRecording() {
     setProcessingState();
-    const body = _sessionName ? { session_name: _sessionName } : {};
+    const body = {};
+    if (_sessionName) body.session_name = _sessionName;
+    if (_sessionType) body.meeting_type = _sessionType;
     try {
       await fetch(ENGINE_URL + '/stop', {
         method: 'POST',
@@ -1415,6 +1422,7 @@
     setRecordingState(false);
     resetRecLabel();
     _sessionName = null;
+    _sessionType = null;
     if (_origLoadReport) _origLoadReport(data);
     // Refresh the History list in the background so a just-finished recording
     // appears as soon as the user navigates back. Re-render the (hidden)
@@ -1443,6 +1451,7 @@
         const recordingPage = document.getElementById('recording-page');
         if (recordingPage && recordingPage.style.display !== 'none') {
           _sessionName = null;
+          _sessionType = null;
           window.showSessions && window.showSessions();
         }
       } else if (ctrl && !ctrl.classList.contains('is-processing') && data.recording !== _recording) {
