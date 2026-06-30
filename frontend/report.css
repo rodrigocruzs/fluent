@@ -644,7 +644,7 @@ body {
 .upnext .upnext-time { color: var(--accent); }
 
 .upnext .upnext-row {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   cursor: default;
 }
 .upnext .upnext-row:hover { background-color: transparent; }
@@ -764,7 +764,7 @@ body {
   justify-self: start;
 }
 
-.session-type-select {
+.upnext-type-select {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -784,15 +784,28 @@ body {
   transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
 }
 
-.session-type-select:hover {
+.upnext-type-select:hover {
   border-color: var(--gray-4);
   color: var(--ink-2);
 }
 
-.session-type-select:focus-visible {
+.upnext-type-select:focus-visible {
   outline: none;
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Read-only meeting type on History rows — a calm static label, no control. */
+.session-type-static {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-2);
+  letter-spacing: -0.005em;
+  line-height: 1;
+  white-space: nowrap;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .session-type-caret {
@@ -806,7 +819,7 @@ body {
 }
 
 .session-type-caret svg { display: block; }
-.session-type-select:hover + .session-type-caret { color: var(--gray-2); }
+.upnext-type-select:hover + .session-type-caret { color: var(--gray-2); }
 
 .session-date     { min-width: 84px;  text-align: right; }
 .session-duration { min-width: 64px;  text-align: right; }

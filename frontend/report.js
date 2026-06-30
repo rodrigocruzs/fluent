@@ -409,15 +409,40 @@
     try { localStorage.setItem(meetingTypeKey(slug), type); } catch (_) {}
   }
 
-  // A compact meeting-type <select> chip for a session row. Shares the same
-  // persistence key as the session page, so a change here shows up there too.
-  function renderMeetingTypeChip(slug, current) {
+  // A read-only meeting-type chip for History rows. Once a meeting has happened
+  // its type is fixed from the home page — the user changes it on the session
+  // page instead. Looks like the editable chip but is static (no caret, no
+  // pointer, not focusable).
+  function renderMeetingTypeStatic(current) {
+    return `<span class="session-type"><span class="session-type-static">${esc(current)}</span></span>`;
+  }
+
+  // ── Coming Up meeting type ────────────────────────────────────────────────
+  // Calendar events have no session slug yet, so their chosen type is stored
+  // per calendar event id. (Threading this through to the recorded session's
+  // slug is a follow-up — see TODO in renderUpNext.)
+  function upnextTypeKey(eventId) { return 'fluent_upnext_type_' + (eventId || 'unknown'); }
+
+  function upnextTypeForEvent(eventId) {
+    try {
+      const saved = localStorage.getItem(upnextTypeKey(eventId));
+      if (saved && MEETING_TYPES.includes(saved)) return saved;
+    } catch (_) {}
+    return DEFAULT_MEETING_TYPE;
+  }
+
+  function saveUpnextType(eventId, type) {
+    try { localStorage.setItem(upnextTypeKey(eventId), type); } catch (_) {}
+  }
+
+  // Editable type chip for a Coming Up row, keyed by calendar event id.
+  function renderUpnextTypeChip(eventId, current) {
     const opts = MEETING_TYPES.map(t =>
       `<option value="${esc(t)}"${t === current ? ' selected' : ''}>${esc(t)}</option>`
     ).join('');
     return `
       <span class="session-type">
-        <select class="session-type-select" data-slug="${esc(slug)}" aria-label="Meeting type">${opts}</select>
+        <select class="upnext-type-select" data-event-id="${esc(eventId)}" aria-label="Meeting type">${opts}</select>
         <span class="session-type-caret" aria-hidden="true"><svg width="8" height="5" viewBox="0 0 9 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l3.5 3.5L8 1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       </span>`;
   }
@@ -609,9 +634,11 @@
       row.className = 'session';
       row.setAttribute('role', 'button');
       row.setAttribute('tabindex', '0');
+      // History rows are past meetings: the type is shown read-only here and
+      // can only be changed on the session page.
       row.innerHTML = `
         <span class="session-name">${esc(name)}</span>
-        ${renderMeetingTypeChip(slug, meetingType)}
+        ${renderMeetingTypeStatic(meetingType)}
         <span class="session-date">${esc(dateLabel)}</span>
         <span class="session-duration">${esc(dur)}</span>
         <span class="session-count${n > 0 ? ' has-suggestions' : ''}">${esc(countLabel)}</span>
@@ -641,18 +668,6 @@
       row.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
-
-      // The type chip is its own control: changing it must not open the report.
-      const select = row.querySelector('.session-type-select');
-      if (select) {
-        ['click', 'mousedown', 'keydown'].forEach(evt =>
-          select.addEventListener(evt, e => e.stopPropagation()));
-        select.addEventListener('change', e => {
-          e.stopPropagation();
-          saveMeetingType(slug, select.value);
-          // TODO: persist meeting type to backend (PATCH /sessions/:slug).
-        });
-      }
 
       listEl.appendChild(row);
     });
@@ -933,8 +948,11 @@
       const time     = _formatEventTime(ev.start);
       const day      = _formatEventDay(ev.start);
       const dayLabel = day ? `<span class="upnext-day">${esc(day)}</span> ` : '';
+      const eventId  = ev.id || '';
+      const type     = upnextTypeForEvent(eventId);
       return `<div class="session upnext-row">
         <span class="session-name">${esc(ev.title)}</span>
+        ${renderUpnextTypeChip(eventId, type)}
         <span class="session-date upnext-time">${dayLabel}${esc(time)}</span>
         <button class="upnext-record-btn" type="button">
           <span class="dot"></span>Start recording
@@ -946,7 +964,20 @@
       const title = events[i] && events[i].title ? events[i].title : 'Recording';
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        // TODO: carry the chosen meeting type into the recorded session so it
+        // shows on the session page / History (currently stored per event id).
         openRecordingPage(title);
+      });
+    });
+
+    // Editable meeting-type chip per Coming Up event (these meetings haven't
+    // happened yet, so the user can still set how they'll be coached).
+    list.querySelectorAll('.upnext-type-select').forEach(select => {
+      ['click', 'mousedown', 'keydown'].forEach(evt =>
+        select.addEventListener(evt, e => e.stopPropagation()));
+      select.addEventListener('change', e => {
+        e.stopPropagation();
+        saveUpnextType(select.dataset.eventId, select.value);
       });
     });
   }
