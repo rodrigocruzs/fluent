@@ -586,23 +586,12 @@
   // loadSessions (initial inject from Swift) and showSessions (live refetch).
   function renderSessionsList(sessions) {
     const listEl    = document.getElementById('sessions-list');
-    const summaryEl = document.getElementById('sessions-summary');
-    if (!listEl || !summaryEl) return;
+    if (!listEl) return;
 
     if (!sessions || sessions.length === 0) {
       listEl.innerHTML = '';
-      summaryEl.textContent = '';
       return;
     }
-
-    const totalSec = sessions.reduce((s, r) => s + (r.duration || 0), 0);
-    const totalMin = Math.round(totalSec / 60);
-    const hrs = Math.floor(totalMin / 60);
-    const mins = totalMin % 60;
-    const timeLabel = hrs ? `${hrs}h ${mins}m` : `${totalMin} min`;
-    const count = sessions.length;
-    summaryEl.textContent =
-      `${count} session${count !== 1 ? 's' : ''} — about ${timeLabel} of recorded speech.`;
 
     listEl.innerHTML = '';
 
