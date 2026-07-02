@@ -53,6 +53,10 @@ from backend.database import (
     save_communication_profile, get_communication_profile,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
+from backend.meeting_types import (
+    MEETING_TYPES, DEFAULT_MEETING_TYPE,
+    is_valid_meeting_type, normalize_meeting_type,
+)
 
 STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -1288,6 +1292,12 @@ def create_session(payload: SessionPayload, background: BackgroundTasks,
 @app.get("/sessions")
 def list_sessions(user_id: int = Depends(_current_user_id)):
     return get_sessions(user_id)
+
+
+@app.get("/meeting-types")
+def list_meeting_types(user_id: int = Depends(_current_user_id)):
+    """Canonical meeting-type list + default, so clients render from the server."""
+    return {"types": list(MEETING_TYPES), "default": DEFAULT_MEETING_TYPE}
 
 
 @app.get("/sessions/{slug}")
