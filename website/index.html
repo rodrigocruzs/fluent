@@ -11,490 +11,329 @@
     });
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fluent — A quiet English coach for your real calls</title>
+<title>Fluent — A communication coach for non-native professionals</title>
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/fluent-icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/fluent-icon-16.png">
 <link rel="apple-touch-icon" sizes="120x120" href="/assets/fluent-icon-120.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --ink:        #1a1a1a;
-    --ink-2:      #2a2a2a;
-    --gray-1:     #555555;
-    --gray-2:     #8a8a8a;
-    --gray-3:     #b5b5b5;
-    --gray-4:     #d8d8d6;
-    --rule:       #e8e8e6;
-    --bg:         #ffffff;
-    --bg-soft:    #fafaf9;
-    --accent:     #C96442;
-    --accent-hover:#b85737;
-  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  ::selection{background:rgba(201,110,71,0.18);}
+  ::-moz-selection{background:rgba(201,110,71,0.18);}
+  @keyframes fl-pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  @keyframes fl-ring{0%{transform:scale(1);opacity:0.5;}100%{transform:scale(2.4);opacity:0;}}
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  body{background:#FBF9F6;color:#211E1A;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;overflow-x:hidden;}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "ss01", "cv11", "kern";
-    text-rendering: optimizeLegibility;
-    line-height: 1.55;
-  }
+  a.fl-link{color:#8B8378;text-decoration:none;transition:color 140ms ease;}
+  a.fl-link:hover{color:#211E1A;}
+  a.fl-btn-primary{background:#C96E47;transition:background-color 140ms ease;}
+  a.fl-btn-primary:hover{background:#B85F3A;}
+  a.fl-btn-secondary{transition:border-color 140ms ease,background-color 140ms ease;}
+  a.fl-btn-secondary:hover{border-color:#C0B6A6;background:#F3ECE2;}
 
-  a { color: inherit; }
+  .fl-wave-bar{flex:1;border-radius:999px;background:#E3C7B6;}
 
-  .container {
-    max-width: 880px;
-    margin: 0 auto;
-    padding: 0 48px;
-  }
+  .fl-hero-h1{font-family:'Spectral',Georgia,serif;font-weight:500;font-size:68px;line-height:1.08;letter-spacing:-0.022em;color:#211E1A;margin:0 auto;max-width:16ch;}
+  .fl-showcase{display:grid;grid-template-columns:0.92fr 1.08fr;gap:64px;align-items:center;}
+  .fl-uses-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 64px;}
+  .fl-cta-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;}
 
-  /* ── Top bar ────────────────────────────────────────── */
-  .topbar {
-    padding: 28px 0 0;
-  }
-
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-  }
-
-  .logo {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
-    background: var(--accent);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .wordmark {
-    font-size: 16px;
-    color: var(--ink);
-    letter-spacing: -0.01em;
-    font-weight: 600;
-  }
-
-  /* ── Section rhythm ─────────────────────────────────── */
-  section { padding: 96px 0; border-top: 1px solid var(--rule); }
-  section:first-of-type { border-top: none; padding-top: 64px; }
-
-  .section-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--gray-3);
-    font-weight: 500;
-    margin-bottom: 28px;
-  }
-
-  /* ── Hero ───────────────────────────────────────────── */
-  .hero h1 {
-    font-size: 56px;
-    line-height: 1.04;
-    letter-spacing: -0.025em;
-    font-weight: 600;
-    color: var(--ink);
-    margin: 32px 0 24px;
-    max-width: 16ch;
-    text-wrap: balance;
-  }
-
-  .hero .lede {
-    font-size: 20px;
-    line-height: 1.5;
-    color: var(--gray-1);
-    margin: 0 0 40px;
-    max-width: 46ch;
-    letter-spacing: -0.005em;
-  }
-
-  /* ── Buttons ────────────────────────────────────────── */
-  .download {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 22px 14px 18px;
-    background: var(--accent);
-    color: #fff;
-    border-radius: 9px;
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background-color 140ms ease, transform 140ms ease;
-  }
-  .download:hover  { background: var(--accent-hover); }
-  .download:active { transform: translateY(1px); }
-
-  .download svg { display: block; }
-
-  .cta-row {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-
-  .cta-note {
-    font-size: 13px;
-    color: var(--gray-2);
-  }
-
-  /* ── Problem / lede prose ───────────────────────────── */
-  .prose {
-    font-size: 19px;
-    line-height: 1.55;
-    color: var(--ink-2);
-    max-width: 56ch;
-    letter-spacing: -0.005em;
-  }
-  .prose p + p { margin-top: 1.1em; }
-  .prose .quiet { color: var(--gray-1); }
-
-  /* ── How it works ───────────────────────────────────── */
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 56px;
-  }
-  .step .num {
-    font-size: 12px;
-    color: var(--gray-3);
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    margin-bottom: 12px;
-  }
-  .step h3 {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    margin: 0 0 8px;
-    color: var(--ink);
-  }
-  .step p {
-    margin: 0;
-    font-size: 15px;
-    color: var(--gray-1);
-    line-height: 1.55;
-    max-width: 30ch;
-  }
-
-  /* ── Sample / preview ───────────────────────────────── */
-  .sample {
-    border-top: 1px solid var(--rule);
-    border-bottom: 1px solid var(--rule);
-    padding: 32px 0;
-    margin-top: 8px;
-  }
-
-  .sample-row {
-    display: grid;
-    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-    gap: 48px;
-    align-items: start;
-    padding: 24px 0;
-  }
-  .sample-row + .sample-row { border-top: 1px solid var(--rule); }
-
-  .sample-note .note-head {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-  .sample-note .num {
-    font-size: 11px;
-    color: var(--gray-3);
-    font-weight: 500;
-    min-width: 12px;
-  }
-  .sample-note .cat {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--gray-2);
-    font-weight: 500;
-  }
-  .sample-note .try {
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--accent);
-    font-weight: 500;
-    margin: 0 0 6px;
-    padding-left: 22px;
-    letter-spacing: -0.005em;
-  }
-  .sample-note .explain {
-    font-size: 13px;
-    color: var(--gray-2);
-    line-height: 1.55;
-    margin: 0;
-    padding-left: 22px;
-  }
-
-  .sample-transcript {
-    font-size: 16px;
-    line-height: 1.7;
-    color: var(--ink-2);
-  }
-  .sample-transcript mark {
-    background: transparent;
-    color: inherit;
-    border-bottom: 1px solid var(--gray-4);
-    padding-bottom: 1px;
-  }
-  .sample-transcript mark .num {
-    font-size: 10px;
-    color: var(--gray-2);
-    vertical-align: super;
-    line-height: 0;
-    margin-left: 3px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-  }
-
-  /* ── Pricing ────────────────────────────────────────── */
-  .pricing {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 48px;
-    align-items: end;
-  }
-  .price-amount {
-    font-size: 64px;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    font-weight: 600;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .price-amount .unit {
-    font-size: 18px;
-    color: var(--gray-2);
-    font-weight: 500;
-    letter-spacing: -0.005em;
-    margin-left: 6px;
-  }
-  .price-meta {
-    margin-top: 16px;
-    font-size: 16px;
-    color: var(--gray-1);
-    max-width: 36ch;
-    line-height: 1.5;
-  }
-  .price-meta .accent {
-    color: var(--accent);
-    font-weight: 500;
-  }
-
-  /* ── Footer ─────────────────────────────────────────── */
-  footer {
-    padding: 40px 0 56px;
-    border-top: 1px solid var(--rule);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--gray-2);
-    font-size: 13px;
-  }
-  footer a {
-    color: var(--gray-2);
-    text-decoration: none;
-    transition: color 120ms ease;
-  }
-  footer a:hover { color: var(--ink-2); }
-  footer nav { display: flex; gap: 24px; }
-
-  /* ── Narrow ─────────────────────────────────────────── */
-  @media (max-width: 720px) {
-    .container { padding: 0 24px; }
-    section { padding: 64px 0; }
-    .hero h1 { font-size: 40px; }
-    .hero .lede { font-size: 18px; }
-    .steps { grid-template-columns: 1fr; gap: 32px; }
-    .sample-row { grid-template-columns: 1fr; gap: 16px; }
-    .pricing { grid-template-columns: 1fr; align-items: start; }
-    .price-amount { font-size: 48px; }
-    footer { flex-direction: column; gap: 16px; align-items: flex-start; }
+  @media (max-width: 760px) {
+    section{padding-left:24px !important;padding-right:24px !important;}
+    .fl-hero-h1{font-size:40px !important;}
+    .fl-showcase{grid-template-columns:1fr !important;gap:40px !important;}
+    .fl-uses-grid{grid-template-columns:1fr !important;}
+    .fl-empathy-h2{font-size:28px !important;}
   }
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="container">
-    <a class="brand" href="#">
-      <span class="logo" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
-          <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
-          <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
-        </svg>
-      </span>
-      <span class="wordmark">Fluent</span>
-    </a>
+  <!-- Nav -->
+  <div style="width:100%;border-bottom:1px solid #EDE8E0;background:rgba(251,249,246,0.85);position:sticky;top:0;z-index:40;backdrop-filter:saturate(180%) blur(8px);">
+    <div style="max-width:1080px;margin:0 auto;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="width:9px;height:9px;border-radius:50%;background:#C96E47;display:inline-block;"></span>
+        <span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#2E2A24;">Fluent</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:30px;">
+        <a href="#how" class="fl-link" style="font-size:14.5px;font-weight:500;">How it works</a>
+        <a href="#uses" class="fl-link" style="font-size:14.5px;font-weight:500;">Use cases</a>
+        <a href="#pricing" class="fl-link" style="font-size:14.5px;font-weight:500;">Pricing</a>
+        <a href="Fluent.dmg" download="Fluent.dmg" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:8px;color:#FBF9F6;font-size:14px;font-weight:600;padding:9px 17px;border-radius:999px;text-decoration:none;">Download</a>
+      </div>
+    </div>
   </div>
-</header>
 
-<main>
+  <!-- Hero -->
+  <section style="max-width:1080px;margin:0 auto;padding:130px 40px 0;text-align:center;">
+    <div style="font-size:14px;font-weight:600;letter-spacing:0.04em;color:#C96E47;margin-bottom:28px;">A communication coach for non-native professionals</div>
+    <h1 class="fl-hero-h1">Your English is fine. Let's make it <span style="font-style:italic;color:#C96E47;">unmistakable.</span></h1>
+    <p style="font-size:21px;line-height:1.6;color:#5A554C;margin:34px auto 0;max-width:54ch;">Fluent quietly sits in on your real meetings, studies how you actually speak, and coaches you toward the clear, confident communicator your ideas deserve.</p>
 
-  <!-- ── Hero ─────────────────────────────────────────── -->
-  <section class="hero">
-    <div class="container">
-      <h1>A quiet English coach for your real conversations.</h1>
-      <p class="lede">
-        Fluent listens to the meetings you&rsquo;re already in and, after each one,
-        sends you a short editor&rsquo;s report &mdash; what you said, what to try,
-        and why.
-      </p>
-      <div class="cta-row">
-        <a class="download" href="Fluent.dmg" download="Fluent.dmg">
-          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12.99 9.51c-.01-2.06 1.69-3.05 1.77-3.1-.97-1.42-2.47-1.61-3-1.63-1.27-.13-2.49.75-3.13.75-.66 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.46 2.53-.37 6.27 1.05 8.32.69 1 1.5 2.13 2.57 2.09 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.6.67 2.7.65 1.11-.02 1.82-1.02 2.5-2.03.79-1.16 1.12-2.3 1.13-2.35-.02-.01-2.17-.83-2.19-3.29zM10.91 3.46c.58-.7.97-1.67.86-2.64-.83.03-1.84.55-2.44 1.24-.54.62-1.01 1.6-.88 2.55.93.07 1.88-.47 2.46-1.15z"/>
-          </svg>
-          Download for macOS
-        </a>
-        <span class="cta-note">Free for 7 days &middot; macOS 13 or later</span>
-      </div>
+    <div class="fl-cta-row" style="margin-top:46px;">
+      <a href="Fluent.dmg" download="Fluent.dmg" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:10px;color:#FBF9F6;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(201,110,71,0.6);">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBF9F6"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+        Download for Mac
+      </a>
+      <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" class="fl-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#33302A;border:1px solid #DDD5C8;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="#5A554C"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+        Download for Windows
+      </a>
     </div>
-  </section>
+    <div style="font-size:15px;color:#7C7163;margin-top:22px;">Free for 7 days. No bot ever joins your meeting. Cancel whenever you like.</div>
 
-  <!-- ── The problem ──────────────────────────────────── -->
-  <section>
-    <div class="container">
-      <div class="section-label">The problem</div>
-      <div class="prose">
-        <p>
-          If English isn&rsquo;t your first language, you already speak it every day &mdash;
-          in standups, in customer calls, with the doctor. You make small mistakes,
-          and almost no one corrects them.
-        </p>
-        <p class="quiet">
-          Self-study apps don&rsquo;t help here. They teach you English in the abstract,
-          not the English you actually use.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── How it works ─────────────────────────────────── -->
-  <section>
-    <div class="container">
-      <div class="section-label">How it works</div>
-      <div class="steps">
-        <div class="step">
-          <div class="num">01</div>
-          <h3>Install on your Mac</h3>
-          <p>One small menubar app. No accounts, no setup.</p>
-        </div>
-        <div class="step">
-          <div class="num">02</div>
-          <h3>Let it listen during calls</h3>
-          <p>Fluent runs quietly in the background while you talk &mdash; on Zoom, Meet, Teams, or in person.</p>
-        </div>
-        <div class="step">
-          <div class="num">03</div>
-          <h3>Read the report after</h3>
-          <p>A few minutes later, a calm document with the moments worth revisiting &mdash; nothing more.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── What you get ─────────────────────────────────── -->
-  <section>
-    <div class="container">
-      <div class="section-label">What a report looks like</div>
-      <div class="prose">
-        <p class="quiet" style="margin-bottom: 32px;">
-          Each suggestion is pinned to where it appeared in your speech. No grades,
-          no streaks, no progress bars &mdash; just the moments that are worth a second look.
-        </p>
-      </div>
-
-      <div class="sample">
-
-        <div class="sample-row">
-          <div class="sample-note">
-            <div class="note-head">
-              <span class="num">1</span>
-              <span class="cat">Grammar</span>
-            </div>
-            <p class="try">his eyes are irritated</p>
-            <p class="explain">English places the adjective before the noun and expresses possession with &ldquo;his,&rdquo; not a verb.</p>
+    <!-- Quiet listener visual -->
+    <div style="margin-top:90px;position:relative;border:1px solid #EDE8E0;border-radius:20px;background:#FFFFFF;padding:54px 40px;box-shadow:0 30px 70px -40px rgba(60,46,32,0.28);text-align:left;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(251,249,246,0) 0%,rgba(246,239,230,0.5) 100%);pointer-events:none;"></div>
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:18px;">
+          <div style="position:relative;width:46px;height:46px;flex:none;">
+            <span style="position:absolute;inset:0;border-radius:50%;background:#C96E47;opacity:0.25;animation:fl-ring 2.6s ease-out infinite;"></span>
+            <span style="position:absolute;inset:0;border-radius:50%;background:#C96E47;display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:#FBF9F6;"></span></span>
           </div>
-          <div class="sample-transcript">
-            &hellip; <mark>he has eyes irritated<span class="num">1</span></mark>
-            and he kept rubbing them, and I wasn&rsquo;t sure if it was allergies &hellip;
+          <div>
+            <div style="font-size:17px;font-weight:600;color:#29251F;">Fluent is listening — never in the call</div>
+            <div style="display:flex;align-items:center;gap:11px;font-size:14px;color:#7C7163;margin-top:4px;"><span>Weekly PM Sync</span><span style="width:3px;height:3px;border-radius:50%;background:#C9BFB0;"></span><span>Zoom</span><span style="width:3px;height:3px;border-radius:50%;background:#C9BFB0;"></span><span>34 min</span></div>
           </div>
         </div>
-
-        <div class="sample-row">
-          <div class="sample-note">
-            <div class="note-head">
-              <span class="num">2</span>
-              <span class="cat">Phrasing</span>
-            </div>
-            <p class="try">it could be sinusitis</p>
-            <p class="explain">Medical conditions like &ldquo;sinusitis&rdquo; take no article in English, where Portuguese would use one.</p>
-          </div>
-          <div class="sample-transcript">
-            &hellip; she said <mark>that could be a sinusitis<span class="num">2</span></mark>.
-            I think that might be the reason &hellip;
-          </div>
-        </div>
-
+        <div style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#6E8C6A;border:1px solid #D6E2D2;background:#EEF4EC;padding:7px 13px;border-radius:999px;">No bot joined the meeting</div>
       </div>
-
-    </div>
-  </section>
-
-  <!-- ── Pricing ──────────────────────────────────────── -->
-  <section>
-    <div class="container">
-      <div class="section-label">Pricing</div>
-      <div class="pricing">
+      <div style="position:relative;display:flex;align-items:center;gap:4px;height:40px;margin-top:30px;" id="fl-wave"></div>
+      <div style="position:relative;height:1px;background:#EDE8E0;margin:30px 0;"></div>
+      <div style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
         <div>
-          <div class="price-amount">$10<span class="unit">/ month</span></div>
-          <p class="price-meta">
-            <span class="accent">Free for the first 7 days.</span>
-            Cancel anytime from the app &mdash; no questions, no email.
-          </p>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Heard</div>
+          <div style="font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.45;color:#33302A;">&ldquo;I think maybe we could sort of try the second option?&rdquo;</div>
         </div>
-        <a class="download" href="Fluent.dmg" download="Fluent.dmg" >
-          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12.99 9.51c-.01-2.06 1.69-3.05 1.77-3.1-.97-1.42-2.47-1.61-3-1.63-1.27-.13-2.49.75-3.13.75-.66 0-1.65-.73-2.72-.71-1.4.02-2.69.81-3.41 2.06-1.46 2.53-.37 6.27 1.05 8.32.69 1 1.5 2.13 2.57 2.09 1.04-.04 1.43-.67 2.69-.67 1.25 0 1.6.67 2.7.65 1.11-.02 1.82-1.02 2.5-2.03.79-1.16 1.12-2.3 1.13-2.35-.02-.01-2.17-.83-2.19-3.29zM10.91 3.46c.58-.7.97-1.67.86-2.64-.83.03-1.84.55-2.44 1.24-.54.62-1.01 1.6-.88 2.55.93.07 1.88-.47 2.46-1.15z"/>
-          </svg>
-          Download for MacOS
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Noticed</div>
+          <div style="font-size:15.5px;line-height:1.55;color:#5A554C;">Three hedges softened a strong recommendation into a question.</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Coached</div>
+          <div style="font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.45;color:#211E1A;">&ldquo;Let's go with the second option — here's why.&rdquo;</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Empathy strip -->
+  <section style="max-width:1080px;margin:0 auto;padding:140px 40px 0;text-align:center;">
+    <h2 class="fl-empathy-h2" style="font-family:'Spectral',Georgia,serif;font-weight:500;font-style:italic;font-size:40px;line-height:1.32;letter-spacing:-0.01em;color:#211E1A;margin:0 auto;max-width:24ch;">You think faster than you speak. In your second language, that gap shows.</h2>
+    <p style="font-size:19px;line-height:1.65;color:#5A554C;margin:30px auto 0;max-width:52ch;">The smartest thing you said in that meeting got lost in a hedge, a filler word, a sentence that trailed off. Fluent closes the gap between what you mean and how it lands.</p>
+    <div style="margin-top:64px;position:relative;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -44px rgba(60,46,32,0.32);border:1px dashed #DDD5C8;background:#F3ECE2;display:flex;align-items:center;justify-content:center;height:440px;">
+      <span style="font-size:14px;color:#8B8378;">Photo coming soon — a professional speaking in a meeting</span>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
+    <div style="text-align:center;margin-bottom:80px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">How it works</div>
+      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0 auto;max-width:18ch;">A coach in the room. Without anyone in the room.</h2>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">01</div>
+        <div style="max-width:60ch;">
+          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It listens quietly — it never joins the call</h3>
+          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">No awkward bot sliding into the participant list. Fluent runs on your machine, captures your audio when you allow it, and stays completely invisible to everyone else on the call.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">02</div>
+        <div style="max-width:60ch;">
+          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It studies how you actually communicate</h3>
+          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">Hedging, filler, clarity, directness, the moments you take charge and the moments you shrink — analysed in context, across real conversations, not staged exercises.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">03</div>
+        <div style="max-width:60ch;">
+          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It gives you specific, kind feedback</h3>
+          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">Not a grade. The one habit worth changing this week, the exact phrases that worked, and a clearer way to say the thing you struggled to say.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">04</div>
+        <div style="max-width:60ch;">
+          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It builds your communication profile</h3>
+          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">A living picture of how you come across — strengthening week over week, so you can watch yourself become the communicator you've always known you are.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product showcase -->
+  <section style="max-width:1080px;margin:0 auto;padding:150px 40px 0;">
+    <div class="fl-showcase">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Your communication profile</div>
+        <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:42px;line-height:1.16;letter-spacing:-0.018em;color:#211E1A;margin:0;max-width:14ch;">Watch yourself get clearer, week by week.</h2>
+        <p style="font-size:18px;line-height:1.65;color:#5A554C;margin:26px 0 0;max-width:42ch;">Not a score to feel anxious about — a living picture of your strengths and the one habit worth working on next.</p>
+      </div>
+      <div style="position:relative;border:1px solid #EDE8E0;border-radius:18px;background:#FFFFFF;box-shadow:0 34px 80px -46px rgba(60,46,32,0.4);overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:7px;padding:14px 18px;border-bottom:1px solid #F0EBE3;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#EAD9CC;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#EFE3D6;"></span>
+          <span style="width:10px;height:10px;border-radius:50%;background:#F2EADF;"></span>
+        </div>
+        <div style="padding:30px 30px 34px;">
+          <div style="font-family:'Spectral',Georgia,serif;font-size:21px;color:#211E1A;margin-bottom:6px;">Communication trends</div>
+          <div style="font-size:13px;color:#8A7F70;margin-bottom:18px;">14 meetings analysed</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
+            <span style="font-size:16px;color:#29251F;">Confidence</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
+            <span style="font-size:16px;color:#29251F;">Clarity</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
+            <span style="font-size:16px;color:#29251F;">Directness</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;color:#9A917F;"><span style="font-size:12px;">→</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Steady</span></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;border-bottom:1px solid #F0EBE3;">
+            <span style="font-size:16px;color:#29251F;">Natural English</span>
+            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Works with any tool -->
+  <section style="max-width:1080px;margin:0 auto;padding:130px 40px 0;text-align:center;">
+    <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:22px;">Works everywhere you meet</div>
+    <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:36px;line-height:1.2;letter-spacing:-0.015em;color:#211E1A;margin:0 auto;max-width:22ch;">If you can take the call, Fluent can coach it.</h2>
+    <div class="fl-cta-row" style="margin-top:46px;">
+      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Zoom</div>
+      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Google Meet</div>
+      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Microsoft Teams</div>
+      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Webex</div>
+      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Slack huddles</div>
+    </div>
+    <div style="font-size:15px;color:#7C7163;margin-top:24px;">Zoom, Meet, Teams, Webex, or a phone call on speaker — to Fluent, it's all just your voice.</div>
+  </section>
+
+  <!-- Use cases -->
+  <section id="uses" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
+    <div style="margin-bottom:70px;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Where it changes things</div>
+      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0;max-width:20ch;">The conversations your career turns on.</h2>
+    </div>
+
+    <div class="fl-uses-grid">
+      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Interviews</div>
+        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Understand why you didn't get the job</h3>
+        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Replay how you came across, find the answers that wandered, and walk into the next one knowing exactly what to tighten.</p>
+      </div>
+      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Team &amp; stakeholders</div>
+        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Hold the room in internal meetings</h3>
+        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Get to the point with stakeholders, defend an idea without over-explaining, and sound like the expert you already are.</p>
+      </div>
+      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">1:1s</div>
+        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Make your 1:1s clear and direct</h3>
+        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Say what you need, give feedback that lands, and stop softening the message until it disappears.</p>
+      </div>
+      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
+        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Growth</div>
+        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Earn the promotion you deserve</h3>
+        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Communication is the skill they promote on. Improve it steadily and let the people who decide finally see it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
+    <div style="max-width:560px;margin:0 auto;text-align:center;">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Pricing</div>
+      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0;">One plan. Everything in it.</h2>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:10px;margin-top:44px;">
+        <span style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:72px;line-height:1;letter-spacing:-0.02em;color:#211E1A;">$20</span>
+        <span style="font-size:19px;color:#8B8378;">/ month</span>
+      </div>
+      <div style="font-size:16px;color:#6E6358;margin-top:16px;">Starts with a <span style="color:#C96E47;font-weight:600;">7-day free trial.</span> Cancel whenever you like.</div>
+
+      <div style="display:flex;flex-direction:column;margin:44px auto 0;text-align:left;max-width:420px;">
+        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Unlimited meetings analysed, on any tool</div>
+        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Weekly focus habits and specific coaching</div>
+        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Your evolving communication profile</div>
+        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0;">Private by design — nothing ever joins your calls</div>
+      </div>
+
+      <div class="fl-cta-row" style="margin-top:48px;">
+        <a href="Fluent.dmg" download="Fluent.dmg" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:10px;color:#FBF9F6;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(201,110,71,0.6);">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBF9F6"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+          Download for Mac
+        </a>
+        <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" class="fl-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#33302A;border:1px solid #DDD5C8;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="#5A554C"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+          Download for Windows
         </a>
       </div>
     </div>
   </section>
 
-</main>
+  <!-- Closing CTA -->
+  <section style="max-width:1080px;margin:0 auto;padding:150px 40px 0;text-align:center;">
+    <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:54px;line-height:1.12;letter-spacing:-0.02em;color:#211E1A;margin:0 auto;max-width:16ch;">The ideas are already yours.</h2>
+    <p style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:26px;color:#9A7A63;margin:18px 0 0;">Let's make sure everyone hears them.</p>
+    <div class="fl-cta-row" style="margin-top:46px;">
+      <a href="Fluent.dmg" download="Fluent.dmg" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:10px;color:#FBF9F6;font-size:16px;font-weight:600;padding:15px 28px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(201,110,71,0.6);">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBF9F6"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+        Download for Mac
+      </a>
+      <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" class="fl-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#33302A;border:1px solid #DDD5C8;font-size:16px;font-weight:600;padding:15px 28px;border-radius:999px;text-decoration:none;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="#5A554C"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+        Download for Windows
+      </a>
+    </div>
+    <div style="font-size:15px;color:#7C7163;margin-top:20px;">Free for 7 days, then $20 a month. Built for Mac and Windows.</div>
+  </section>
 
-<footer>
-  <div class="container" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-    <div>&copy; 2026 Fluent</div>
-    <nav>
-      <a href="mailto:hello@fluent.app">Contact</a>
-      <a href="/privacy">Privacy</a>
-      <a href="#">Terms</a>
-    </nav>
-  </div>
-</footer>
+  <!-- Footer -->
+  <footer style="max-width:1080px;margin:0 auto;padding:120px 40px 56px;">
+    <div style="height:1px;background:#EDE8E0;margin-bottom:40px;"></div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;">
+      <div style="display:flex;align-items:center;gap:9px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#C96E47;display:inline-block;"></span>
+        <span style="font-size:15px;font-weight:600;color:#2E2A24;">Fluent</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:26px;font-size:14px;color:#8B8378;">
+        <a href="#how" class="fl-link">How it works</a>
+        <a href="#uses" class="fl-link">Use cases</a>
+        <a href="#pricing" class="fl-link">Pricing</a>
+        <a href="/privacy" class="fl-link">Privacy</a>
+      </div>
+      <div style="font-size:13px;color:#8A7F70;">A communication coach for non-native professionals.</div>
+    </div>
+  </footer>
+
+<script>
+  (function () {
+    var wave = document.getElementById('fl-wave');
+    if (!wave) return;
+    var bars = 56;
+    var html = '';
+    for (var i = 0; i < bars; i++) {
+      var env = Math.sin((i / (bars - 1)) * Math.PI);
+      var v = (0.18 + Math.abs(Math.sin(i * 1.7) * 0.55 + Math.sin(i * 0.6) * 0.3)) * env;
+      var h = Math.max(8, Math.min(100, Math.round(v * 100)));
+      html += '<span class="fl-wave-bar" style="height:' + h + '%;"></span>';
+    }
+    wave.innerHTML = html;
+  })();
+</script>
 
 </body>
 </html>
