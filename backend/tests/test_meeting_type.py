@@ -65,3 +65,37 @@ def test_post_sessions_coerces_unknown_meeting_type(monkeypatch):
         assert captured["meeting_type"] == "Customer Call"
     finally:
         main.app.dependency_overrides.clear()
+
+
+def test_patch_session_meeting_type(monkeypatch):
+    client = _client()
+    calls = {}
+    monkeypatch.setattr(main, "update_session_meeting_type",
+                        lambda user_id, slug, meeting_type:
+                        calls.update(user_id=user_id, slug=slug, mt=meeting_type) or True)
+    try:
+        r = client.patch("/sessions/2026-06-28_09-31",
+                         json={"meeting_type": "Candidate Interview"})
+        assert r.status_code == 200
+        assert calls["slug"] == "2026-06-28_09-31"
+        assert calls["mt"] == "Candidate Interview"
+
+        # invalid type → 422, helper not called
+        calls.clear()
+        r = client.patch("/sessions/x", json={"meeting_type": "Bogus"})
+        assert r.status_code == 422
+        assert calls == {}
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_patch_session_not_found(monkeypatch):
+    client = _client()
+    monkeypatch.setattr(main, "update_session_meeting_type",
+                        lambda user_id, slug, meeting_type: False)
+    try:
+        r = client.patch("/sessions/missing",
+                         json={"meeting_type": "Customer Call"})
+        assert r.status_code == 404
+    finally:
+        main.app.dependency_overrides.clear()

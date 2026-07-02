@@ -419,3 +419,16 @@ def get_session_with_issues(user_id: int, slug: str) -> dict | None:
                 session["segments"] = []
             session["issues"] = cur.fetchall()
             return session
+
+
+def update_session_meeting_type(user_id: int, slug: str, meeting_type: str) -> bool:
+    """Set the meeting type on an existing session. Returns False if not found."""
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE sessions SET meeting_type = %s WHERE user_id = %s AND slug = %s",
+                (meeting_type, user_id, slug),
+            )
+            updated = cur.rowcount
+        conn.commit()
+        return updated > 0

@@ -44,7 +44,7 @@ atexit.register(_posthog.shutdown)
 
 from backend.database import (
     init_db, create_user, get_user_by_email, get_user_by_id,
-    save_session, get_sessions, get_session_with_issues,
+    save_session, get_sessions, get_session_with_issues, update_session_meeting_type,
     update_user_password, update_user_email, delete_user,
     update_user_billing, get_user_by_stripe_customer,
     get_user_by_google_id, upsert_google_user,
@@ -1308,6 +1308,20 @@ def get_session(slug: str, user_id: int = Depends(_current_user_id)):
     _posthog.capture(distinct_id=str(user_id), event="session_viewed",
                      properties={"issue_count": len(session.get("issues", []))})
     return session
+
+
+class MeetingTypePatch(BaseModel):
+    meeting_type: str
+
+
+@app.patch("/sessions/{slug}")
+def patch_session(slug: str, patch: MeetingTypePatch,
+                  user_id: int = Depends(_current_user_id)):
+    if not is_valid_meeting_type(patch.meeting_type):
+        raise HTTPException(422, "Unknown meeting type.")
+    if not update_session_meeting_type(user_id, slug, patch.meeting_type):
+        raise HTTPException(404, "Session not found.")
+    return {"ok": True}
 
 
 # ── Health ───────────────────────────────────────────────────────────────────
