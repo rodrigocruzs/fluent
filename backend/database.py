@@ -97,6 +97,15 @@ def init_db():
                 )
             """)
             cur.execute("""
+                CREATE TABLE IF NOT EXISTS event_meeting_types (
+                    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    event_id     TEXT    NOT NULL,
+                    meeting_type TEXT    NOT NULL,
+                    updated_at   FLOAT   NOT NULL,
+                    PRIMARY KEY (user_id, event_id)
+                )
+            """)
+            cur.execute("""
                 CREATE TABLE IF NOT EXISTS password_reset_tokens (
                     token      TEXT    PRIMARY KEY,
                     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -432,3 +441,31 @@ def update_session_meeting_type(user_id: int, slug: str, meeting_type: str) -> b
             updated = cur.rowcount
         conn.commit()
         return updated > 0
+
+
+def set_event_meeting_type(user_id: int, event_id: str, meeting_type: str) -> None:
+    """Upsert the pre-record meeting type chosen for a calendar event."""
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO event_meeting_types (user_id, event_id, meeting_type, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (user_id, event_id) DO UPDATE
+                    SET meeting_type = EXCLUDED.meeting_type,
+                        updated_at   = EXCLUDED.updated_at
+            """, (user_id, event_id, meeting_type, time.time()))
+        conn.commit()
+
+
+def get_event_meeting_types(user_id: int, event_ids: list[str]) -> dict[str, str]:
+    """Map of event_id -> meeting_type for the given ids (only those set)."""
+    if not event_ids:
+        return {}
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT event_id, meeting_type FROM event_meeting_types "
+                "WHERE user_id = %s AND event_id = ANY(%s)",
+                (user_id, list(event_ids)),
+            )
+            return {row[0]: row[1] for row in cur.fetchall()}

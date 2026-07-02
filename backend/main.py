@@ -51,6 +51,7 @@ from backend.database import (
     create_password_reset_token, consume_password_reset_token,
     get_recent_sessions_for_profile,
     save_communication_profile, get_communication_profile,
+    set_event_meeting_type, get_event_meeting_types,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
 from backend.meeting_types import (
@@ -489,6 +490,9 @@ def calendar_upcoming(user: dict = Depends(_current_user)):
             "end":       end.get("dateTime")   or end.get("date", ""),
             "attendees": len(item.get("attendees") or []),
         })
+    type_map = get_event_meeting_types(user["id"], [e["id"] for e in events])
+    for e in events:
+        e["meeting_type"] = type_map.get(e["id"])
     return events
 
 
@@ -1321,6 +1325,15 @@ def patch_session(slug: str, patch: MeetingTypePatch,
         raise HTTPException(422, "Unknown meeting type.")
     if not update_session_meeting_type(user_id, slug, patch.meeting_type):
         raise HTTPException(404, "Session not found.")
+    return {"ok": True}
+
+
+@app.put("/calendar/events/{event_id}/meeting-type")
+def put_event_meeting_type(event_id: str, patch: MeetingTypePatch,
+                           user_id: int = Depends(_current_user_id)):
+    if not is_valid_meeting_type(patch.meeting_type):
+        raise HTTPException(422, "Unknown meeting type.")
+    set_event_meeting_type(user_id, event_id, patch.meeting_type)
     return {"ok": True}
 
 

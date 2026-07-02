@@ -99,3 +99,25 @@ def test_patch_session_not_found(monkeypatch):
         assert r.status_code == 404
     finally:
         main.app.dependency_overrides.clear()
+
+
+def test_put_event_meeting_type(monkeypatch):
+    client = _client()
+    calls = {}
+    monkeypatch.setattr(main, "set_event_meeting_type",
+                        lambda user_id, event_id, meeting_type:
+                        calls.update(uid=user_id, eid=event_id, mt=meeting_type))
+    try:
+        r = client.put("/calendar/events/evt123/meeting-type",
+                       json={"meeting_type": "Customer Call"})
+        assert r.status_code == 200
+        assert calls["eid"] == "evt123"
+        assert calls["mt"] == "Customer Call"
+
+        calls.clear()
+        r = client.put("/calendar/events/evt123/meeting-type",
+                       json={"meeting_type": "Bogus"})
+        assert r.status_code == 422
+        assert calls == {}
+    finally:
+        main.app.dependency_overrides.clear()
