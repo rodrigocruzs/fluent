@@ -84,7 +84,7 @@ def save_session_remote(slug: str, name: str, date: str,
         print(f"[coach] failed to save session remotely: {e}")
 
 
-def coach(transcript: str, config: Config) -> list:
+def coach(transcript: str, config: Config, meeting_type: str | None = None) -> list:
     """
     Send transcript to backend /coach endpoint.
     Returns list of issue dicts from Claude.
@@ -100,6 +100,7 @@ def coach(transcript: str, config: Config) -> list:
             "transcript": transcript,
             "native_language": config.native_language,
             "job_context": config.job_context,
+            "meeting_type": meeting_type,
         },
         headers={"Authorization": f"Bearer {token}"},
         timeout=60,

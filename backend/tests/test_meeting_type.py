@@ -121,3 +121,28 @@ def test_put_event_meeting_type(monkeypatch):
         assert calls == {}
     finally:
         main.app.dependency_overrides.clear()
+
+
+def test_coach_uses_meeting_type(monkeypatch):
+    client = _client()
+    seen = {}
+
+    class _Msg:
+        def create(self, **kw):
+            seen["system"] = kw["system"]
+            block = type("B", (), {"text": "[]"})()
+            return type("R", (), {"content": [block]})()
+
+    class _Anthropic:
+        def __init__(self, **kw): self.messages = _Msg()
+
+    monkeypatch.setattr(main, "Anthropic", lambda **kw: _Anthropic())
+    monkeypatch.setattr(main, "ANTHROPIC_API_KEY", "sk-test")
+    monkeypatch.setattr(main._posthog, "capture", lambda *a, **k: None)
+    try:
+        r = client.post("/coach", json={"transcript": "hi",
+                                        "meeting_type": "Candidate Interview"})
+        assert r.status_code == 200
+        assert "Candidate Interview" in seen["system"]
+    finally:
+        main.app.dependency_overrides.clear()

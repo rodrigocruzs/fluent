@@ -192,6 +192,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 COACH_SYSTEM = """You are an English language coach helping non-native speakers sound more natural and professional in business meetings.
 
 Their job context: {job_context}.
+This meeting is: {meeting_context}. Tailor your suggestions to that setting.
 
 You will receive a transcript of what they said in a meeting. Your job is to identify specific issues and suggest improvements.
 
@@ -949,6 +950,7 @@ class CoachRequest(BaseModel):
     transcript: str
     native_language: str = ""  # kept for backwards compat, ignored
     job_context: str = "Professional"
+    meeting_type: str | None = None
 
 
 @app.post("/coach")
@@ -957,8 +959,10 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
         raise HTTPException(500, "Server is not configured with an Anthropic API key.")
 
     client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    mt = normalize_meeting_type(req.meeting_type)
     system = COACH_SYSTEM.format(
         job_context=req.job_context,
+        meeting_context=(mt or "a professional meeting"),
     )
     response = client.messages.create(
         model="claude-sonnet-4-6",

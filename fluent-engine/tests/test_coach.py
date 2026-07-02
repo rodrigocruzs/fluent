@@ -55,3 +55,21 @@ def test_save_session_remote_meeting_type_defaults_to_none(monkeypatch):
     )
 
     assert captured["json"]["meeting_type"] is None
+
+
+def test_coach_sends_meeting_type(monkeypatch):
+    captured = {}
+
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured["json"] = json
+        return _FakeResp([])
+
+    monkeypatch.setattr(C, "get_token", lambda: "tok")
+    monkeypatch.setattr(C.httpx, "post", fake_post)
+
+    class _Cfg:
+        native_language = "Spanish"
+        job_context = "Professional"
+
+    C.coach("hello", _Cfg(), meeting_type="Customer Call")
+    assert captured["json"]["meeting_type"] == "Customer Call"
