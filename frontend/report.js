@@ -86,7 +86,7 @@
   // and "rule to remember" are generated client-side from the category when the
   // backend doesn't supply them.
 
-  const MEETING_TYPES = [
+  let MEETING_TYPES = [
     'Internal Team Meeting',
     '1:1 with Manager',
     'Candidate Interview',
@@ -96,7 +96,7 @@
     'Behavioral Interview',
     'Other',
   ];
-  const DEFAULT_MEETING_TYPE = 'Internal Team Meeting';
+  let DEFAULT_MEETING_TYPE = 'Internal Team Meeting';
 
   // Short, lower-cased phrase describing the setting, used inside "why this
   // matters" sentences ("In internal meetings, …").
@@ -383,30 +383,23 @@
     return { patterns, lesson, strengths };
   }
 
-  // Meeting-type persistence. Keyed by session slug.
-  // TODO: persist meeting type to the backend (e.g. PATCH /sessions/:slug) so it
-  // syncs across devices and can inform future coaching. localStorage is a
-  // client-only stopgap.
-  function meetingTypeKey(slug) { return 'fluent_meeting_type_' + (slug || 'unknown'); }
-
-  // Resolve a meeting type from a slug alone (used by the History list, which
-  // has the slug but not the full session payload). Saved localStorage choice
-  // wins, then any backend-provided type, else the default.
+  // Meeting type comes from the backend session record. No localStorage.
   function meetingTypeForSlug(slug, backendType) {
-    try {
-      const saved = localStorage.getItem(meetingTypeKey(slug));
-      if (saved && MEETING_TYPES.includes(saved)) return saved;
-    } catch (_) {}
-    if (backendType && MEETING_TYPES.includes(backendType)) return backendType;
-    return DEFAULT_MEETING_TYPE;
+    return (backendType && MEETING_TYPES.includes(backendType))
+      ? backendType : DEFAULT_MEETING_TYPE;
   }
 
   function getMeetingType(data) {
     return meetingTypeForSlug(data.slug || '', data.meeting_type);
   }
 
+  // Persist a session-page meeting-type change to the backend.
   function saveMeetingType(slug, type) {
-    try { localStorage.setItem(meetingTypeKey(slug), type); } catch (_) {}
+    if (!slug) return;
+    apiFetch('/sessions/' + encodeURIComponent(slug), {
+      method: 'PATCH',
+      body: { meeting_type: type },
+    }).catch(() => {});
   }
 
   // A read-only meeting-type chip for History rows. Once a meeting has happened
@@ -550,6 +543,22 @@
     }
   }
 
+  // Hydrate the meeting-type list from the backend (single source of truth).
+  // Falls back to the built-in list if the call fails.
+  function loadMeetingTypes(token) {
+    token = token || _token();
+    if (!token) return;
+    apiFetch('/meeting-types')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && Array.isArray(data.types) && data.types.length) {
+          MEETING_TYPES = data.types;
+          if (data.default) DEFAULT_MEETING_TYPE = data.default;
+        }
+      })
+      .catch(() => {});
+  }
+
   // Fetch the profile from the backend (web/Windows path). On Mac, Swift injects
   // it through loadSessions instead, since the file:// webview can't fetch.
   // `hasSessions` lets us show "Building your profile…" while the backend
@@ -594,6 +603,7 @@
     } else {
       const hasSessions = Array.isArray(sessions) && sessions.length > 0;
       renderCommunicationProfile(null);  // honest default until /profile responds
+      loadMeetingTypes(_token());
       loadProfile(_token(), hasSessions);
     }
     renderSessionsList(sessions);
