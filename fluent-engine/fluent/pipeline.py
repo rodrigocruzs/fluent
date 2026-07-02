@@ -78,7 +78,7 @@ def run_pipeline(
     if coaching_source.strip():
         print("[pipeline] coaching ...")
         try:
-            issues = coach(user_transcript, config)
+            issues = coach(user_transcript, config, meeting_type=meeting_type)
         except Exception as e:
             print(f"[pipeline] coaching failed, saving session without issues: {e}")
             issues = []

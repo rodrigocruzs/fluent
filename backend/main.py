@@ -44,15 +44,20 @@ atexit.register(_posthog.shutdown)
 
 from backend.database import (
     init_db, create_user, get_user_by_email, get_user_by_id,
-    save_session, get_sessions, get_session_with_issues,
+    save_session, get_sessions, get_session_with_issues, update_session_meeting_type,
     update_user_password, update_user_email, delete_user,
     update_user_billing, get_user_by_stripe_customer,
     get_user_by_google_id, upsert_google_user,
     create_password_reset_token, consume_password_reset_token,
     get_recent_sessions_for_profile,
     save_communication_profile, get_communication_profile,
+    set_event_meeting_type, get_event_meeting_types,
 )
 from backend.auth import hash_password, verify_password, create_token, decode_token
+from backend.meeting_types import (
+    MEETING_TYPES, DEFAULT_MEETING_TYPE,
+    is_valid_meeting_type, normalize_meeting_type,
+)
 
 STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
@@ -187,6 +192,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 COACH_SYSTEM = """You are an English language coach helping non-native speakers sound more natural and professional in business meetings.
 
 Their job context: {job_context}.
+This meeting is: {meeting_context}. Tailor your suggestions to that setting.
 
 You will receive a transcript of what they said in a meeting. Your job is to identify specific issues and suggest improvements.
 
@@ -485,6 +491,9 @@ def calendar_upcoming(user: dict = Depends(_current_user)):
             "end":       end.get("dateTime")   or end.get("date", ""),
             "attendees": len(item.get("attendees") or []),
         })
+    type_map = get_event_meeting_types(user["id"], [e["id"] for e in events])
+    for e in events:
+        e["meeting_type"] = type_map.get(e["id"])
     return events
 
 
@@ -941,6 +950,7 @@ class CoachRequest(BaseModel):
     transcript: str
     native_language: str = ""  # kept for backwards compat, ignored
     job_context: str = "Professional"
+    meeting_type: str | None = None
 
 
 @app.post("/coach")
@@ -949,8 +959,10 @@ def coach(req: CoachRequest, user_id: int = Depends(_current_user_id)):
         raise HTTPException(500, "Server is not configured with an Anthropic API key.")
 
     client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    mt = normalize_meeting_type(req.meeting_type)
     system = COACH_SYSTEM.format(
         job_context=req.job_context,
+        meeting_context=(mt or "a professional meeting"),
     )
     response = client.messages.create(
         model="claude-sonnet-4-6",
@@ -1273,7 +1285,7 @@ def create_session(payload: SessionPayload, background: BackgroundTasks,
         issues=payload.issues,
         segments=payload.segments,
         system_audio_captured=payload.system_audio_captured,
-        meeting_type=payload.meeting_type,
+        meeting_type=normalize_meeting_type(payload.meeting_type),
     )
     _posthog.capture(distinct_id=str(user_id), event="session_saved",
                      properties={"issue_count": len(payload.issues),
@@ -1290,6 +1302,12 @@ def list_sessions(user_id: int = Depends(_current_user_id)):
     return get_sessions(user_id)
 
 
+@app.get("/meeting-types")
+def list_meeting_types(user_id: int = Depends(_current_user_id)):
+    """Canonical meeting-type list + default, so clients render from the server."""
+    return {"types": list(MEETING_TYPES), "default": DEFAULT_MEETING_TYPE}
+
+
 @app.get("/sessions/{slug}")
 def get_session(slug: str, user_id: int = Depends(_current_user_id)):
     session = get_session_with_issues(user_id, slug)
@@ -1298,6 +1316,29 @@ def get_session(slug: str, user_id: int = Depends(_current_user_id)):
     _posthog.capture(distinct_id=str(user_id), event="session_viewed",
                      properties={"issue_count": len(session.get("issues", []))})
     return session
+
+
+class MeetingTypePatch(BaseModel):
+    meeting_type: str
+
+
+@app.patch("/sessions/{slug}")
+def patch_session(slug: str, patch: MeetingTypePatch,
+                  user_id: int = Depends(_current_user_id)):
+    if not is_valid_meeting_type(patch.meeting_type):
+        raise HTTPException(422, "Unknown meeting type.")
+    if not update_session_meeting_type(user_id, slug, patch.meeting_type):
+        raise HTTPException(404, "Session not found.")
+    return {"ok": True}
+
+
+@app.put("/calendar/events/{event_id}/meeting-type")
+def put_event_meeting_type(event_id: str, patch: MeetingTypePatch,
+                           user_id: int = Depends(_current_user_id)):
+    if not is_valid_meeting_type(patch.meeting_type):
+        raise HTTPException(422, "Unknown meeting type.")
+    set_event_meeting_type(user_id, event_id, patch.meeting_type)
+    return {"ok": True}
 
 
 # ── Health ───────────────────────────────────────────────────────────────────

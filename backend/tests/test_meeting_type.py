@@ -1,0 +1,148 @@
+from backend.meeting_types import (
+    MEETING_TYPES, DEFAULT_MEETING_TYPE,
+    is_valid_meeting_type, normalize_meeting_type,
+)
+
+
+def test_enum_shape():
+    assert MEETING_TYPES[0] == "Internal Team Meeting"
+    assert DEFAULT_MEETING_TYPE == "Internal Team Meeting"
+    assert "Other" in MEETING_TYPES
+    assert len(MEETING_TYPES) == 8
+
+
+def test_is_valid():
+    assert is_valid_meeting_type("Customer Call") is True
+    assert is_valid_meeting_type("Nonsense") is False
+    assert is_valid_meeting_type(None) is False
+    assert is_valid_meeting_type("") is False
+
+
+def test_normalize():
+    assert normalize_meeting_type("1:1 with Manager") == "1:1 with Manager"
+    assert normalize_meeting_type("Nonsense") is None
+    assert normalize_meeting_type(None) is None
+
+
+import backend.main as main
+from fastapi.testclient import TestClient
+
+
+def _client():
+    main.app.dependency_overrides[main._current_user_id] = lambda: 1
+    return TestClient(main.app)
+
+
+def test_get_meeting_types():
+    client = _client()
+    try:
+        r = client.get("/meeting-types")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["default"] == "Internal Team Meeting"
+        assert body["types"][0] == "Internal Team Meeting"
+        assert len(body["types"]) == 8
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_post_sessions_coerces_unknown_meeting_type(monkeypatch):
+    client = _client()
+    captured = {}
+    monkeypatch.setattr(main, "save_session",
+                        lambda **kw: (captured.update(kw), 1)[1])
+    monkeypatch.setattr(main, "_regenerate_profile_safely", lambda uid: None)
+    monkeypatch.setattr(main._posthog, "capture", lambda *a, **k: None)
+    try:
+        payload = {"slug": "s", "name": "n", "date": "d", "duration": 1,
+                   "transcript": "t", "issues": [], "segments": [],
+                   "system_audio_captured": True, "meeting_type": "Bogus"}
+        assert client.post("/sessions", json=payload).status_code == 200
+        assert captured["meeting_type"] is None
+
+        payload["meeting_type"] = "Customer Call"
+        client.post("/sessions", json=payload)
+        assert captured["meeting_type"] == "Customer Call"
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_patch_session_meeting_type(monkeypatch):
+    client = _client()
+    calls = {}
+    monkeypatch.setattr(main, "update_session_meeting_type",
+                        lambda user_id, slug, meeting_type:
+                        calls.update(user_id=user_id, slug=slug, mt=meeting_type) or True)
+    try:
+        r = client.patch("/sessions/2026-06-28_09-31",
+                         json={"meeting_type": "Candidate Interview"})
+        assert r.status_code == 200
+        assert calls["slug"] == "2026-06-28_09-31"
+        assert calls["mt"] == "Candidate Interview"
+
+        # invalid type → 422, helper not called
+        calls.clear()
+        r = client.patch("/sessions/x", json={"meeting_type": "Bogus"})
+        assert r.status_code == 422
+        assert calls == {}
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_patch_session_not_found(monkeypatch):
+    client = _client()
+    monkeypatch.setattr(main, "update_session_meeting_type",
+                        lambda user_id, slug, meeting_type: False)
+    try:
+        r = client.patch("/sessions/missing",
+                         json={"meeting_type": "Customer Call"})
+        assert r.status_code == 404
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_put_event_meeting_type(monkeypatch):
+    client = _client()
+    calls = {}
+    monkeypatch.setattr(main, "set_event_meeting_type",
+                        lambda user_id, event_id, meeting_type:
+                        calls.update(uid=user_id, eid=event_id, mt=meeting_type))
+    try:
+        r = client.put("/calendar/events/evt123/meeting-type",
+                       json={"meeting_type": "Customer Call"})
+        assert r.status_code == 200
+        assert calls["eid"] == "evt123"
+        assert calls["mt"] == "Customer Call"
+
+        calls.clear()
+        r = client.put("/calendar/events/evt123/meeting-type",
+                       json={"meeting_type": "Bogus"})
+        assert r.status_code == 422
+        assert calls == {}
+    finally:
+        main.app.dependency_overrides.clear()
+
+
+def test_coach_uses_meeting_type(monkeypatch):
+    client = _client()
+    seen = {}
+
+    class _Msg:
+        def create(self, **kw):
+            seen["system"] = kw["system"]
+            block = type("B", (), {"text": "[]"})()
+            return type("R", (), {"content": [block]})()
+
+    class _Anthropic:
+        def __init__(self, **kw): self.messages = _Msg()
+
+    monkeypatch.setattr(main, "Anthropic", lambda **kw: _Anthropic())
+    monkeypatch.setattr(main, "ANTHROPIC_API_KEY", "sk-test")
+    monkeypatch.setattr(main._posthog, "capture", lambda *a, **k: None)
+    try:
+        r = client.post("/coach", json={"transcript": "hi",
+                                        "meeting_type": "Candidate Interview"})
+        assert r.status_code == 200
+        assert "Candidate Interview" in seen["system"]
+    finally:
+        main.app.dependency_overrides.clear()
