@@ -44,3 +44,24 @@ def test_get_meeting_types():
         assert len(body["types"]) == 8
     finally:
         main.app.dependency_overrides.clear()
+
+
+def test_post_sessions_coerces_unknown_meeting_type(monkeypatch):
+    client = _client()
+    captured = {}
+    monkeypatch.setattr(main, "save_session",
+                        lambda **kw: (captured.update(kw), 1)[1])
+    monkeypatch.setattr(main, "_regenerate_profile_safely", lambda uid: None)
+    monkeypatch.setattr(main._posthog, "capture", lambda *a, **k: None)
+    try:
+        payload = {"slug": "s", "name": "n", "date": "d", "duration": 1,
+                   "transcript": "t", "issues": [], "segments": [],
+                   "system_audio_captured": True, "meeting_type": "Bogus"}
+        assert client.post("/sessions", json=payload).status_code == 200
+        assert captured["meeting_type"] is None
+
+        payload["meeting_type"] = "Customer Call"
+        client.post("/sessions", json=payload)
+        assert captured["meeting_type"] == "Customer Call"
+    finally:
+        main.app.dependency_overrides.clear()

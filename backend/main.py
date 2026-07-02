@@ -1277,7 +1277,7 @@ def create_session(payload: SessionPayload, background: BackgroundTasks,
         issues=payload.issues,
         segments=payload.segments,
         system_audio_captured=payload.system_audio_captured,
-        meeting_type=payload.meeting_type,
+        meeting_type=normalize_meeting_type(payload.meeting_type),
     )
     _posthog.capture(distinct_id=str(user_id), event="session_saved",
                      properties={"issue_count": len(payload.issues),
