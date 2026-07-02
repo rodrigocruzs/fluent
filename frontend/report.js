@@ -411,21 +411,18 @@
   }
 
   // ── Coming Up meeting type ────────────────────────────────────────────────
-  // Calendar events have no session slug yet, so their chosen type is stored
-  // per calendar event id. (Threading this through to the recorded session's
-  // slug is a follow-up — see TODO in renderUpNext.)
-  function upnextTypeKey(eventId) { return 'fluent_upnext_type_' + (eventId || 'unknown'); }
-
-  function upnextTypeForEvent(eventId) {
-    try {
-      const saved = localStorage.getItem(upnextTypeKey(eventId));
-      if (saved && MEETING_TYPES.includes(saved)) return saved;
-    } catch (_) {}
-    return DEFAULT_MEETING_TYPE;
+  // Coming Up meeting type is stored server-side per calendar event id.
+  function upnextTypeForEvent(ev) {
+    const t = ev && ev.meeting_type;
+    return (t && MEETING_TYPES.includes(t)) ? t : DEFAULT_MEETING_TYPE;
   }
 
   function saveUpnextType(eventId, type) {
-    try { localStorage.setItem(upnextTypeKey(eventId), type); } catch (_) {}
+    if (!eventId) return;
+    apiFetch('/calendar/events/' + encodeURIComponent(eventId) + '/meeting-type', {
+      method: 'PUT',
+      body: { meeting_type: type },
+    }).catch(() => {});
   }
 
   // Editable type chip for a Coming Up row, keyed by calendar event id.
@@ -959,7 +956,7 @@
       const day      = _formatEventDay(ev.start);
       const dayLabel = day ? `<span class="upnext-day">${esc(day)}</span> ` : '';
       const eventId  = ev.id || '';
-      const type     = upnextTypeForEvent(eventId);
+      const type     = upnextTypeForEvent(ev);
       return `<div class="session upnext-row">
         <span class="session-name">${esc(ev.title)}</span>
         ${renderUpnextTypeChip(eventId, type)}
@@ -977,7 +974,7 @@
         e.stopPropagation();
         // Carry the chosen meeting type into the recording so it lands on the
         // saved session (shown on the session page / History afterwards).
-        openRecordingPage(title, upnextTypeForEvent(eventId));
+        openRecordingPage(title, upnextTypeForEvent(events[i]));
       });
     });
 
