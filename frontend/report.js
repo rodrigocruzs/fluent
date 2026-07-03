@@ -594,13 +594,17 @@
       loadUpNext(_token());
     }
 
+    // Hydrate the canonical meeting-type list on every path (Mac + web), so the
+    // dropdown never drifts from the backend enum. Goes through apiFetch, which
+    // uses the Swift bridge on Mac — no dependency on how the profile arrives.
+    loadMeetingTypes(_token());
+
     // Swift passes the profile through; the web path fetches it itself.
     if (profile !== undefined) {
       renderCommunicationProfile(profile);
     } else {
       const hasSessions = Array.isArray(sessions) && sessions.length > 0;
       renderCommunicationProfile(null);  // honest default until /profile responds
-      loadMeetingTypes(_token());
       loadProfile(_token(), hasSessions);
     }
     renderSessionsList(sessions);
