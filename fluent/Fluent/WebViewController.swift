@@ -119,50 +119,48 @@ class WebViewController: NSViewController, WKScriptMessageHandler {
     }
 
     private func fetchAndInjectSessions(token: String) {
-        let group = DispatchGroup()
-        var sessions: [[String: Any]] = []
-        var upNext: [[String: Any]] = []
-
-        // Fetch sessions list
-        group.enter()
+        // Render the sessions list as soon as it arrives rather than waiting on
+        // the calendar call too — calendar data patches in separately via
+        // window.updateUpNext() once it lands, so a slow/cold calendar request
+        // no longer blocks the whole startup render.
         var sessionsReq = URLRequest(url: URL(string: "https://www.tryfluent.co/api/sessions")!)
         sessionsReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        URLSession.shared.dataTask(with: sessionsReq) { data, response, _ in
-            defer { group.leave() }
-            guard let data,
+        URLSession.shared.dataTask(with: sessionsReq) { [weak self] data, response, _ in
+            guard let self,
+                  let data,
                   (response as? HTTPURLResponse)?.statusCode == 200,
-                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                  let sessionsJSON = try? JSONSerialization.data(withJSONObject: parsed),
+                  let sessionsStr  = String(data: sessionsJSON, encoding: .utf8)
             else { return }
-            sessions = parsed
+            DispatchQueue.main.async {
+                let safeToken = token.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+                let js = "window.__upNextPending = true; localStorage.setItem('fluent_token', '\(safeToken)'); window.loadSessions(\(sessionsStr));"
+                self.webView.evaluateJavaScript(js) { _, error in
+                    if let error { print("[Fluent WebView] loadSessions error:", error) }
+                }
+            }
         }.resume()
 
-        // Fetch calendar events
-        group.enter()
+        // Fetch calendar events separately and patch them in whenever they land.
         var calReq = URLRequest(url: URL(string: "https://www.tryfluent.co/api/calendar/upcoming")!)
         calReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        URLSession.shared.dataTask(with: calReq) { data, response, _ in
-            defer { group.leave() }
+        URLSession.shared.dataTask(with: calReq) { [weak self] data, response, _ in
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-            print("[Fluent] calendar status:", status, String(data: data ?? Data(), encoding: .utf8) ?? "")
-            guard let data, status == 200,
-                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-            else { return }
-            upNext = parsed
-        }.resume()
-
-        group.notify(queue: .main) { [weak self] in
-            guard let self,
-                  let sessionsJSON = try? JSONSerialization.data(withJSONObject: sessions),
-                  let sessionsStr  = String(data: sessionsJSON, encoding: .utf8),
-                  let upNextJSON   = try? JSONSerialization.data(withJSONObject: upNext),
-                  let upNextStr    = String(data: upNextJSON, encoding: .utf8)
-            else { return }
-            let safeToken = token.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
-            let js = "localStorage.setItem('fluent_token', '\(safeToken)'); window.loadSessions(\(sessionsStr), \(upNextStr));"
-            self.webView.evaluateJavaScript(js) { _, error in
-                if let error { print("[Fluent WebView] loadSessions error:", error) }
+            guard let self, let data, status == 200,
+                  let parsed = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]],
+                  let upNextJSON = try? JSONSerialization.data(withJSONObject: parsed),
+                  let upNextStr  = String(data: upNextJSON, encoding: .utf8)
+            else {
+                print("[Fluent] calendar status:", status)
+                return
             }
-        }
+            DispatchQueue.main.async {
+                self.webView.evaluateJavaScript("window.updateUpNext && window.updateUpNext(\(upNextStr));") { _, error in
+                    if let error { print("[Fluent WebView] updateUpNext error:", error) }
+                }
+            }
+        }.resume()
     }
 
     /// Re-fetch the sessions list natively and update the History list in the

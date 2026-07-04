@@ -3,6 +3,11 @@
 (function () {
   'use strict';
 
+  // In-memory cache of full session report JSON, keyed by slug. Populated the
+  // first time a History row is opened so clicking the same row again renders
+  // instantly instead of re-fetching from the backend.
+  const _sessionCache = new Map();
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function esc(str) {
@@ -590,6 +595,10 @@
     sessionsPage.style.display = '';
     if (upNext !== undefined) {
       renderUpNext(upNext);
+    } else if (window.__upNextPending) {
+      // Swift is fetching calendar data separately and will call
+      // window.updateUpNext() when it lands — don't block this render on it.
+      renderUpNext(null, { loading: true });
     } else {
       loadUpNext(_token());
     }
@@ -656,12 +665,13 @@
         <span class="session-chevron" aria-hidden="true">&rsaquo;</span>`;
 
       const open = () => {
-        console.log('[Fluent] session clicked:', session.slug, 'data:', !!session.data);
-        if (session.data) {
-          window.loadReport(session.data);
+        const s = session.slug || session.date;
+        const cached = _sessionCache.get(s);
+        console.log('[Fluent] session clicked:', s, 'cached:', !!cached);
+        if (cached) {
+          window.loadReport(cached);
           return;
         }
-        const s = session.slug || session.date;
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openSession) {
           window.webkit.messageHandlers.openSession.postMessage(s);
         } else {
@@ -670,7 +680,7 @@
           const url = BACKEND_URL + '/sessions/' + encodeURIComponent(s);
           fetch(url, { headers: { 'Authorization': 'Bearer ' + token } })
             .then(r => r.ok ? r.json() : null)
-            .then(data => { if (data) window.loadReport(data); })
+            .then(data => { if (data) { _sessionCache.set(s, data); window.loadReport(data); } })
             .catch(e => { console.error('[Fluent] fetch error:', e); });
         }
       };
@@ -695,6 +705,11 @@
     const systemCaptured = data.system_audio_captured !== false;
     const duration     = data.duration   || 0;
     const slug         = data.slug || '';
+
+    // Cache so re-opening this session from History renders instantly instead
+    // of re-fetching from the backend (works whether data arrived via the
+    // Swift openSession bridge or the web fetch() fallback).
+    if (slug) _sessionCache.set(slug, data);
     const date         = data.date       || formatSessionName(slug) || new Date().toLocaleDateString('en-US', {
       month: 'long', day: 'numeric', year: 'numeric',
     });
@@ -770,6 +785,7 @@
   ${body}`;
 
     page.classList.add('visible');
+    window.scrollTo(0, 0);
 
     // Stash what live re-rendering needs (meeting-type changes update hero,
     // lesson, and pattern "why this matters" without a full reload).
@@ -948,9 +964,19 @@
     return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
-  function renderUpNext(events) {
+  // Exposed so Swift can patch in calendar data after the sessions list has
+  // already rendered, instead of blocking the whole page on both requests.
+  window.updateUpNext = function (events) {
+    renderUpNext(events);
+  };
+
+  function renderUpNext(events, opts) {
     const list = document.getElementById('upnext-list');
     if (!list) return;
+    if (opts && opts.loading) {
+      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">Loading…</span></div>';
+      return;
+    }
     if (!events || !events.length) {
       list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">No upcoming meetings</span></div>';
       return;

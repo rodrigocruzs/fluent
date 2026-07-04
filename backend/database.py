@@ -9,6 +9,7 @@ import os
 import time
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 
 def _database_url() -> str:
     url = os.environ.get("DATABASE_URL", "")
@@ -20,10 +21,44 @@ def _database_url() -> str:
     return cleaned
 
 
-def _conn() -> psycopg2.extensions.connection:
-    conn = psycopg2.connect(_database_url())
-    conn.autocommit = False
-    return conn
+# A warm Vercel Lambda instance reuses this module across invocations, so a
+# process-wide pool lets requests handled by the same warm instance reuse
+# already-established connections instead of paying a fresh TCP+TLS handshake
+# to the (cross-region) Neon pooler on every single call. Small ceiling since
+# each serverless instance only ever runs one request at a time.
+_pool: psycopg2.pool.ThreadedConnectionPool | None = None
+
+
+def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
+    global _pool
+    if _pool is None:
+        _pool = psycopg2.pool.ThreadedConnectionPool(1, 5, _database_url())
+    return _pool
+
+
+class _PooledConnection:
+    """Context manager that checks a connection out of the pool and returns
+    it (instead of closing it) on exit, so the underlying TCP/TLS session
+    survives across requests within the same warm Lambda instance."""
+
+    def __init__(self):
+        self._pool = _get_pool()
+        self._conn = self._pool.getconn()
+        self._conn.autocommit = False
+
+    def __enter__(self) -> psycopg2.extensions.connection:
+        return self._conn
+
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if exc_type is not None:
+                self._conn.rollback()
+        finally:
+            self._pool.putconn(self._conn, close=exc_type is not None)
+
+
+def _conn() -> _PooledConnection:
+    return _PooledConnection()
 
 
 def init_db():
@@ -154,6 +189,16 @@ def get_user_by_id(user_id: int) -> dict | None:
             return cur.fetchone()
 
 
+def user_exists(user_id: int) -> bool:
+    """Cheap existence check for the auth dependency — avoids fetching and
+    deserializing the full user row (bcrypt hash, tokens, etc.) on every
+    authenticated request when only a yes/no is needed."""
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM users WHERE id = %s", (user_id,))
+            return cur.fetchone() is not None
+
+
 # ── Sessions ──────────────────────────────────────────────────────────────────
 
 def save_session(user_id: int, slug: str, name: str, date: str,
@@ -202,8 +247,11 @@ def save_session(user_id: int, slug: str, name: str, date: str,
 def get_sessions(user_id: int) -> list[dict]:
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            # Transcript text is intentionally excluded — the sessions list UI
+            # only needs name/date/duration/issue-count, and transcripts can be
+            # large enough to noticeably bloat this response on every launch.
             cur.execute("""
-                SELECT s.id, s.slug, s.name, s.date, s.duration, s.transcript,
+                SELECT s.id, s.slug, s.name, s.date, s.duration,
                        s.meeting_type,
                        COUNT(i.id) AS issue_count
                 FROM sessions s

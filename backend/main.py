@@ -43,7 +43,7 @@ _posthog = Posthog(
 atexit.register(_posthog.shutdown)
 
 from backend.database import (
-    init_db, create_user, get_user_by_email, get_user_by_id,
+    init_db, create_user, get_user_by_email, get_user_by_id, user_exists,
     save_session, get_sessions, get_session_with_issues, update_session_meeting_type,
     update_user_password, update_user_email, delete_user,
     update_user_billing, get_user_by_stripe_customer,
@@ -410,7 +410,7 @@ def _current_user_id(creds: HTTPAuthorizationCredentials = Depends(_bearer)) -> 
     user_id = decode_token(creds.credentials)
     if user_id is None:
         raise HTTPException(401, "Invalid or expired token.")
-    if not get_user_by_id(user_id):
+    if not user_exists(user_id):
         raise HTTPException(401, "User not found.")
     return user_id
 
