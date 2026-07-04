@@ -39,7 +39,7 @@
       "nsis": {
         "installMode": "currentUser"
       },
-      "signCommand": "trusted-signing-cli -e https://neu.codesigning.azure.net/ -a fluent -c fluent-public %1"
+      "signCommand": "artifact-signing-cli -e https://neu.codesigning.azure.net/ -a fluent -c fluent-public %1"
     }
   },
   "plugins": {
