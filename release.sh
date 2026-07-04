@@ -91,6 +91,11 @@ sleep 0.5
 rm -rf /Applications/Fluent.app
 ditto "$APP_PATH" /Applications/Fluent.app
 
+echo "==> Refreshing icon caches (avoids stale/oversized Dock icon)..."
+touch /Applications/Fluent.app
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f /Applications/Fluent.app
+killall Dock 2>/dev/null || true
+
 echo ""
 echo "==> Done."
 echo "    App:  /Applications/Fluent.app"
