@@ -64,7 +64,7 @@
         <a href="#how" class="fl-link" style="font-size:14.5px;font-weight:500;">How it works</a>
         <a href="#uses" class="fl-link" style="font-size:14.5px;font-weight:500;">Use cases</a>
         <a href="#pricing" class="fl-link" style="font-size:14.5px;font-weight:500;">Pricing</a>
-        <a href="Fluent.dmg" download="Fluent.dmg" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:8px;color:#FBF9F6;font-size:14px;font-weight:600;padding:9px 17px;border-radius:999px;text-decoration:none;">Download</a>
+        <a href="Fluent.dmg" download="Fluent.dmg" id="fl-nav-dl" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:8px;color:#FBF9F6;font-size:14px;font-weight:600;padding:9px 17px;border-radius:999px;text-decoration:none;">Download</a>
       </div>
     </div>
   </div>
@@ -324,6 +324,15 @@
       html += '<span class="fl-wave-bar" style="height:' + h + '%;"></span>';
     }
     wave.innerHTML = html;
+  })();
+</script>
+
+<script>
+  (function () {
+    var isWin = /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
+    if (!isWin) return;
+    var btn = document.getElementById('fl-nav-dl');
+    if (btn) { btn.href = 'Fluent-Setup.exe'; btn.download = 'Fluent-Setup.exe'; btn.textContent = 'Download for Windows'; }
   })();
 </script>
 
