@@ -26,7 +26,7 @@ pub fn build(app: &tauri::AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "start" => engine_post("/start"),
             "stop" => engine_post("/stop"),
-            "settings" => crate::emit(app, "show-settings", ()),
+            "settings" => crate::eval_in_webview(app, "window.showSettings && window.showSettings();"),
             "sign_out" => {
                 crate::sign_out();
                 crate::emit(app, "signed-out", ());
