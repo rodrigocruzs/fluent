@@ -56,15 +56,14 @@
   <!-- Nav -->
   <div style="width:100%;border-bottom:1px solid #EDE8E0;background:rgba(251,249,246,0.85);position:sticky;top:0;z-index:40;backdrop-filter:saturate(180%) blur(8px);">
     <div style="max-width:1080px;margin:0 auto;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:9px;">
-        <span style="width:9px;height:9px;border-radius:50%;background:#C96E47;display:inline-block;"></span>
-        <span style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#2E2A24;">Fluent</span>
+      <div style="display:flex;align-items:center;gap:11px;">
+        <img src="/assets/fluent-icon.svg" alt="Fluent" width="32" height="32" style="display:block;border-radius:8px;">
+        <span style="font-size:19px;font-weight:600;letter-spacing:-0.01em;color:#2E2A24;">Fluent</span>
       </div>
       <div style="display:flex;align-items:center;gap:30px;">
         <a href="#how" class="fl-link" style="font-size:14.5px;font-weight:500;">How it works</a>
         <a href="#uses" class="fl-link" style="font-size:14.5px;font-weight:500;">Use cases</a>
         <a href="#pricing" class="fl-link" style="font-size:14.5px;font-weight:500;">Pricing</a>
-        <a href="Fluent.dmg" download="Fluent.dmg" id="fl-nav-dl" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:8px;color:#FBF9F6;font-size:14px;font-weight:600;padding:9px 17px;border-radius:999px;text-decoration:none;">Download</a>
       </div>
     </div>
   </div>
@@ -324,15 +323,6 @@
       html += '<span class="fl-wave-bar" style="height:' + h + '%;"></span>';
     }
     wave.innerHTML = html;
-  })();
-</script>
-
-<script>
-  (function () {
-    var isWin = /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
-    if (!isWin) return;
-    var btn = document.getElementById('fl-nav-dl');
-    if (btn) { btn.href = 'Fluent-Setup.exe'; btn.download = 'Fluent-Setup.exe'; btn.textContent = 'Download for Windows'; }
   })();
 </script>
 
