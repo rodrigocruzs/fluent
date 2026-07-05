@@ -928,10 +928,12 @@
     const authPage      = document.getElementById('auth-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (authPage)       authPage.style.display = '';
     _setSidebarVisible(false);
   };
@@ -1110,10 +1112,12 @@
     const sessionsPage  = document.getElementById('sessions-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     page.classList.remove('visible');
     page.innerHTML = '';
     if (settingsPage)  settingsPage.style.display = 'none';
     if (recordingPage) recordingPage.style.display = 'none';
+    if (meetingsPage)  meetingsPage.style.display = 'none';
     if (sessionsPage)  sessionsPage.style.display = '';
     _setSidebarVisible(true);
     _setActiveNav('home');
@@ -1170,12 +1174,14 @@
     const settingsPage  = document.getElementById('settings-page');
     const authPage      = document.getElementById('auth-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     const titleEl       = document.getElementById('recording-title');
 
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (titleEl)        titleEl.textContent = title || 'Recording';
     if (recordingPage)  recordingPage.style.display = '';
     _setSidebarVisible(false);
@@ -1195,10 +1201,12 @@
     const authPage      = document.getElementById('auth-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
     _setSidebarVisible(true);
 
