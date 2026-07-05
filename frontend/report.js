@@ -20,9 +20,35 @@
     catch (_) { /* ignore (e.g. private browsing) */ }
   }
 
+  function _activeNavPref() {
+    try {
+      const v = localStorage.getItem('fluent.activeNav');
+      return (v === 'home' || v === 'meetings') ? v : 'home';
+    } catch (_) { return 'home'; }
+  }
+
+  function _setActiveNavPref(name) {
+    try { localStorage.setItem('fluent.activeNav', name); }
+    catch (_) { /* ignore */ }
+  }
+
+  function _setActiveNav(name) {
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-nav') === name);
+    });
+    _setActiveNavPref(name);
+  }
+
+  function _setSidebarVisible(visible) {
+    const shell = document.getElementById('app-shell');
+    if (shell) shell.classList.toggle('no-sidebar', !visible);
+  }
+
   function initSidebarShell() {
-    const sidebar = document.getElementById('sidebar');
-    const toggle  = document.getElementById('sidebar-collapse-toggle');
+    const sidebar     = document.getElementById('sidebar');
+    const toggle       = document.getElementById('sidebar-collapse-toggle');
+    const homeBtn      = document.getElementById('nav-home');
+    const meetingsBtn  = document.getElementById('nav-meetings');
     if (!sidebar || !toggle) return;
 
     if (_sidebarCollapsedPref()) {
@@ -36,6 +62,9 @@
       sidebar.classList.toggle('expanded', collapsed);
       _setSidebarCollapsedPref(!collapsed);
     });
+
+    if (homeBtn) homeBtn.addEventListener('click', () => window.showSessions && window.showSessions());
+    if (meetingsBtn) meetingsBtn.addEventListener('click', () => window.showMeetings && window.showMeetings());
   }
 
   document.addEventListener('DOMContentLoaded', initSidebarShell);
@@ -625,6 +654,12 @@
     if (settingsPage)   settingsPage.style.display = 'none';
 
     sessionsPage.style.display = '';
+    _setSidebarVisible(true);
+    if (_activeNavPref() === 'meetings' && window.showMeetings) {
+      window.showMeetings();
+    } else {
+      _setActiveNav('home');
+    }
     if (upNext !== undefined) {
       renderUpNext(upNext);
     } else if (window.__upNextPending) {
@@ -893,6 +928,7 @@
     if (settingsPage)   settingsPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
     if (authPage)       authPage.style.display = '';
+    _setSidebarVisible(false);
   };
 
   // ── Auth page logic ───────────────────────────────────────────────────────
@@ -1074,6 +1110,8 @@
     if (settingsPage)  settingsPage.style.display = 'none';
     if (recordingPage) recordingPage.style.display = 'none';
     if (sessionsPage)  sessionsPage.style.display = '';
+    _setSidebarVisible(true);
+    _setActiveNav('home');
     _resetBillingDetailsFlag();
     loadUpNext();
     renderCommunicationProfile();  // re-render last known profile
@@ -1113,6 +1151,7 @@
     if (authPage)       authPage.style.display = 'none';
     if (titleEl)        titleEl.textContent = title || 'Recording';
     if (recordingPage)  recordingPage.style.display = '';
+    _setSidebarVisible(false);
 
     // Remember the meeting title + type so the created session keeps them.
     _sessionName = title || null;
@@ -1134,6 +1173,7 @@
     if (authPage)       authPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
+    _setSidebarVisible(true);
 
     const token = _token();
     if (!token) return;
