@@ -3,10 +3,13 @@
 //! Kills any stale listener on port 2788, then spawns and supervises the
 //! engine (max restarts with linear backoff, give up if it dies immediately).
 
+use std::os::windows::process::CommandExt as _;
 use std::path::PathBuf;
 use std::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
+
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 const MAX_RESTARTS: u32 = 5;
 const MIN_HEALTHY_SECS: u64 = 30;
@@ -50,7 +53,7 @@ fn engine_paths(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
 fn kill_stale_listener(port: u16) {
     // `netstat -ano` lists "...:port ... LISTENING <pid>"; pull the PIDs and
     // taskkill them. Best-effort: ignore all errors.
-    let out = Command::new("netstat").args(["-ano"]).output();
+    let out = Command::new("netstat").args(["-ano"]).creation_flags(CREATE_NO_WINDOW).output();
     if let Ok(out) = out {
         let text = String::from_utf8_lossy(&out.stdout);
         let needle = format!(":{port}");
@@ -58,7 +61,7 @@ fn kill_stale_listener(port: u16) {
             if line.contains(&needle) && line.to_uppercase().contains("LISTENING") {
                 if let Some(pid) = line.split_whitespace().last() {
                     if pid.chars().all(|c| c.is_ascii_digit()) && pid != "0" {
-                        let _ = Command::new("taskkill").args(["/PID", pid, "/F"]).output();
+                        let _ = Command::new("taskkill").args(["/PID", pid, "/F"]).creation_flags(CREATE_NO_WINDOW).output();
                     }
                 }
             }
@@ -93,7 +96,8 @@ pub fn spawn_and_supervise(app: tauri::AppHandle) {
 
             let mut cmd = Command::new(&py);
             cmd.arg(engine_dir.join("main.py"))
-                .current_dir(&engine_dir);
+                .current_dir(&engine_dir)
+                .creation_flags(CREATE_NO_WINDOW);
             if let Some(log) = log {
                 let err = log.try_clone().ok();
                 cmd.stdout(log);
