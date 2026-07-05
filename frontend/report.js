@@ -8,6 +8,38 @@
   // instantly instead of re-fetching from the backend.
   const _sessionCache = new Map();
 
+  // ── Sidebar shell (collapse state + persistence) ────────────────────────
+
+  function _sidebarCollapsedPref() {
+    try { return localStorage.getItem('fluent.sidebarCollapsed') === '1'; }
+    catch (_) { return false; }
+  }
+
+  function _setSidebarCollapsedPref(collapsed) {
+    try { localStorage.setItem('fluent.sidebarCollapsed', collapsed ? '1' : '0'); }
+    catch (_) { /* ignore (e.g. private browsing) */ }
+  }
+
+  function initSidebarShell() {
+    const sidebar = document.getElementById('sidebar');
+    const toggle  = document.getElementById('sidebar-collapse-toggle');
+    if (!sidebar || !toggle) return;
+
+    if (_sidebarCollapsedPref()) {
+      sidebar.classList.remove('expanded');
+      sidebar.classList.add('collapsed');
+    }
+
+    toggle.addEventListener('click', () => {
+      const collapsed = sidebar.classList.contains('collapsed');
+      sidebar.classList.toggle('collapsed', !collapsed);
+      sidebar.classList.toggle('expanded', collapsed);
+      _setSidebarCollapsedPref(!collapsed);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initSidebarShell);
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function esc(str) {
