@@ -655,7 +655,7 @@
 
     sessionsPage.style.display = '';
     _setSidebarVisible(true);
-    if (_activeNavPref() === 'meetings' && window.showMeetings) {
+    if (_activeNavPref() === 'meetings') {
       window.showMeetings();
     } else {
       _setActiveNav('home');
@@ -683,7 +683,7 @@
       renderCommunicationProfile(null);  // honest default until /profile responds
       loadProfile(_token(), hasSessions);
     }
-    renderSessionsList(sessions);
+    renderSessionsList(sessions, 'sessions-list-preview', 5);
   };
 
   // Swift calls this to refresh the History list after a recording finishes,
@@ -691,13 +691,17 @@
   // report they're viewing). The webview can't fetch the backend itself due to
   // CORS, so Swift fetches natively and hands us the parsed sessions array.
   window.refreshSessionsList = function (sessions) {
-    renderSessionsList(sessions);
+    renderSessionsList(sessions, 'sessions-list-preview', 5);
+    const meetingsPage = document.getElementById('meetings-page');
+    if (meetingsPage && meetingsPage.style.display !== 'none') {
+      renderSessionsList(sessions, 'sessions-list-full');
+    }
   };
 
   // Render just the History list + summary (no page switching). Shared by
   // loadSessions (initial inject from Swift) and showSessions (live refetch).
-  function renderSessionsList(sessions) {
-    const listEl    = document.getElementById('sessions-list');
+  function renderSessionsList(sessions, targetElId, limit) {
+    const listEl = document.getElementById(targetElId || 'sessions-list-preview');
     if (!listEl) return;
 
     if (!sessions || sessions.length === 0) {
@@ -707,7 +711,8 @@
 
     listEl.innerHTML = '';
 
-    sessions.forEach(session => {
+    const rows = (typeof limit === 'number') ? sessions.slice(0, limit) : sessions;
+    rows.forEach(session => {
       const n = session.issue_count || 0;
       const countLabel = n === 0 ? 'No suggestions' : n === 1 ? '1 suggestion' : `${n} suggestions`;
       const dur = session.duration ? durationStr(session.duration) : '';
@@ -1126,7 +1131,7 @@
       apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
         .then(sessions => {
-          if (sessions) renderSessionsList(sessions);
+          if (sessions) renderSessionsList(sessions, 'sessions-list-preview', 5);
           const hasSessions = Array.isArray(sessions) && sessions.length > 0;
           loadProfile(token, hasSessions);  // refresh in case a meeting changed it
         })
@@ -1134,6 +1139,28 @@
     } else {
       loadProfile();
     }
+  };
+
+  window.showMeetings = function () {
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
+    if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
+    if (sessionsPage)   sessionsPage.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = 'none';
+    if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = '';
+    _setSidebarVisible(true);
+    _setActiveNav('meetings');
+
+    const token = _token();
+    if (!token) return;
+    apiFetch('/sessions')
+      .then(r => r.ok ? r.json() : null)
+      .then(sessions => { if (sessions) renderSessionsList(sessions, 'sessions-list-full'); })
+      .catch(() => {});
   };
 
   // Open the dedicated recording page for a "Coming up" meeting and start recording.
