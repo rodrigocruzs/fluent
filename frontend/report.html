@@ -8,6 +8,47 @@
 </head>
 <body>
 
+<div id="app-shell">
+  <aside id="sidebar" class="expanded">
+    <nav class="sidebar-nav">
+      <button type="button" class="nav-item" data-nav="home" id="nav-home">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 7.5 8 2l6 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3.5 6.5V13.5a.5.5 0 0 0 .5.5h3v-4h2v4h3a.5.5 0 0 0 .5-.5V6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="meetings" id="nav-meetings">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2.5" y="3" width="11" height="10.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M2.5 6h11M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="nav-label">Meetings</span>
+      </button>
+    </nav>
+
+    <button type="button" id="sidebar-collapse-toggle" aria-label="Collapse sidebar">
+      <span class="collapse-arrow" aria-hidden="true">&lsaquo;</span>
+    </button>
+
+    <div class="sidebar-account-wrap">
+      <div class="sidebar-account-popover" id="sidebar-account-popover" style="display:none">
+        <div class="sidebar-account-plan" id="sidebar-account-plan">—</div>
+        <button type="button" class="sidebar-account-settings-btn" id="sidebar-account-settings-btn">Settings</button>
+      </div>
+      <button type="button" class="sidebar-account" id="sidebar-account-trigger">
+        <span class="avatar" aria-hidden="true"></span>
+        <span class="account-label" id="sidebar-account-label">Account</span>
+      </button>
+    </div>
+  </aside>
+
+  <div id="page-content">
+
 <!-- Sessions list: default landing page -->
 <div id="sessions-page" style="display:none">
   <main class="page sessions-page-inner">
@@ -325,6 +366,9 @@
 
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
+
+  </div>
+</div>
 
 <script src="report.js?v=34"></script>
 </body>
