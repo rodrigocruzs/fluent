@@ -70,7 +70,13 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 GOOGLE_REDIRECT_URI  = os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8001/auth/google/callback")
 
 RESEND_API_KEY   = os.environ.get("RESEND_API_KEY", "")
-RESEND_FROM      = os.environ.get("RESEND_FROM_EMAIL", "Fluent <noreply@usefluent.app>")
+RESEND_FROM      = os.environ.get("RESEND_FROM_EMAIL", "Fluent <hello@tryfluent.co>")
+# Published Resend template for the trial-started welcome email. The email body
+# lives in the Resend dashboard (single source of truth) — the backend only
+# supplies variables. Override via env if the template is recreated.
+RESEND_TRIAL_TEMPLATE_ID = os.environ.get(
+    "RESEND_TRIAL_TEMPLATE_ID", "4268671b-adf5-4f2b-970f-04d6515bae31"
+)
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
@@ -79,14 +85,15 @@ if STRIPE_SECRET_KEY:
 def send_trial_started_email(email: str, name: str = "") -> None:
     """Send the trial-started welcome email when a user first creates an account.
 
+    The email body is a published Resend template (single source of truth in the
+    Resend dashboard); this only supplies the sender, recipient, and variables.
     Best-effort: never raise. Account creation must succeed even if email fails
-    or Resend is unconfigured. Mirrors the branding of the password-reset email.
+    or Resend is unconfigured.
     """
     if not RESEND_API_KEY or not email:
         return
 
     greeting = f"Hi {name.split()[0]}," if name.strip() else "Hi there,"
-    app_url = FRONTEND_URL
 
     try:
         import resend
@@ -94,77 +101,13 @@ def send_trial_started_email(email: str, name: str = "") -> None:
         resend.Emails.send({
             "from": RESEND_FROM,
             "to": [email],
-            "subject": "Your 7-day free trial of Fluent has started",
-            "html": f"""<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-             background:#faf9f7;color:#1a1a1a;margin:0;padding:0;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f7;padding:32px 0;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0"
-             style="max-width:520px;background:#fff;border-radius:16px;
-                    border:1px solid #ececec;padding:40px;">
-        <tr><td>
-          <div style="margin-bottom:28px;">
-            <div style="width:40px;height:40px;border-radius:10px;background:#C96442;
-                        display:inline-flex;align-items:center;justify-content:center;
-                        vertical-align:middle;">
-              <svg width="20" height="20" viewBox="0 0 14 14" fill="none">
-                <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
-                <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
-                <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
-              </svg>
-            </div>
-            <span style="font-size:20px;font-weight:600;letter-spacing:-0.02em;
-                         margin-left:10px;vertical-align:middle;">Fluent</span>
-          </div>
-
-          <p style="font-size:15px;color:#1a1a1a;line-height:1.6;margin:0 0 16px;">{greeting}</p>
-          <p style="font-size:15px;color:#1a1a1a;line-height:1.6;margin:0 0 8px;">
-            Your <strong>7-day free trial</strong> of Fluent has started. You now have full access to
-            real-time English coaching in every meeting.
-          </p>
-
-          <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:28px 0 12px;">Here's what you can do:</p>
-          <ul style="font-size:15px;color:#3a3a3a;line-height:1.6;margin:0;padding-left:20px;">
-            <li style="margin-bottom:12px;">
-              <strong>Get live feedback as you speak.</strong> Fluent listens during your calls and
-              suggests more natural, professional phrasing in real time.
-            </li>
-            <li style="margin-bottom:12px;">
-              <strong>Review every meeting afterwards.</strong> See a clear report of your grammar,
-              phrasing, and vocabulary improvements for each conversation.
-            </li>
-            <li style="margin-bottom:12px;">
-              <strong>Sound like a native speaker.</strong> Turn the way you already speak into
-              sharper, more confident business English.
-            </li>
-            <li style="margin-bottom:12px;">
-              <strong>Your audio is never retained.</strong> Calls are transcribed and the
-              audio is deleted immediately — only the text is used to coach you.
-            </li>
-          </ul>
-
-          <div style="margin:32px 0 8px;">
-            <a href="{app_url}"
-               style="display:inline-block;background:#C96442;color:#fff;text-decoration:none;
-                      font-size:15px;font-weight:500;padding:12px 24px;border-radius:8px;">
-              Open Fluent
-            </a>
-          </div>
-
-          <p style="font-size:13px;color:#8a8a8a;margin:28px 0 0;line-height:1.5;">
-            Your trial runs for 7 days. You won't be charged until it ends, and you can cancel
-            anytime from Settings.
-          </p>
-        </td></tr>
-      </table>
-      <p style="font-size:12px;color:#b0b0b0;margin:20px 0 0;">Fluent · English coaching for every meeting</p>
-    </td></tr>
-  </table>
-</body>
-</html>""",
+            "template": {
+                "id": RESEND_TRIAL_TEMPLATE_ID,
+                "variables": {
+                    "GREETING": greeting,
+                    "APP_URL": FRONTEND_URL,
+                },
+            },
         })
     except Exception:
         # Email is non-critical; swallow so signup always succeeds.
