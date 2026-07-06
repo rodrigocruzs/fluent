@@ -501,7 +501,7 @@ def calendar_upcoming(user: dict = Depends(_current_user)):
 
 @app.get("/auth/me")
 def get_me(user: dict = Depends(_current_user)):
-    return {"email": user["email"], "created_at": user["created_at"]}
+    return {"email": user["email"], "created_at": user["created_at"], "name": user.get("name") or ""}
 
 
 class ChangePasswordRequest(BaseModel):
