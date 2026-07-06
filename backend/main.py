@@ -77,18 +77,23 @@ RESEND_FROM      = os.environ.get("RESEND_FROM_EMAIL", "Fluent <hello@tryfluent.
 RESEND_TRIAL_TEMPLATE_ID = os.environ.get(
     "RESEND_TRIAL_TEMPLATE_ID", "4268671b-adf5-4f2b-970f-04d6515bae31"
 )
+# Published Resend template for the subscription-confirmed email, sent once when
+# a user's first payment succeeds (trial → active). Override via env if recreated.
+RESEND_SUBSCRIPTION_TEMPLATE_ID = os.environ.get(
+    "RESEND_SUBSCRIPTION_TEMPLATE_ID", "0fe834c3-bb78-4762-86e2-6518eff6447d"
+)
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
 
-def send_trial_started_email(email: str, name: str = "") -> None:
-    """Send the trial-started welcome email when a user first creates an account.
+def _send_template_email(template_id: str, email: str, name: str = "") -> None:
+    """Send a transactional email via a published Resend template.
 
-    The email body is a published Resend template (single source of truth in the
-    Resend dashboard); this only supplies the sender, recipient, and variables.
-    Best-effort: never raise. Account creation must succeed even if email fails
-    or Resend is unconfigured.
+    The email body is a single source of truth in the Resend dashboard; this
+    only supplies the sender, recipient, and the GREETING/APP_URL variables.
+    Best-effort: never raises — email is non-critical, so a failure here must
+    not break the signup or billing flow that triggered it.
     """
     if not RESEND_API_KEY or not email:
         return
@@ -102,16 +107,23 @@ def send_trial_started_email(email: str, name: str = "") -> None:
             "from": RESEND_FROM,
             "to": [email],
             "template": {
-                "id": RESEND_TRIAL_TEMPLATE_ID,
-                "variables": {
-                    "GREETING": greeting,
-                    "APP_URL": FRONTEND_URL,
-                },
+                "id": template_id,
+                "variables": {"GREETING": greeting, "APP_URL": FRONTEND_URL},
             },
         })
     except Exception:
-        # Email is non-critical; swallow so signup always succeeds.
         pass
+
+
+def send_trial_started_email(email: str, name: str = "") -> None:
+    """Trial-welcome email, sent when a user first creates an account."""
+    _send_template_email(RESEND_TRIAL_TEMPLATE_ID, email, name)
+
+
+def send_subscription_confirmed_email(email: str, name: str = "") -> None:
+    """Confirmation email, sent once when a user's first payment succeeds."""
+    _send_template_email(RESEND_SUBSCRIPTION_TEMPLATE_ID, email, name)
+
 
 app = FastAPI(title="Fluent API")
 
@@ -855,12 +867,18 @@ async def stripe_webhook(request: Request):
             current_period_end = (obj.get("current_period_end") or
                                   (obj.get("items", {}).get("data") or [{}])[0].get("current_period_end"))
             is_canceling = bool(obj.get("cancel_at_period_end") or obj.get("cancel_at"))
+            became_active = plan_status == "active" and user.get("plan_status") != "active"
             update_user_billing(user["id"],
                 plan_status=plan_status,
                 trial_ends_at=obj.get("trial_end"),
                 current_period_end=current_period_end,
                 cancel_at_period_end=is_canceling,
             )
+            # Fire once on the first transition into "active" (trial → paid). The
+            # DB flip above means whichever event arrives second sees the prior
+            # status already "active", so the email is not sent twice.
+            if became_active:
+                send_subscription_confirmed_email(user["email"], user.get("name") or "")
 
     elif event["type"] in ("customer.subscription.deleted", "customer.subscription.paused"):
         customer_id = obj.get("customer")
@@ -879,10 +897,16 @@ async def stripe_webhook(request: Request):
         customer_id = obj.get("customer")
         user = get_user_by_stripe_customer(customer_id)
         if user:
+            became_active = user.get("plan_status") != "active"
             update_user_billing(user["id"], plan_status="active")
             _posthog.capture(distinct_id=str(user["id"]), event="subscription_renewed",
                              properties={"amount_paid": obj.get("amount_paid", 0),
                                          "currency": obj.get("currency", "usd")})
+            # First paid invoice (trial → active). Renewals leave prior status
+            # "active", so this only fires on the initial conversion — and the
+            # DB flip guards against a duplicate from subscription.updated.
+            if became_active:
+                send_subscription_confirmed_email(user["email"], user.get("name") or "")
 
     return {"ok": True}
 
