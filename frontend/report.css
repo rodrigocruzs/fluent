@@ -1624,7 +1624,6 @@ mark.flag {
   flex: none;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   height: 100vh;
   position: sticky;
   top: 0;
@@ -1634,16 +1633,25 @@ mark.flag {
   overflow: hidden;
 }
 
-#sidebar.expanded { width: 220px; }
+#sidebar.expanded { width: 198px; }
 #sidebar.collapsed { width: 56px; }
 
 #app-shell.no-sidebar #sidebar { display: none; }
 
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: none;
+  padding: 12px 8px 4px;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
+  flex: none;
   gap: 2px;
-  padding: 16px 8px;
+  padding: 8px 8px 16px;
 }
 
 .nav-item {
@@ -1682,26 +1690,31 @@ mark.flag {
 }
 
 #sidebar-collapse-toggle {
-  align-self: flex-end;
-  margin: 0 8px 8px auto;
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: none;
   color: var(--gray-2);
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
 }
 
-#sidebar.collapsed #sidebar-collapse-toggle .collapse-arrow {
-  display: inline-block;
-  transform: rotate(180deg);
+#sidebar-collapse-toggle:hover {
+  background: var(--rule);
+  color: var(--ink-2);
+}
+
+#sidebar.collapsed .sidebar-header {
+  justify-content: center;
 }
 
 .sidebar-account-wrap {
   position: relative;
+  margin-top: auto;
   padding: 8px;
   border-top: 1px solid var(--rule);
 }
@@ -1733,9 +1746,23 @@ mark.flag {
 }
 
 .account-label {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.account-expand-icon {
+  flex: none;
+  display: inline-flex;
+  width: 10px;
+  height: 10px;
+  color: var(--gray-2);
+}
+
+#sidebar.collapsed .account-expand-icon {
+  display: none;
 }
 
 .sidebar-account-popover {
@@ -1751,15 +1778,56 @@ mark.flag {
 }
 
 .sidebar-account-plan {
-  font-size: 13px;
-  color: var(--gray-1);
-  padding: 4px 6px 8px;
-  border-bottom: 1px solid var(--rule);
-  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--row-hover);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
 }
 
+.sidebar-account-plan-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar-account-plan-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-account-plan-meta {
+  font-size: 12px;
+  color: var(--gray-2);
+}
+
+.sidebar-account-upgrade-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 6px 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sidebar-account-upgrade-btn:hover { opacity: 0.85; }
+
 .sidebar-account-settings-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 6px;
@@ -1773,6 +1841,14 @@ mark.flag {
 }
 
 .sidebar-account-settings-btn:hover { background: var(--row-hover); }
+
+.sidebar-account-settings-icon {
+  flex: none;
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  color: var(--gray-1);
+}
 
 #page-content {
   flex: 1;

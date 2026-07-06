@@ -98,6 +98,15 @@
         window.showSettings && window.showSettings();
       });
     }
+
+    const upgradeBtn = document.getElementById('sidebar-account-upgrade-btn');
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closePopover();
+        window.openBillingCheckout && window.openBillingCheckout();
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', initSidebarShell);
@@ -700,6 +709,7 @@
         .then(d => { if (d) _renderSidebarPlanLabel(d); })
         .catch(() => {});
     }
+    _loadSidebarAccountName();
     if (upNext !== undefined) {
       renderUpNext(upNext);
     } else if (window.__upNextPending) {
@@ -1264,6 +1274,7 @@
         if (emailEl) emailEl.textContent = data.email;
         const billingEmailEl = document.getElementById('settings-billing-email-val');
         if (billingEmailEl) billingEmailEl.textContent = data.email;
+        _renderSidebarAccountName(data);
       })
       .catch(() => {});
 
@@ -1299,16 +1310,59 @@
   };
 
   function _renderSidebarPlanLabel(data) {
+    const planEl     = document.getElementById('sidebar-account-plan');
+    const nameEl      = document.getElementById('sidebar-account-plan-name');
+    const metaEl      = document.getElementById('sidebar-account-plan-meta');
+    const upgradeBtn  = document.getElementById('sidebar-account-upgrade-btn');
+    if (!planEl || !data) return;
+    const { plan_status, trial_ends_at, cancel_at_period_end } = data;
+
+    let name = '';
+    let meta = '';
+    let showUpgrade = false;
+
+    if (plan_status === 'trial') {
+      const daysLeft = trial_ends_at ? Math.max(0, Math.ceil((trial_ends_at * 1000 - Date.now()) / 86400000)) : 0;
+      name = 'Free trial';
+      meta = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+      showUpgrade = true;
+    } else if (plan_status === 'active' && !cancel_at_period_end) {
+      name = 'Fluent Pro';
+    } else if (plan_status === 'active' && cancel_at_period_end) {
+      name = 'Fluent Pro';
+      meta = 'Cancels at period end';
+    } else if (plan_status === 'canceled') {
+      name = 'Trial ended';
+      showUpgrade = true;
+    } else {
+      planEl.style.display = 'none';
+      return;
+    }
+
+    if (nameEl) nameEl.textContent = name;
+    if (metaEl) metaEl.textContent = meta;
+    if (upgradeBtn) upgradeBtn.style.display = showUpgrade ? '' : 'none';
+    planEl.style.display = '';
+  }
+
+  // First name shown on the sidebar account row. `name` comes from Google
+  // OAuth signup; password-signup users have no name on file, so fall back
+  // to the email local-part (e.g. "jane" from "jane@example.com").
+  function _renderSidebarAccountName(data) {
     const labelEl = document.getElementById('sidebar-account-label');
-    const planEl  = document.getElementById('sidebar-account-plan');
-    if (!data) return;
-    const { plan_status } = data;
-    const text = plan_status === 'trial'    ? 'Free trial'
-               : plan_status === 'active'    ? 'Fluent Pro'
-               : plan_status === 'canceled'  ? 'Plan canceled'
-               : 'Account';
-    if (labelEl) labelEl.textContent = text;
-    if (planEl)  planEl.textContent  = text;
+    if (!labelEl || !data) return;
+    const firstName = (data.name || '').trim().split(/\s+/)[0];
+    const fallback  = (data.email || '').split('@')[0];
+    labelEl.textContent = firstName || fallback || 'Account';
+  }
+
+  function _loadSidebarAccountName() {
+    const token = _token();
+    if (!token) return;
+    apiFetch('/auth/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) _renderSidebarAccountName(d); })
+      .catch(() => {});
   }
 
   function renderBillingStatus(data) {
@@ -1483,6 +1537,8 @@
         alert('Could not open billing. Please try again.');
       }
     }
+
+    window.openBillingCheckout = openCheckout;
 
     const upgradeBtn             = document.getElementById('settings-upgrade-btn');
     const cancelTrialBtn         = document.getElementById('settings-cancel-trial-btn');
