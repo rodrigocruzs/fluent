@@ -61,7 +61,7 @@ from backend.meeting_types import (
 
 STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET  = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
-STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "")         # $10/mo price ID
+STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "")         # $20/mo price ID
 STRIPE_TRIAL_DAYS      = 7
 FRONTEND_URL           = os.environ.get("FRONTEND_URL", "https://www.tryfluent.co")
 
