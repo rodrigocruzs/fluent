@@ -42,7 +42,17 @@ function run(cmd, args, opts = {}) {
 }
 
 // Pick a base Python 3.10+ to create the venv from.
+//
+// FLUENT_BASE_PYTHON pins an exact interpreter and takes precedence. CI must
+// set it: on Windows the `py -3` launcher resolves to the NEWEST installed
+// Python (e.g. 3.14) regardless of PATH, and pyaudio/pyaudiowpatch have no
+// prebuilt wheels there — the venv must be built from a version that does.
 function basePython() {
+  const pinned = process.env.FLUENT_BASE_PYTHON;
+  if (pinned) {
+    execFileSync(pinned, ["--version"], { stdio: "ignore" });
+    return { cmd: pinned, pre: [] };
+  }
   const candidates = isWindows
     ? ["py", "python", "python3"]
     : ["python3", "python"];

@@ -45,6 +45,7 @@ jobs:
       # installs the engine deps (including the Windows-only C-extension wheels
       # pyaudio / pyaudiowpatch, which is why this must run on Windows).
       - uses: actions/setup-python@v5
+        id: setup-python
         with:
           python-version: "3.11"
 
@@ -68,6 +69,10 @@ jobs:
       # that trusted-signing-cli reads (AZURE_TENANT_ID / CLIENT_ID / SECRET).
       - name: Build Windows installer
         env:
+          # Pin the engine venv to the 3.11 provisioned above. Without this,
+          # bundle-engine.mjs's `py -3` resolves to the newest Python on the
+          # runner (3.14), which has no prebuilt pyaudio/pyaudiowpatch wheels.
+          FLUENT_BASE_PYTHON: ${{ steps.setup-python.outputs.python-path }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
