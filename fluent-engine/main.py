@@ -6,7 +6,9 @@ Writes ~/.fluent/reports/latest.json and fires a Darwin notification
 so Fluent.app renders the new report.
 """
 
+import ctypes
 import json
+import os
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -135,7 +137,35 @@ def make_handler(engine: Engine):
     return Handler
 
 
+def _start_parent_watchdog() -> None:
+    """Exit immediately when the parent process (fluent-windows.exe) dies.
+
+    Uses WaitForSingleObject on the parent's handle so the exit is
+    instantaneous — no polling, no delay — which prevents the engine from
+    holding pyaudio DLLs locked during installer/update file extraction.
+    """
+    if sys.platform != "win32":
+        return
+    parent_pid = os.getppid()
+    if parent_pid <= 1:
+        return
+
+    def _watch() -> None:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        SYNCHRONIZE = 0x00100000
+        handle = kernel32.OpenProcess(SYNCHRONIZE, False, parent_pid)
+        if not handle:
+            return
+        kernel32.WaitForSingleObject(handle, 0xFFFFFFFF)
+        kernel32.CloseHandle(handle)
+        os._exit(0)
+
+    threading.Thread(target=_watch, daemon=True).start()
+
+
 def main():
+    _start_parent_watchdog()
+
     cfg_dir = Path.home() / ".fluent"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     (cfg_dir / "reports").mkdir(exist_ok=True)
