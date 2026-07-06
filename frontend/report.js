@@ -99,6 +99,20 @@
       });
     }
 
+    const sidebarSignoutBtn = document.getElementById('sidebar-account-signout-btn');
+    if (sidebarSignoutBtn) {
+      sidebarSignoutBtn.addEventListener('click', () => {
+        closePopover();
+        localStorage.removeItem('fluent_token');
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.signOut) {
+          window.webkit.messageHandlers.signOut.postMessage(null);
+        } else {
+          fetch('http://127.0.0.1:2788/signout', { method: 'POST' }).catch(() => {});
+          window.showOnboarding && window.showOnboarding();
+        }
+      });
+    }
+
     const upgradeBtn = document.getElementById('sidebar-account-upgrade-btn');
     if (upgradeBtn) {
       upgradeBtn.addEventListener('click', (e) => {

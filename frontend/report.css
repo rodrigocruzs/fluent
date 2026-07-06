@@ -1842,6 +1842,9 @@ mark.flag {
 
 .sidebar-account-settings-btn:hover { background: var(--row-hover); }
 
+.sidebar-account-signout-btn { color: #b94040; }
+.sidebar-account-signout-btn:hover { background: #fdf0f0; }
+
 .sidebar-account-settings-icon {
   flex: none;
   display: inline-flex;
