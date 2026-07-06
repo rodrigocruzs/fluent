@@ -65,6 +65,39 @@
 
     if (homeBtn) homeBtn.addEventListener('click', () => window.showSessions && window.showSessions());
     if (meetingsBtn) meetingsBtn.addEventListener('click', () => window.showMeetings && window.showMeetings());
+
+    const accountTrigger  = document.getElementById('sidebar-account-trigger');
+    const accountPopover  = document.getElementById('sidebar-account-popover');
+    const settingsBtn     = document.getElementById('sidebar-account-settings-btn');
+
+    function closePopover() {
+      if (accountPopover) accountPopover.style.display = 'none';
+    }
+
+    if (accountTrigger && accountPopover) {
+      accountTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = accountPopover.style.display !== 'none';
+        accountPopover.style.display = isOpen ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (accountPopover.style.display === 'none') return;
+        if (accountPopover.contains(e.target) || accountTrigger.contains(e.target)) return;
+        closePopover();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePopover();
+      });
+    }
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        closePopover();
+        window.showSettings && window.showSettings();
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', initSidebarShell);
@@ -659,6 +692,13 @@
       window.showMeetings();
     } else {
       _setActiveNav('home');
+    }
+    const _planToken = _token();
+    if (_planToken) {
+      apiFetch('/billing/status', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) _renderSidebarPlanLabel(d); })
+        .catch(() => {});
     }
     if (upNext !== undefined) {
       renderUpNext(upNext);
@@ -1256,7 +1296,21 @@
       .catch(() => {});
   };
 
+  function _renderSidebarPlanLabel(data) {
+    const labelEl = document.getElementById('sidebar-account-label');
+    const planEl  = document.getElementById('sidebar-account-plan');
+    if (!data) return;
+    const { plan_status } = data;
+    const text = plan_status === 'trial'    ? 'Free trial'
+               : plan_status === 'active'    ? 'Fluent Pro'
+               : plan_status === 'canceled'  ? 'Plan canceled'
+               : 'Account';
+    if (labelEl) labelEl.textContent = text;
+    if (planEl)  planEl.textContent  = text;
+  }
+
   function renderBillingStatus(data) {
+    _renderSidebarPlanLabel(data);
     const { plan_status, trial_ends_at, current_period_end, cancel_at_period_end } = data;
 
     // Plan section
