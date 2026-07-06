@@ -4,9 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fluent</title>
-<link rel="stylesheet" href="report.css">
+<link rel="stylesheet" href="report.css?v=2">
 </head>
 <body>
+
+<div id="app-shell">
+  <aside id="sidebar" class="expanded">
+    <nav class="sidebar-nav">
+      <button type="button" class="nav-item" data-nav="home" id="nav-home">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 7.5 8 2l6 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3.5 6.5V13.5a.5.5 0 0 0 .5.5h3v-4h2v4h3a.5.5 0 0 0 .5-.5V6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button type="button" class="nav-item" data-nav="meetings" id="nav-meetings">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2.5" y="3" width="11" height="10.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M2.5 6h11M5.5 1.5v3M10.5 1.5v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="nav-label">Meetings</span>
+      </button>
+    </nav>
+
+    <button type="button" id="sidebar-collapse-toggle" aria-label="Collapse sidebar">
+      <span class="collapse-arrow" aria-hidden="true">&lsaquo;</span>
+    </button>
+
+    <div class="sidebar-account-wrap">
+      <div class="sidebar-account-popover" id="sidebar-account-popover" style="display:none">
+        <div class="sidebar-account-plan" id="sidebar-account-plan">—</div>
+        <button type="button" class="sidebar-account-settings-btn" id="sidebar-account-settings-btn">Settings</button>
+      </div>
+      <button type="button" class="sidebar-account" id="sidebar-account-trigger">
+        <span class="avatar" aria-hidden="true"></span>
+        <span class="account-label" id="sidebar-account-label">Account</span>
+      </button>
+    </div>
+  </aside>
+
+  <div id="page-content">
 
 <!-- Sessions list: default landing page -->
 <div id="sessions-page" style="display:none">
@@ -71,7 +112,27 @@
     </section>
 
     <div class="sessions-label">History</div>
-    <section class="sessions" id="sessions-list"></section>
+    <section class="sessions" id="sessions-list-preview"></section>
+  </main>
+</div>
+
+<!-- Meetings: full historic sessions list -->
+<div id="meetings-page" style="display:none">
+  <main class="page">
+    <header class="masthead sessions-masthead">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 4 Q 4 1, 7 4 T 12 4" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+            <path d="M2 7 Q 4 4, 7 7 T 12 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.7"/>
+            <path d="M2 10 Q 4 7, 7 10 T 12 10" stroke="#fff" stroke-width="1.6" stroke-linecap="round" fill="none" opacity="0.4"/>
+          </svg>
+        </span>
+        <span class="wordmark">Fluent</span>
+      </div>
+    </header>
+    <div class="sessions-label">Meetings</div>
+    <section class="sessions" id="sessions-list-full"></section>
   </main>
 </div>
 
@@ -326,6 +387,9 @@
 <!-- Report: populated by window.loadReport(data) -->
 <div class="report-page" id="page"></div>
 
-<script src="report.js?v=34"></script>
+  </div>
+</div>
+
+<script src="report.js?v=35"></script>
 </body>
 </html>

@@ -8,6 +8,100 @@
   // instantly instead of re-fetching from the backend.
   const _sessionCache = new Map();
 
+  // ── Sidebar shell (collapse state + persistence) ────────────────────────
+
+  function _sidebarCollapsedPref() {
+    try { return localStorage.getItem('fluent.sidebarCollapsed') === '1'; }
+    catch (_) { return false; }
+  }
+
+  function _setSidebarCollapsedPref(collapsed) {
+    try { localStorage.setItem('fluent.sidebarCollapsed', collapsed ? '1' : '0'); }
+    catch (_) { /* ignore (e.g. private browsing) */ }
+  }
+
+  function _activeNavPref() {
+    try {
+      const v = localStorage.getItem('fluent.activeNav');
+      return (v === 'home' || v === 'meetings') ? v : 'home';
+    } catch (_) { return 'home'; }
+  }
+
+  function _setActiveNavPref(name) {
+    try { localStorage.setItem('fluent.activeNav', name); }
+    catch (_) { /* ignore */ }
+  }
+
+  function _setActiveNav(name) {
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.getAttribute('data-nav') === name);
+    });
+    _setActiveNavPref(name);
+  }
+
+  function _setSidebarVisible(visible) {
+    const shell = document.getElementById('app-shell');
+    if (shell) shell.classList.toggle('no-sidebar', !visible);
+  }
+
+  function initSidebarShell() {
+    const sidebar     = document.getElementById('sidebar');
+    const toggle       = document.getElementById('sidebar-collapse-toggle');
+    const homeBtn      = document.getElementById('nav-home');
+    const meetingsBtn  = document.getElementById('nav-meetings');
+    if (!sidebar || !toggle) return;
+
+    if (_sidebarCollapsedPref()) {
+      sidebar.classList.remove('expanded');
+      sidebar.classList.add('collapsed');
+    }
+
+    toggle.addEventListener('click', () => {
+      const collapsed = sidebar.classList.contains('collapsed');
+      sidebar.classList.toggle('collapsed', !collapsed);
+      sidebar.classList.toggle('expanded', collapsed);
+      _setSidebarCollapsedPref(!collapsed);
+    });
+
+    if (homeBtn) homeBtn.addEventListener('click', () => window.showSessions && window.showSessions());
+    if (meetingsBtn) meetingsBtn.addEventListener('click', () => window.showMeetings && window.showMeetings());
+
+    const accountTrigger  = document.getElementById('sidebar-account-trigger');
+    const accountPopover  = document.getElementById('sidebar-account-popover');
+    const settingsBtn     = document.getElementById('sidebar-account-settings-btn');
+
+    function closePopover() {
+      if (accountPopover) accountPopover.style.display = 'none';
+    }
+
+    if (accountTrigger && accountPopover) {
+      accountTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = accountPopover.style.display !== 'none';
+        accountPopover.style.display = isOpen ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (accountPopover.style.display === 'none') return;
+        if (accountPopover.contains(e.target) || accountTrigger.contains(e.target)) return;
+        closePopover();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closePopover();
+      });
+    }
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        closePopover();
+        window.showSettings && window.showSettings();
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', initSidebarShell);
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   function esc(str) {
@@ -593,6 +687,19 @@
     if (settingsPage)   settingsPage.style.display = 'none';
 
     sessionsPage.style.display = '';
+    _setSidebarVisible(true);
+    if (_activeNavPref() === 'meetings') {
+      window.showMeetings();
+    } else {
+      _setActiveNav('home');
+    }
+    const _planToken = _token();
+    if (_planToken) {
+      apiFetch('/billing/status', { cache: 'no-store' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) _renderSidebarPlanLabel(d); })
+        .catch(() => {});
+    }
     if (upNext !== undefined) {
       renderUpNext(upNext);
     } else if (window.__upNextPending) {
@@ -616,7 +723,7 @@
       renderCommunicationProfile(null);  // honest default until /profile responds
       loadProfile(_token(), hasSessions);
     }
-    renderSessionsList(sessions);
+    renderSessionsList(sessions, 'sessions-list-preview', 5);
   };
 
   // Swift calls this to refresh the History list after a recording finishes,
@@ -624,13 +731,17 @@
   // report they're viewing). The webview can't fetch the backend itself due to
   // CORS, so Swift fetches natively and hands us the parsed sessions array.
   window.refreshSessionsList = function (sessions) {
-    renderSessionsList(sessions);
+    renderSessionsList(sessions, 'sessions-list-preview', 5);
+    const meetingsPage = document.getElementById('meetings-page');
+    if (meetingsPage && meetingsPage.style.display !== 'none') {
+      renderSessionsList(sessions, 'sessions-list-full');
+    }
   };
 
   // Render just the History list + summary (no page switching). Shared by
   // loadSessions (initial inject from Swift) and showSessions (live refetch).
-  function renderSessionsList(sessions) {
-    const listEl    = document.getElementById('sessions-list');
+  function renderSessionsList(sessions, targetElId, limit) {
+    const listEl = document.getElementById(targetElId || 'sessions-list-preview');
     if (!listEl) return;
 
     if (!sessions || sessions.length === 0) {
@@ -640,7 +751,8 @@
 
     listEl.innerHTML = '';
 
-    sessions.forEach(session => {
+    const rows = (typeof limit === 'number') ? sessions.slice(0, limit) : sessions;
+    rows.forEach(session => {
       const n = session.issue_count || 0;
       const countLabel = n === 0 ? 'No suggestions' : n === 1 ? '1 suggestion' : `${n} suggestions`;
       const dur = session.duration ? durationStr(session.duration) : '';
@@ -719,6 +831,8 @@
     if (sessionsPage) sessionsPage.style.display = 'none';
     const recordingPage = document.getElementById('recording-page');
     if (recordingPage) recordingPage.style.display = 'none';
+    const meetingsPage = document.getElementById('meetings-page');
+    if (meetingsPage) meetingsPage.style.display = 'none';
 
     // Meta line: "June 13, 2026 · 09:31 · 10 sec"
     const metaParts = [esc(date), time && esc(time), esc(durationLong(duration))].filter(Boolean);
@@ -856,11 +970,14 @@
     const authPage      = document.getElementById('auth-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (authPage)       authPage.style.display = '';
+    _setSidebarVisible(false);
   };
 
   // ── Auth page logic ───────────────────────────────────────────────────────
@@ -1037,11 +1154,15 @@
     const sessionsPage  = document.getElementById('sessions-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     page.classList.remove('visible');
     page.innerHTML = '';
     if (settingsPage)  settingsPage.style.display = 'none';
     if (recordingPage) recordingPage.style.display = 'none';
+    if (meetingsPage)  meetingsPage.style.display = 'none';
     if (sessionsPage)  sessionsPage.style.display = '';
+    _setSidebarVisible(true);
+    _setActiveNav('home');
     _resetBillingDetailsFlag();
     loadUpNext();
     renderCommunicationProfile();  // re-render last known profile
@@ -1056,7 +1177,7 @@
       apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
         .then(sessions => {
-          if (sessions) renderSessionsList(sessions);
+          if (sessions) renderSessionsList(sessions, 'sessions-list-preview', 5);
           const hasSessions = Array.isArray(sessions) && sessions.length > 0;
           loadProfile(token, hasSessions);  // refresh in case a meeting changed it
         })
@@ -1066,6 +1187,28 @@
     }
   };
 
+  window.showMeetings = function () {
+    const page          = document.getElementById('page');
+    const sessionsPage  = document.getElementById('sessions-page');
+    const settingsPage  = document.getElementById('settings-page');
+    const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
+    if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
+    if (sessionsPage)   sessionsPage.style.display = 'none';
+    if (settingsPage)   settingsPage.style.display = 'none';
+    if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = '';
+    _setSidebarVisible(true);
+    _setActiveNav('meetings');
+
+    const token = _token();
+    if (!token) return;
+    apiFetch('/sessions')
+      .then(r => r.ok ? r.json() : null)
+      .then(sessions => { if (sessions) renderSessionsList(sessions, 'sessions-list-full'); })
+      .catch(() => {});
+  };
+
   // Open the dedicated recording page for a "Coming up" meeting and start recording.
   window.openRecordingPage = function (title, meetingType) {
     const page          = document.getElementById('page');
@@ -1073,14 +1216,17 @@
     const settingsPage  = document.getElementById('settings-page');
     const authPage      = document.getElementById('auth-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     const titleEl       = document.getElementById('recording-title');
 
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (titleEl)        titleEl.textContent = title || 'Recording';
     if (recordingPage)  recordingPage.style.display = '';
+    _setSidebarVisible(false);
 
     // Remember the meeting title + type so the created session keeps them.
     _sessionName = title || null;
@@ -1097,11 +1243,14 @@
     const authPage      = document.getElementById('auth-page');
     const settingsPage  = document.getElementById('settings-page');
     const recordingPage = document.getElementById('recording-page');
+    const meetingsPage  = document.getElementById('meetings-page');
     if (page)         { page.classList.remove('visible'); page.innerHTML = ''; }
     if (sessionsPage)   sessionsPage.style.display = 'none';
     if (authPage)       authPage.style.display = 'none';
     if (recordingPage)  recordingPage.style.display = 'none';
+    if (meetingsPage)   meetingsPage.style.display = 'none';
     if (settingsPage)   settingsPage.style.display = 'block';
+    _setSidebarVisible(true);
 
     const token = _token();
     if (!token) return;
@@ -1149,7 +1298,21 @@
       .catch(() => {});
   };
 
+  function _renderSidebarPlanLabel(data) {
+    const labelEl = document.getElementById('sidebar-account-label');
+    const planEl  = document.getElementById('sidebar-account-plan');
+    if (!data) return;
+    const { plan_status } = data;
+    const text = plan_status === 'trial'    ? 'Free trial'
+               : plan_status === 'active'    ? 'Fluent Pro'
+               : plan_status === 'canceled'  ? 'Plan canceled'
+               : 'Account';
+    if (labelEl) labelEl.textContent = text;
+    if (planEl)  planEl.textContent  = text;
+  }
+
   function renderBillingStatus(data) {
+    _renderSidebarPlanLabel(data);
     const { plan_status, trial_ends_at, current_period_end, cancel_at_period_end } = data;
 
     // Plan section
@@ -1469,7 +1632,14 @@
     if (token) {
       apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
-        .then(sessions => { if (sessions) renderSessionsList(sessions); })
+        .then(sessions => {
+          if (!sessions) return;
+          renderSessionsList(sessions, 'sessions-list-preview', 5);
+          const meetingsPage = document.getElementById('meetings-page');
+          if (meetingsPage && meetingsPage.style.display !== 'none') {
+            renderSessionsList(sessions, 'sessions-list-full');
+          }
+        })
         .catch(() => {});
     }
   };
