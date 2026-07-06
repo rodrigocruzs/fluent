@@ -831,6 +831,8 @@
     if (sessionsPage) sessionsPage.style.display = 'none';
     const recordingPage = document.getElementById('recording-page');
     if (recordingPage) recordingPage.style.display = 'none';
+    const meetingsPage = document.getElementById('meetings-page');
+    if (meetingsPage) meetingsPage.style.display = 'none';
 
     // Meta line: "June 13, 2026 · 09:31 · 10 sec"
     const metaParts = [esc(date), time && esc(time), esc(durationLong(duration))].filter(Boolean);
@@ -1630,7 +1632,14 @@
     if (token) {
       apiFetch('/sessions')
         .then(r => r.ok ? r.json() : null)
-        .then(sessions => { if (sessions) renderSessionsList(sessions); })
+        .then(sessions => {
+          if (!sessions) return;
+          renderSessionsList(sessions, 'sessions-list-preview', 5);
+          const meetingsPage = document.getElementById('meetings-page');
+          if (meetingsPage && meetingsPage.style.display !== 'none') {
+            renderSessionsList(sessions, 'sessions-list-full');
+          }
+        })
         .catch(() => {});
     }
   };
