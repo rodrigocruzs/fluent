@@ -52,6 +52,12 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # Generate the icon set (icon.ico + PNGs) from the committed
+      # icon-source.png. These are gitignored (build artifacts), so CI must
+      # regenerate them — tauri-build fails without src-tauri/icons/icon.ico.
+      - name: Generate app icons
+        run: npm run icons
+
       # Azure Trusted Signing CLI, invoked by tauri.conf.json's signCommand.
       # The `cargo install` binary is named `trusted-signing-cli`, but the
       # committed signCommand invokes `artifact-signing-cli` — expose that name
