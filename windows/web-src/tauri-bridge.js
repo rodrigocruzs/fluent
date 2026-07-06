@@ -67,7 +67,9 @@
   }
 
   function signOut() {
-    invoke("sign_out").catch((e) => console.error("[bridge] signOut failed", e));
+    invoke("sign_out")
+      .then(() => { window.showOnboarding && window.showOnboarding(); })
+      .catch((e) => console.error("[bridge] signOut failed", e));
   }
 
   // authComplete: on macOS Swift used this to persist the token to the engine.
