@@ -1,0 +1,87 @@
+name: Windows installer
+
+# Builds (and, when Azure secrets are present, code-signs) the Windows NSIS
+# installer for the Fluent Tauri shell. Runs on windows-latest because Tauri
+# compiles a native windows-msvc binary and bundles a Windows CPython engine —
+# neither can be produced from macOS/Linux.
+#
+# Trigger it manually from the Actions tab, or on a version tag (v*).
+# The signed installer is uploaded as a build artifact.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node — runs sync-frontend.mjs + bundle-engine.mjs (the `prebuild` step)
+      # and drives the Tauri CLI.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      # Rust — the Tauri host is a Rust crate compiled with the MSVC toolchain
+      # (default on windows-latest).
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Cache the Rust build to keep CI fast. Keyed on the Cargo lockfile.
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: windows/src-tauri
+
+      # Python 3.11 — bundle-engine.mjs creates the shipped CPython venv and
+      # installs the engine deps (including the Windows-only C-extension wheels
+      # pyaudio / pyaudiowpatch, which is why this must run on Windows).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # Azure Trusted Signing CLI, invoked by tauri.conf.json's signCommand.
+      # The `cargo install` binary is named `trusted-signing-cli`, but the
+      # committed signCommand invokes `artifact-signing-cli` — expose that name
+      # too via a copy on PATH so the sign step resolves regardless.
+      - name: Install Trusted Signing CLI
+        shell: pwsh
+        run: |
+          cargo install trusted-signing-cli
+          $bin = Join-Path $env:USERPROFILE ".cargo\bin"
+          Copy-Item "$bin\trusted-signing-cli.exe" "$bin\artifact-signing-cli.exe" -Force
+
+      # Build the installer. `npm run build` runs prebuild (sync-frontend +
+      # bundle-engine) then `tauri build`, which produces and signs the NSIS
+      # installer. Azure auth is supplied via the service-principal env vars
+      # that trusted-signing-cli reads (AZURE_TENANT_ID / CLIENT_ID / SECRET).
+      - name: Build Windows installer
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          # The Tauri updater signs the update bundle with the minisign key.
+          # Provide these secrets if you publish auto-updates; harmless if unset.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run build
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: fluent-windows-installer
+          path: |
+            windows/src-tauri/target/release/bundle/nsis/*-setup.exe
+            windows/src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          if-no-files-found: error
