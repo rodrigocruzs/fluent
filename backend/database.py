@@ -45,6 +45,19 @@ class _PooledConnection:
         self._pool = _get_pool()
         self._conn = self._pool.getconn()
         self._conn.autocommit = False
+        # Neon (and the network path to it) silently closes idle connections
+        # server-side; a warm Lambda instance can hand back a pooled
+        # connection whose socket is already dead, surfacing as
+        # "SSL connection has been closed unexpectedly" on first use. Ping
+        # before handing the connection to callers, discarding and replacing
+        # it with a fresh one if the ping fails.
+        try:
+            with self._conn.cursor() as cur:
+                cur.execute("SELECT 1")
+        except psycopg2.OperationalError:
+            self._pool.putconn(self._conn, close=True)
+            self._conn = self._pool.getconn()
+            self._conn.autocommit = False
 
     def __enter__(self) -> psycopg2.extensions.connection:
         return self._conn
