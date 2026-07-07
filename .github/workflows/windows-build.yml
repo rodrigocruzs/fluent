@@ -28,7 +28,16 @@ jobs:
         working-directory: windows
 
     steps:
+      # fetch-depth: 0 + fetch-tags: true are required so the "Extract release
+      # notes from the tag" step below can read the annotated tag's message
+      # (git tag -l --format='%(contents)'); the default shallow, single-ref
+      # checkout doesn't fetch the tag object, only the commit it points at,
+      # so that read silently comes back empty and falls back to the commit
+      # message instead of the tag's actual release notes.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Determine if this is a release (tag) run
         id: release

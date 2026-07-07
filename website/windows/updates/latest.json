@@ -1,6 +1,6 @@
 {
   "version": "0.1.1",
-  "notes": "fix(ci): grant contents:write so the publish step can push to main\n\nThe v0.1.1 release build got all the way through build, sign, and\nmanifest generation, then failed at the final push with a 403:\n\"Permission to rodrigocruzs/fluent.git denied to github-actions[bot]\".\nThe workflow had no `permissions:` block, so it inherited the repo's\ndefault (read-only) GITHUB_TOKEN scope. Add contents:write so the\n\"Publish installer + manifest to website\" step's git push succeeds.\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>",
+  "notes": "Automate Windows release publishing: CI now builds, signs, and publishes the installer + auto-update manifest on every tagged release",
   "pub_date": "2026-07-07T16:07:41.560Z",
   "platforms": {
     "windows-x86_64": {
