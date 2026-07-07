@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		09FD31023E70CD1F903A2938 /* DarwinNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */; };
-		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
 		5A2731DF508317FE8E8A822B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3844E4D54D3AC4BBB3D7473E /* AppDelegate.swift */; };
 		82A73E8E110413AB410D64C4 /* ReportWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */; };
 		9D5F6BB59CAFA35CCEC1EF0D /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CD58649180C4615790A131 /* WebViewController.swift */; };
@@ -18,6 +17,7 @@
 		B1C200A300000003 /* report.js in Resources */ = {isa = PBXBuildFile; fileRef = 3BB654DF2FC340630049424F /* report.js */; };
 		B1C200A400000004 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = B1C200C000000020 /* engine */; };
 		B1C200A500000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C200D000000030 /* Assets.xcassets */; };
+		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,8 +32,8 @@
 		B1C200C000000020 /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = "../fluent-engine"; sourceTree = SOURCE_ROOT; };
 		B1C200D000000030 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DarwinNotificationBridge.swift; sourceTree = "<group>"; };
-		F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSetupWindowController.swift; sourceTree = "<group>"; };
 		EA5342D38872AC0B957CBC5E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSetupWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -89,6 +89,7 @@
 			);
 			name = Fluent;
 			packageProductDependencies = (
+				3BF6864B2FFD63220080C119 /* Sparkle */,
 			);
 			productName = Fluent;
 			productReference = 2C6E64A7A9EC2D44FCB9F3BF /* Fluent.app */;
@@ -112,6 +113,9 @@
 			);
 			mainGroup = 16AE18846E540A5D1328E3C2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3BF6864A2FFD63220080C119 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF5E91F7432AA7B0BAE534CC /* Products */;
 			projectDirPath = "";
@@ -363,6 +367,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3BF6864A2FFD63220080C119 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3BF6864B2FFD63220080C119 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3BF6864A2FFD63220080C119 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6368F7AFC2A77C08E41B9581 /* Project object */;
 }
