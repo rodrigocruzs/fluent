@@ -20,3 +20,15 @@ separately.
 available** — every app already in the wild trusts the original public key
 baked into its `Info.plist`. A new keypair breaks auto-updates for everyone
 already installed; they'd need to manually reinstall once more.
+
+## If a release aborts partway through
+
+`release.sh` stamps `fluent/Fluent/Info.plist` with the new version/build
+number before it builds, but only commits and pushes at the very end. If
+notarization or the final publish step fails, that stamp is left as an
+uncommitted local change. Before re-running the release, discard it so the
+build number doesn't get bumped twice for one published release:
+
+```bash
+git checkout fluent/Fluent/Info.plist
+```

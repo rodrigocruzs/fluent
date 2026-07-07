@@ -28,6 +28,16 @@ if [ -z "$TAG_MSG" ]; then
   exit 1
 fi
 
+# This script ends by pushing straight to origin/main (no PR, no review) —
+# correct for a real release cut from main, but if run from any other branch
+# it publishes that branch's entire unreviewed history as a side effect.
+CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$CURRENT_BRANCH" != "main" ]; then
+  echo "ERROR: release.sh must be run from 'main' (currently on '$CURRENT_BRANCH')." >&2
+  echo "  Merge/review this branch into main first, then re-run from main." >&2
+  exit 1
+fi
+
 SPARKLE_CLI="$HOME/.local/sparkle-cli/bin"
 if [ ! -x "$SPARKLE_CLI/sign_update" ]; then
   echo "ERROR: Sparkle CLI tools not found at $SPARKLE_CLI" >&2
@@ -165,7 +175,7 @@ NOTES_FILE=$(mktemp /tmp/fluent_release_notes_XXXXXX.txt)
 printf '%s' "$TAG_MSG" > "$NOTES_FILE"
 DOWNLOAD_URL="https://www.tryfluent.co/mac/updates/Fluent-$VERSION.zip"
 node "$REPO_ROOT/scripts/generate-appcast.mjs" \
-  "$VERSION" "$NOTES_FILE" "$UPDATE_SIGNATURE" "$ZIP_LENGTH" "$DOWNLOAD_URL" "$APPCAST_PATH"
+  "$VERSION" "$NEW_BUILD" "$NOTES_FILE" "$UPDATE_SIGNATURE" "$ZIP_LENGTH" "$DOWNLOAD_URL" "$APPCAST_PATH"
 rm -f "$NOTES_FILE"
 
 # ── 10. Publish to the website ───────────────────────────────────────────────

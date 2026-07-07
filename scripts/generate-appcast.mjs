@@ -3,8 +3,16 @@
 // fluent/Fluent/Info.plist). Schema:
 // https://sparkle-project.org/documentation/publishing/
 //
+// Sparkle compares an installed app's CFBundleVersion (build number) against
+// the appcast's <sparkle:version> to decide if an update is newer — NOT
+// against the marketing version. So <sparkle:version> must carry the build
+// number, and <sparkle:shortVersionString> carries the marketing version
+// shown to users. Getting this backwards means every future dotted marketing
+// version (e.g. "1.4") sorts as older than a plain build-number string
+// (e.g. "4"), and updates are never offered.
+//
 // Used both as a library (generateAppcast, for tests) and as a CLI:
-//   node generate-appcast.mjs <version> <notesFile> <signature> <length> <downloadUrl> <outFile>
+//   node generate-appcast.mjs <version> <buildNumber> <notesFile> <signature> <length> <downloadUrl> <outFile>
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -18,7 +26,7 @@ function escapeXml(str) {
     .replace(/"/g, "&quot;");
 }
 
-export function generateAppcast({ version, notes, pubDate, signature, length, downloadUrl }) {
+export function generateAppcast({ version, buildNumber, notes, pubDate, signature, length, downloadUrl }) {
   if (version.startsWith("v")) {
     throw new Error('version must not include a leading "v" (strip the tag prefix first)');
   }
@@ -34,7 +42,7 @@ export function generateAppcast({ version, notes, pubDate, signature, length, do
       <title>Version ${escapeXml(version)}</title>
       <description><![CDATA[${notes}]]></description>
       <pubDate>${pubDate}</pubDate>
-      <sparkle:version>${escapeXml(version)}</sparkle:version>
+      <sparkle:version>${escapeXml(String(buildNumber))}</sparkle:version>
       <sparkle:shortVersionString>${escapeXml(version)}</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
@@ -51,10 +59,10 @@ export function generateAppcast({ version, notes, pubDate, signature, length, do
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
-  const [, , version, notesFile, signature, length, downloadUrl, outFile] = process.argv;
-  if (!version || !notesFile || !signature || !length || !downloadUrl || !outFile) {
+  const [, , version, buildNumber, notesFile, signature, length, downloadUrl, outFile] = process.argv;
+  if (!version || !buildNumber || !notesFile || !signature || !length || !downloadUrl || !outFile) {
     console.error(
-      "usage: generate-appcast.mjs <version> <notesFile> <signature> <length> <downloadUrl> <outFile>"
+      "usage: generate-appcast.mjs <version> <buildNumber> <notesFile> <signature> <length> <downloadUrl> <outFile>"
     );
     process.exit(1);
   }
@@ -62,9 +70,17 @@ if (isMain) {
   const notes = readFileSync(notesFile, "utf8").trim();
   const pubDate = new Date().toUTCString();
 
-  const xml = generateAppcast({ version, notes, pubDate, signature, length: Number(length), downloadUrl });
+  const xml = generateAppcast({
+    version,
+    buildNumber: Number(buildNumber),
+    notes,
+    pubDate,
+    signature,
+    length: Number(length),
+    downloadUrl,
+  });
 
   mkdirSync(dirname(outFile), { recursive: true });
   writeFileSync(outFile, xml);
-  console.log(`[generate-appcast] wrote ${outFile} (version ${version})`);
+  console.log(`[generate-appcast] wrote ${outFile} (version ${version}, build ${buildNumber})`);
 }
