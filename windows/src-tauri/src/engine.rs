@@ -118,9 +118,13 @@ fn engine_job() -> *mut c_void {
 ///
 /// Production (installed): the pre-built bundle ships as a Tauri resource at
 /// `<resource_dir>/engine-bundle/` (see bundle-engine.mjs + tauri.conf
-/// bundle.resources), with venv\Scripts\python.exe + main.py inside.
-/// Dev: the M2 venv at repo/fluent-engine/venv, resolved relative to the crate
-/// or the current dir.
+/// bundle.resources), with venv\python.exe + main.py inside — a standalone
+/// copy of the base CPython install, not a venv (Windows venv redirectors
+/// depend on the exact machine/path they were created on, so they can't be
+/// shipped; see bundle-engine.mjs for the full explanation).
+/// Dev: the M2 venv at repo/fluent-engine/venv (a real venv, created locally
+/// via `python -m venv`, hence venv\Scripts\python.exe), resolved relative to
+/// the crate or the current dir.
 fn engine_paths(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
     use tauri::Manager;
 
@@ -139,10 +143,17 @@ fn engine_paths(app: &tauri::AppHandle) -> Option<(PathBuf, PathBuf)> {
     candidates.push(std::env::current_dir().unwrap_or_default().join("../fluent-engine"));
 
     for engine_dir in candidates {
-        let py = engine_dir.join("venv").join("Scripts").join("python.exe");
         let main = engine_dir.join("main.py");
-        if py.exists() && main.exists() {
-            return Some((py, engine_dir));
+        if !main.exists() {
+            continue;
+        }
+        for py in [
+            engine_dir.join("venv").join("python.exe"), // bundled standalone copy (prod)
+            engine_dir.join("venv").join("Scripts").join("python.exe"), // real venv (dev)
+        ] {
+            if py.exists() {
+                return Some((py, engine_dir));
+            }
         }
     }
     None
@@ -197,7 +208,15 @@ pub fn spawn_and_supervise(app: tauri::AppHandle) {
             let mut cmd = Command::new(&py);
             cmd.arg(engine_dir.join("main.py"))
                 .current_dir(&engine_dir)
-                .creation_flags(CREATE_NO_WINDOW);
+                .creation_flags(CREATE_NO_WINDOW)
+                // Force UTF-8 for stdio and default file opens (PEP 540).
+                // Without this, redirected stdout/Path.write_text() fall
+                // back to the OS locale's legacy code page (e.g. cp1252 on
+                // Windows), which can't encode emoji or many non-ASCII
+                // characters that show up in transcripts/reports — the
+                // pipeline then throws UnicodeEncodeError and the report
+                // never gets written.
+                .env("PYTHONUTF8", "1");
             if let Some(log) = log {
                 let err = log.try_clone().ok();
                 cmd.stdout(log);

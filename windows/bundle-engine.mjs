@@ -22,7 +22,7 @@ import { execFileSync } from "node:child_process";
 import {
   cpSync, mkdirSync, existsSync, rmSync,
 } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { platform } from "node:os";
 
@@ -32,8 +32,11 @@ const bundle = join(here, "src-tauri", "engine-bundle");
 const venv = join(bundle, "venv");
 
 const isWindows = platform() === "win32";
+// Windows: python.exe sits at the top of venv/, mirroring a standalone
+// CPython install copy (see basePython/venv-creation below) rather than a
+// venv's Scripts/ subfolder.
 const venvPython = isWindows
-  ? join(venv, "Scripts", "python.exe")
+  ? join(venv, "python.exe")
   : join(venv, "bin", "python");
 
 function run(cmd, args, opts = {}) {
@@ -73,11 +76,48 @@ mkdirSync(bundle, { recursive: true });
 // 1. Create the venv if missing.
 if (!existsSync(venvPython)) {
   const base = basePython();
-  run(base.cmd, [...base.pre, "-m", "venv", venv]);
+  if (isWindows) {
+    // Windows venvs (3.11+) don't copy a working interpreter: Scripts\
+    // python.exe is a small redirecting launcher that reads pyvenv.cfg's
+    // `home` key and re-execs the *base* interpreter at that path — it
+    // never runs standalone. `home` gets baked in at creation time, which
+    // in CI is the ephemeral setup-python hostedtoolcache path (see
+    // FLUENT_BASE_PYTHON below); that path doesn't exist on end-user
+    // machines, so a shipped venv fails instantly with "No Python at
+    // '<path>'" and the engine never starts. Ship a full standalone copy
+    // of the base interpreter directory instead — an ordinary CPython
+    // install (unlike a venv redirector) is self-contained and safe to
+    // relocate to any machine.
+    const baseExe = execFileSync(
+      base.cmd,
+      [...base.pre, "-c", "import sys; print(sys.executable)"],
+    ).toString().trim();
+    const baseDir = dirname(baseExe);
+    console.log(`[bundle-engine] copying base interpreter from ${baseDir}`);
+    mkdirSync(venv, { recursive: true });
+    cpSync(baseDir, venv, {
+      recursive: true,
+      // Skip the base install's own Scripts/ (pip.exe etc. from CI's
+      // preinstalled set) and site-packages (CI's preinstalled packages) —
+      // we install our own deps fresh into this copy below.
+      filter: (src) => {
+        const rel = relative(baseDir, src);
+        return rel !== "Scripts" && rel !== join("Lib", "site-packages");
+      },
+    });
+  } else {
+    run(base.cmd, [...base.pre, "-m", "venv", venv]);
+  }
 }
 
 // 2. Install the torch-free engine deps into the venv.
 //    common = anthropic, pyaudio, httpx ; win = pyaudiowpatch, keyring.
+//    The copied base install has no site-packages (excluded above, to skip
+//    the base's own preinstalled packages), so pip isn't importable yet —
+//    ensurepip bootstraps it from CPython's bundled wheels (stdlib-only, no
+//    network needed). A real venv (non-Windows path) already has pip from
+//    `python -m venv`'s own bootstrap; ensurepip here is a harmless no-op.
+run(venvPython, ["-m", "ensurepip", "--upgrade"]);
 run(venvPython, ["-m", "pip", "install", "--upgrade", "pip"]);
 run(venvPython, [
   "-m", "pip", "install",

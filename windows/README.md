@@ -57,14 +57,17 @@ listener on port 2788 first, then supervises the engine with restart/backoff.
 `npm run build` produces the NSIS installer. Its `prebuild` step runs both
 `sync-frontend.mjs` and `bundle-engine.mjs`:
 
-- **`bundle-engine.mjs`** builds `src-tauri/engine-bundle/` — a full CPython
-  venv with the (torch-free) engine deps plus the staged engine source. Tauri
-  ships this folder as a resource (`bundle.resources`), so the installed app
-  runs the engine without the user installing Python. **Build on Windows** —
-  the C-extension wheels (`pyaudio`, `pyaudiowpatch`) are platform-specific.
-- At runtime `engine.rs` resolves the bundled `engine-bundle/venv/Scripts/
-  python.exe` + `main.py` from the Tauri resource dir (falling back to the dev
-  M2 venv when running from the repo).
+- **`bundle-engine.mjs`** builds `src-tauri/engine-bundle/` — a standalone
+  copy of the base CPython install (not a `venv`: Windows venv Python.exe is
+  just a redirector that re-execs the base interpreter at its original build
+  path, which doesn't exist on end-user machines) with the (torch-free)
+  engine deps installed into it, plus the staged engine source. Tauri ships
+  this folder as a resource (`bundle.resources`), so the installed app runs
+  the engine without the user installing Python. **Build on Windows** — the
+  C-extension wheels (`pyaudio`, `pyaudiowpatch`) are platform-specific.
+- At runtime `engine.rs` resolves the bundled `engine-bundle/venv/python.exe`
+  + `main.py` from the Tauri resource dir (falling back to the dev M2 venv's
+  `venv/Scripts/python.exe` when running from the repo).
 
 The installer also configures:
 
