@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		09FD31023E70CD1F903A2938 /* DarwinNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC60559A30831F0BAAEF8160 /* DarwinNotificationBridge.swift */; };
+		3BF6864C2FFD63220080C119 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3BF6864B2FFD63220080C119 /* Sparkle */; };
 		5A2731DF508317FE8E8A822B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3844E4D54D3AC4BBB3D7473E /* AppDelegate.swift */; };
 		82A73E8E110413AB410D64C4 /* ReportWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5958DD661DC0ED2C14CDD080 /* ReportWindowController.swift */; };
 		9D5F6BB59CAFA35CCEC1EF0D /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CD58649180C4615790A131 /* WebViewController.swift */; };
@@ -18,7 +19,6 @@
 		B1C200A400000004 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = B1C200C000000020 /* engine */; };
 		B1C200A500000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C200D000000030 /* Assets.xcassets */; };
 		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
-		3BF6864C2FFD63220080C119 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3BF6864B2FFD63220080C119 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
