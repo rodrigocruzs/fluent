@@ -5,8 +5,11 @@ name: Windows installer
 # compiles a native windows-msvc binary and bundles a Windows CPython engine —
 # neither can be produced from macOS/Linux.
 #
-# Trigger it manually from the Actions tab, or on a version tag (v*).
-# The signed installer is uploaded as a build artifact.
+# Trigger it manually from the Actions tab for a test build (built + signed +
+# uploaded as an artifact, not published). Push a "vX.Y.Z" tag matching
+# src-tauri/tauri.conf.json's version to cut a real release: this also
+# generates website/windows/updates/latest.json and publishes it + the
+# installer to the website, so the in-app auto-updater picks it up.
 
 on:
   workflow_dispatch:
@@ -23,6 +26,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Determine if this is a release (tag) run
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # Node — runs sync-frontend.mjs + bundle-engine.mjs (the `prebuild` step)
       # and drives the Tauri CLI.
@@ -58,6 +72,32 @@ jobs:
       - name: Generate app icons
         run: npm run icons
 
+      - name: Verify tag version matches tauri.conf.json
+        if: steps.release.outputs.is_release == 'true'
+        shell: bash
+        run: |
+          tag_version="${{ steps.release.outputs.version }}"
+          conf_version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          if [[ "$tag_version" != "$conf_version" ]]; then
+            echo "::error::Tag version ($tag_version) does not match tauri.conf.json version ($conf_version)"
+            exit 1
+          fi
+          echo "Version check passed: $tag_version"
+
+      - name: Extract release notes from the tag
+        if: steps.release.outputs.is_release == 'true'
+        shell: bash
+        run: |
+          tag_name="${GITHUB_REF#refs/tags/}"
+          notes=$(git tag -l --format='%(contents)' "$tag_name")
+          if [[ -z "$notes" ]]; then
+            notes=$(git log -1 --format='%s' "$tag_name")
+          fi
+          # Write to a file rather than an env var/output: tag messages can
+          # be multi-line and contain characters GITHUB_OUTPUT can't hold safely.
+          printf '%s' "$notes" > "$RUNNER_TEMP/release-notes.txt"
+          cat "$RUNNER_TEMP/release-notes.txt"
+
       # Azure Trusted Signing CLI, invoked by tauri.conf.json's signCommand.
       # The `cargo install` binary is named `trusted-signing-cli`, but the
       # committed signCommand invokes `artifact-signing-cli` — expose that name
@@ -87,6 +127,35 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run build
+
+      - name: Generate latest.json manifest
+        if: steps.release.outputs.is_release == 'true'
+        shell: bash
+        run: |
+          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          sig="$installer.sig"
+          node scripts/generate-latest-json.mjs \
+            "${{ steps.release.outputs.version }}" \
+            "$RUNNER_TEMP/release-notes.txt" \
+            "$sig" \
+            "https://www.tryfluent.co/Fluent-Setup.exe" \
+            "$RUNNER_TEMP/latest.json"
+
+      - name: Publish installer + manifest to website
+        if: steps.release.outputs.is_release == 'true'
+        shell: bash
+        run: |
+          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          mkdir -p ../website/windows/updates
+          cp "$RUNNER_TEMP/latest.json" ../website/windows/updates/latest.json
+          cp "$installer" ../website/Fluent-Setup.exe
+
+          cd ..
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add website/windows/updates/latest.json website/Fluent-Setup.exe
+          git commit -m "release(windows): publish v${{ steps.release.outputs.version }}"
+          git push origin HEAD:main
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
