@@ -1,0 +1,11 @@
+{
+  "version": "0.1.1",
+  "notes": "fix(ci): grant contents:write so the publish step can push to main\n\nThe v0.1.1 release build got all the way through build, sign, and\nmanifest generation, then failed at the final push with a 403:\n\"Permission to rodrigocruzs/fluent.git denied to github-actions[bot]\".\nThe workflow had no `permissions:` block, so it inherited the repo's\ndefault (read-only) GITHUB_TOKEN scope. Add contents:write so the\n\"Publish installer + manifest to website\" step's git push succeeds.\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>",
+  "pub_date": "2026-07-07T16:07:41.560Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUxHMWpoUkhXamY1dTJac1VQclJiOUczZlo2WlI1MXRFb1ZkSzlTV1RRMTlPejZWcURHQ1JhSkZDRGtOZVNvV2ZrVmJIVldRQUhHc2YyOGlVRGN4N0FZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDQwNDYxCWZpbGU6Rmx1ZW50XzAuMS4xX3g2NC1zZXR1cC5leGUKcm5oTUl2NUVabDloclN6ZE9wWHpiUTVqZFF6QldjU0x2dSt3YjFXMy9tZUNpTG16MXF3Q3k5Ky9mSFY1eFZmUkZBWUtpbjNlUEtTNW5SczBUYkNyRFE9PQo=",
+      "url": "https://www.tryfluent.co/Fluent-Setup.exe"
+    }
+  }
+}
