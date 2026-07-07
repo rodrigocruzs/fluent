@@ -101,9 +101,13 @@ $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = "<the password you set>"
 npm run build
 ```
 
-The build emits a `.sig` next to the installer. Publish the installer + a
-`latest.json` manifest (version, notes, signature, download URL) at the
-configured endpoint (`https://www.tryfluent.co/windows/updates/latest.json`).
+The build emits a `.sig` next to the installer. Publishing is automated:
+pushing a `vX.Y.Z` tag (matching `src-tauri/tauri.conf.json`'s `version`)
+triggers `.github/workflows/windows-build.yml`, which generates
+`website/windows/updates/latest.json` and commits it plus the signed
+installer to the website — see `windows/scripts/generate-latest-json.mjs`.
+Installed apps discover the update via `plugins.updater.endpoints` and
+self-update on next launch (`windows/src-tauri/src/update.rs`).
 
 ### Authenticode signing (Azure Trusted Signing)
 
