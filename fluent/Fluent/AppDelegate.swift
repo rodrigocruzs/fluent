@@ -1,6 +1,7 @@
 import Cocoa
 import UserNotifications
 import AVFoundation
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate, @unchecked Sendable {
 
@@ -8,6 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     private var engineSetupProcess: Process?
     private var engineProcess: Process?
     private var setupWindowController: EngineSetupWindowController?
+    private var updaterController: SPUStandardUpdaterController!
 
     // Crash-loop guard: if the engine keeps dying immediately we back off and
     // eventually stop auto-restarting instead of spinning the CPU forever.
@@ -34,6 +36,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         setupMenu()
+
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
 
         UNUserNotificationCenter.current().delegate = self
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }

@@ -18,6 +18,7 @@
 		B1C200A400000004 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = B1C200C000000020 /* engine */; };
 		B1C200A500000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1C200D000000030 /* Assets.xcassets */; };
 		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
+		3BF6864C2FFD63220080C119 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 3BF6864B2FFD63220080C119 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,17 @@
 		EA5342D38872AC0B957CBC5E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineSetupWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C1D200B000000011 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3BF6864C2FFD63220080C119 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		16AE18846E540A5D1328E3C2 = {
@@ -81,6 +93,7 @@
 			buildPhases = (
 				B1C200B000000010 /* Resources */,
 				CDBDE7C81ADC6FD8E862AE40 /* Sources */,
+				C1D200B000000011 /* Frameworks */,
 				A1B2C3D400000001 /* Install to Applications */,
 			);
 			buildRules = (
