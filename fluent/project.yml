@@ -1,6 +1,25 @@
+# XcodeGen spec for Fluent.xcodeproj. NOT run automatically — Fluent.xcodeproj
+# and Fluent/Info.plist are committed directly and hand-edited in Xcode;
+# this file exists so `xcodegen generate` can rebuild them from scratch if
+# ever needed (e.g. recovering from a corrupted .xcodeproj).
+#
+# Before running `xcodegen generate` against the real project:
+#   1. It overwrites Fluent/Info.plist in place. CFBundleShortVersionString/
+#      CFBundleVersion are deliberately NOT declared above (release.sh stamps
+#      real values on every release), so a fresh generate resets them to
+#      XcodeGen's default (1.0 / 1) — re-run release.sh (or manually
+#      `plutil -replace` back to the current shipped version) immediately
+#      after, before committing.
+#   2. It replaces CFBundleIdentifier's build-variable placeholder
+#      ($(PRODUCT_BUNDLE_IDENTIFIER)) with a literal string. Harmless
+#      (same effective value), but if you reintroduce environment-specific
+#      bundle IDs later, check this didn't silently un-parameterize it.
+#   3. Diff the regenerated Fluent.xcodeproj/project.pbxproj and
+#      Fluent/Info.plist against git before committing — don't assume a
+#      clean `xcodegen generate` run is safe to commit as-is.
 name: Fluent
 options:
-  bundleIdPrefix: com.fluent
+  bundleIdPrefix: co.tryfluent
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "26.3"
@@ -13,7 +32,12 @@ settings:
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: ""
     ENABLE_HARDENED_RUNTIME: NO
-    PRODUCT_BUNDLE_IDENTIFIER: com.fluent.app
+    PRODUCT_BUNDLE_IDENTIFIER: co.tryfluent.app
+
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.7.0
 
 targets:
   Fluent:
@@ -27,21 +51,54 @@ targets:
       - path: ../frontend
         buildPhase: resources
         destination: Resources/frontend
+    dependencies:
+      - package: Sparkle
     info:
       path: Fluent/Info.plist
       properties:
         CFBundleName: Fluent
         CFBundleDisplayName: Fluent
-        CFBundleIdentifier: com.fluent.app
-        CFBundleVersion: "3"
-        CFBundleShortVersionString: "1.2"
+        CFBundleIdentifier: co.tryfluent.app
         LSMinimumSystemVersion: "14.0"
         NSHighResolutionCapable: true
         NSPrincipalClass: NSApplication
         NSUserNotificationAlertStyle: alert
         NSMicrophoneUsageDescription: "Fluent needs access to your microphone to coach your English."
         NSSupportsAutomaticGraphicsSwitching: true
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - fluent
-            CFBundleURLName: com.fluent.app
+            CFBundleURLName: co.tryfluent.app
+        # SUFeedURL/SUPublicEDKey/SUEnableAutomaticChecks/SUScheduledCheckInterval/
+        # SUAutomaticallyUpdate are Sparkle auto-update config — see
+        # docs/superpowers/specs/2026-07-07-mac-auto-update-design.md.
+        SUFeedURL: https://www.tryfluent.co/mac/updates/appcast.xml
+        SUPublicEDKey: LqVmcwuhIkBh3D6OfnOve0rJpxenfLPoI3LilPL0aw4=
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
+        SUAutomaticallyUpdate: true
+        # CFBundleVersion/CFBundleShortVersionString are intentionally omitted:
+        # release.sh stamps both directly into the built Info.plist on every
+        # release, so a static value here would just drift out of date again.
+
+schemes:
+  Fluent:
+    build:
+      targets:
+        Fluent: [run, test, profile, analyze, archive]
+    # Run/Profile/Archive default to Release (not Xcode's usual Debug run
+    # default) to match how this app is actually built and tested —
+    # release.sh always builds Release, and there's no debug-specific
+    # workflow that depends on Run using Debug.
+    run:
+      config: Release
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
