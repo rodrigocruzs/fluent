@@ -8,7 +8,6 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 
 export function generateLatestJson({ version, notes, pubDate, signature, downloadUrl }) {
   if (version.startsWith("v")) {

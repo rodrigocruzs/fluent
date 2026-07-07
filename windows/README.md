@@ -109,6 +109,12 @@ installer to the website — see `windows/scripts/generate-latest-json.mjs`.
 Installed apps discover the update via `plugins.updater.endpoints` and
 self-update on next launch (`windows/src-tauri/src/update.rs`).
 
+> **First release footgun:** the updater only installs when the manifest
+> version is strictly greater than what's installed. If users already have
+> `0.1.0`, tagging `v0.1.0` will pass CI's tag/version-match guard but publish
+> a no-op update — bump `tauri.conf.json`'s `version` above whatever is
+> already in users' hands before cutting the first automated release tag.
+
 ### Authenticode signing (Azure Trusted Signing)
 
 Signing is configured via `bundle.windows.signCommand` in `tauri.conf.json`:

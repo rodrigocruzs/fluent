@@ -132,7 +132,7 @@ jobs:
         if: steps.release.outputs.is_release == 'true'
         shell: bash
         run: |
-          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -n1)
           sig="$installer.sig"
           node scripts/generate-latest-json.mjs \
             "${{ steps.release.outputs.version }}" \
@@ -144,8 +144,10 @@ jobs:
       - name: Publish installer + manifest to website
         if: steps.release.outputs.is_release == 'true'
         shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)
+          installer=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -n1)
           mkdir -p ../website/windows/updates
           cp "$RUNNER_TEMP/latest.json" ../website/windows/updates/latest.json
           cp "$installer" ../website/Fluent-Setup.exe
@@ -154,7 +156,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add website/windows/updates/latest.json website/Fluent-Setup.exe
-          git commit -m "release(windows): publish v${{ steps.release.outputs.version }}"
+          git commit -m "release(windows): publish v$RELEASE_VERSION"
+          # If main advanced since the tag was cut, this push is rejected (fails safe, not force-pushed); re-tag and re-run to recover.
           git push origin HEAD:main
 
       - name: Upload installer
