@@ -66,16 +66,28 @@ def attribute(mixed_utterances: list[dict], mic_utterances: list[dict]) -> list[
     if you_idx is not None:
         label_for[you_idx] = "You"
 
+    # Deepgram emits many short utterances (often single words when the speaker
+    # pauses). Rendering one block per utterance shatters a single person's
+    # continuous speech into a wall of tiny "You" blocks. Merge consecutive
+    # utterances from the same speaker into one turn — a new block only starts
+    # when the speaker actually changes.
     segments: list[dict] = []
     for mu in mixed_utterances:
         idx = mu["speaker"]
         if idx not in label_for:
             label_for[idx] = f"Speaker {next_other}"
             next_other += 1
-        segments.append({
-            "speaker": label_for[idx],
-            "text": mu.get("transcript", ""),
-            "start": mu["start"],
-            "end": mu["end"],
-        })
+        speaker = label_for[idx]
+        text = mu.get("transcript", "")
+        if segments and segments[-1]["speaker"] == speaker:
+            prev = segments[-1]
+            prev["text"] = (prev["text"] + " " + text).strip() if text else prev["text"]
+            prev["end"] = mu["end"]
+        else:
+            segments.append({
+                "speaker": speaker,
+                "text": text,
+                "start": mu["start"],
+                "end": mu["end"],
+            })
     return segments
