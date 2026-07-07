@@ -48,5 +48,16 @@
 	<true/>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
+	<!-- Sparkle auto-update configuration -->
+	<key>SUFeedURL</key>
+	<string>https://www.tryfluent.co/mac/updates/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>LqVmcwuhIkBh3D6OfnOve0rJpxenfLPoI3LilPL0aw4=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
 </dict>
 </plist>
