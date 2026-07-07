@@ -8,6 +8,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export function generateLatestJson({ version, notes, pubDate, signature, downloadUrl }) {
   if (version.startsWith("v")) {
@@ -26,7 +27,7 @@ export function generateLatestJson({ version, notes, pubDate, signature, downloa
   };
 }
 
-const isMain = import.meta.url === `file://${process.argv[1]}`;
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   const [, , version, notesFile, sigFile, downloadUrl, outFile] = process.argv;
   if (!version || !notesFile || !sigFile || !downloadUrl || !outFile) {
