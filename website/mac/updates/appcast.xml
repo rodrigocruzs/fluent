@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>Fluent Changelog</title>
+    <link>https://www.tryfluent.co/mac/updates/appcast.xml</link>
+    <description>Most recent changes for Fluent on macOS.</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.3</title>
+      <description><![CDATA[Add Sparkle-based auto-updates for Mac.]]></description>
+      <pubDate>Tue, 07 Jul 2026 19:37:03 GMT</pubDate>
+      <sparkle:version>1.3</sparkle:version>
+      <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://www.tryfluent.co/mac/updates/Fluent-1.3.zip"
+        length="1336623"
+        type="application/octet-stream"
+        sparkle:edSignature="gD+zkds79vtXQOinurgqdZ+Tu9i50+jPHnl4V6Is1crzNE84ydskyHnOs/DOdbisjxCWGl33Sp1xaLisQnBzCQ=="
+      />
+    </item>
+  </channel>
+</rss>
