@@ -1,10 +1,10 @@
 {
-  "version": "0.1.4",
-  "notes": "release(windows): bump version to 0.1.4",
-  "pub_date": "2026-07-08T06:46:27.508Z",
+  "version": "0.1.5",
+  "notes": "release(windows): bump version to 0.1.5",
+  "pub_date": "2026-07-08T14:11:45.234Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUp6OVp2bDMwTVVFOWRydm9BaDl5RUU1WEQwNVp2TnJVZnpZZWZISis5MmJZdlJrMVdLM3NEVTVNNzdqL0FyUGExWHlMWVhnVTRmN1Q0ZGxDWnNLOFE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDkzMTg3CWZpbGU6Rmx1ZW50XzAuMS40X3g2NC1zZXR1cC5leGUKMFYwQklTcUtJdW9aQk9GUnpwUU1kZ3lOY2lsRzJhMVByQStyVG1zTTJmQ3dkck1rU25lMFFuU0x2VXcrYVRwMG1sVUdDamJSaXloelorVFRTdEp5Q2c9PQo=",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUVzbFpuWUcwWlJwTDlDVUtrKzhacjA1YThaaldwdDk0SCtzVklDcFBSRHV6Y3hURTczcHVjUTdCRnFNYkpDTFRBdW1EQnNqenZnbU9CMGhIb0Z3cFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTE5OTA0CWZpbGU6Rmx1ZW50XzAuMS41X3g2NC1zZXR1cC5leGUKb0poZHRwS2NJNFZhQXFBRXJwTm4xUUdWS0JaOXRYK0Zyb21VNWJKZW9GKysvMFY4SzhMM0xiWEVOTEZISmxNZ3RkLzY0WTFTUURtQWtNcGNZMENKQ1E9PQo=",
       "url": "https://www.tryfluent.co/Fluent-Setup.exe"
     }
   }
