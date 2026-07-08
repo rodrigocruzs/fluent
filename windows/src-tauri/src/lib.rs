@@ -135,6 +135,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(AppState { was_analysing: Mutex::new(false) })
+        .manage(update::PendingUpdate::default())
         .invoke_handler(tauri::generate_handler![api_request, sign_out])
         .setup(|app| {
             // 0. Register the runtime deep-link handler (covers the case where
@@ -161,20 +162,27 @@ pub fn run() {
             //    report-ready and re-inject as needed.
             host_loop::start(app.handle().clone());
 
-            // 4. Check for updates in the background (non-blocking). If an
-            //    update is found it is downloaded and installed, then the app
-            //    relaunches. Silently ignores failures (e.g. offline).
+            // 4. Check for updates in the background (non-blocking). If found,
+            //    it's downloaded and held until the app exits — see
+            //    on_menu_event's "quit" / window-close, which trigger the
+            //    ExitRequested handler below that actually installs it.
+            //    Silently ignores failures (e.g. offline).
             {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    update::check_and_install(handle).await;
+                    update::check_and_download(handle).await;
                 });
             }
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Fluent");
+        .build(tauri::generate_context!())
+        .expect("error while building Fluent")
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                update::install_pending_on_exit(app);
+            }
+        });
 }
 
 // Helpers shared across modules.
