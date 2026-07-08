@@ -49,7 +49,16 @@ class Engine:
                 return {"ok": False, "error": "not recording"}
             self._recording = False
 
-        paths, duration = self.recorder.stop()
+        try:
+            paths, duration = self.recorder.stop()
+        except Exception as e:
+            # Finalizing the recording must never silently drop the session:
+            # if this raised, _analysing would never flip True and the
+            # frontend's "no report arrived" fallback would kick the user
+            # home with no pipeline run and no error surfaced anywhere.
+            print(f"[engine] recorder.stop() failed: {e}", file=sys.stderr)
+            return {"ok": False, "error": str(e)}
+
         self._analysing = True
         threading.Thread(
             target=self._run_pipeline,

@@ -1714,6 +1714,15 @@
     }
   };
 
+  // How long to wait, after the engine reports analysing:false, before
+  // concluding no report is coming and bouncing to the sessions list. The
+  // native host (Rust on Windows, Swift on macOS) delivers the report via
+  // its own faster/event-driven path calling window.loadReport, which hides
+  // the recording page. Without this grace period, pollStatus's slower
+  // 3s cadence can see the analysing:false edge first and navigate the user
+  // away moments before that in-flight report lands.
+  const NO_REPORT_FALLBACK_DELAY_MS = 2500;
+
   async function pollStatus() {
     try {
       const res = await fetch(ENGINE_URL + '/status');
@@ -1723,14 +1732,17 @@
       if (ctrl && ctrl.classList.contains('is-processing') && data.analysing === false) {
         setRecordingState(false);
         resetRecLabel();
-        // If we're still on the recording page, no report arrived (e.g. session too
-        // short to analyse). Fall back to the sessions list rather than stranding the user.
-        const recordingPage = document.getElementById('recording-page');
-        if (recordingPage && recordingPage.style.display !== 'none') {
-          _sessionName = null;
-          _sessionType = null;
-          window.showSessions && window.showSessions();
-        }
+        // Give the native host's report delivery a chance to win the race
+        // before assuming no report arrived (e.g. session too short to
+        // analyse) and falling back to the sessions list.
+        setTimeout(() => {
+          const recordingPage = document.getElementById('recording-page');
+          if (recordingPage && recordingPage.style.display !== 'none') {
+            _sessionName = null;
+            _sessionType = null;
+            window.showSessions && window.showSessions();
+          }
+        }, NO_REPORT_FALLBACK_DELAY_MS);
       } else if (ctrl && !ctrl.classList.contains('is-processing') && data.recording !== _recording) {
         setRecordingState(data.recording);
       }

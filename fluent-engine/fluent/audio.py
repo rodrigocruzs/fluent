@@ -182,12 +182,24 @@ class AudioRecorder:
             self._mic_buffer.clear()
             self._bh_buffer.clear()
 
+        # Device teardown must never lose a recording. A stream can throw on
+        # stop/close (e.g. the WASAPI loopback endpoint changed or entered an
+        # error state mid-session on Windows) — if that exception escaped
+        # here, the caller never gets (paths, duration) back, so the pipeline
+        # never runs and the session is silently dropped even though the
+        # audio was captured fine up to this point.
         for stream in (self._mic_stream, self._bh_stream):
             if stream:
-                stream.stop_stream()
-                stream.close()
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except Exception as e:
+                    print(f"[audio] warning: stream teardown failed: {e}")
         if self.pa:
-            self.pa.terminate()
+            try:
+                self.pa.terminate()
+            except Exception as e:
+                print(f"[audio] warning: pa.terminate() failed: {e}")
 
         duration = time.time() - self.start_time if self.start_time else 0.0
         for wf in (self._wave_mixed, self._wave_mic, self._wave_sys):
