@@ -1,10 +1,10 @@
 {
-  "version": "0.1.1",
-  "notes": "Automate Windows release publishing: CI now builds, signs, and publishes the installer + auto-update manifest on every tagged release",
-  "pub_date": "2026-07-07T16:07:41.560Z",
+  "version": "0.1.2",
+  "notes": "release(windows): bump version to 0.1.2",
+  "pub_date": "2026-07-08T06:06:22.394Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUxHMWpoUkhXamY1dTJac1VQclJiOUczZlo2WlI1MXRFb1ZkSzlTV1RRMTlPejZWcURHQ1JhSkZDRGtOZVNvV2ZrVmJIVldRQUhHc2YyOGlVRGN4N0FZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDQwNDYxCWZpbGU6Rmx1ZW50XzAuMS4xX3g2NC1zZXR1cC5leGUKcm5oTUl2NUVabDloclN6ZE9wWHpiUTVqZFF6QldjU0x2dSt3YjFXMy9tZUNpTG16MXF3Q3k5Ky9mSFY1eFZmUkZBWUtpbjNlUEtTNW5SczBUYkNyRFE9PQo=",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNU1KNE80YXl5Ris5ZzBOSmJmVWhWUjBSaGd5Z3psQ1lXeWhGL0RtNGdJcnFaVzg1WERkZ3Y1N3U2WHI0YkpNaTNSMDhzMXpSamRqdzZTS1ZzOVdhTFFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDkwNzgxCWZpbGU6Rmx1ZW50XzAuMS4yX3g2NC1zZXR1cC5leGUKTC8xQTJreENaT29ZME1ROVJJMm9PWnArbHpHV3h1RlBSR1hjS3h6ZlJLb0hJV0JFWHk5cTJqTE85V0J0bzRQb1Q1eStKOHhMb292b3ZKQ1ZHOFczQ0E9PQo=",
       "url": "https://www.tryfluent.co/Fluent-Setup.exe"
     }
   }
