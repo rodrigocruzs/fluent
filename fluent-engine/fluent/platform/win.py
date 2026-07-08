@@ -19,7 +19,30 @@ def _keyring():
 
 def get_token() -> str | None:
     token = _keyring().get_password(CRED_SERVICE, CRED_JWT_KEY)
-    return token if token else None
+    if token:
+        return token
+    # keyring's Windows backend changed how it composes Credential Manager
+    # target names across versions (older releases used "{username}.{service}",
+    # e.g. "jwt_token.fluent"; current releases use just "{service}"). A token
+    # saved by an older engine build becomes invisible to get_password() after
+    # a keyring upgrade — the credential is still on disk, get_token() just
+    # can't find it, so every session silently fails with "Not logged in"
+    # even though the user is still signed in. Recover it once and re-save
+    # under the current target so this migration only has to happen once.
+    legacy = _read_legacy_token()
+    if legacy:
+        save_token(legacy)
+        return legacy
+    return None
+
+
+def _read_legacy_token() -> str | None:
+    try:
+        import win32cred
+        cred = win32cred.CredRead(f"{CRED_JWT_KEY}.{CRED_SERVICE}", win32cred.CRED_TYPE_GENERIC)
+        return cred["CredentialBlob"].decode("utf-16-le", errors="ignore") or None
+    except Exception:
+        return None
 
 
 def save_token(token: str) -> None:

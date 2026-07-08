@@ -216,7 +216,15 @@ pub fn spawn_and_supervise(app: tauri::AppHandle) {
                 // characters that show up in transcripts/reports — the
                 // pipeline then throws UnicodeEncodeError and the report
                 // never gets written.
-                .env("PYTHONUTF8", "1");
+                .env("PYTHONUTF8", "1")
+                // Python fully block-buffers stdout when it isn't a TTY (i.e.
+                // whenever it's redirected to this log file), so most prints
+                // — including every [pipeline]/[coach] diagnostic — sit in
+                // the buffer and never reach fluent-engine.log until the
+                // process exits, which for this long-lived server never
+                // happens. That makes the log nearly useless for debugging
+                // a stuck or failed recording.
+                .env("PYTHONUNBUFFERED", "1");
             if let Some(log) = log {
                 let err = log.try_clone().ok();
                 cmd.stdout(log);
