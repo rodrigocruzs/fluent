@@ -13,7 +13,7 @@
 
 use std::sync::Mutex;
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 /// Holds a downloaded-but-not-yet-installed update, if any.
