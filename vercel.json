@@ -34,6 +34,9 @@
     "routes": [
         { "src": "/api/(.*)", "dest": "/api/index.py" },
         { "src": "/assets/(.*)", "dest": "/assets/$1" },
+        { "src": "/ingest/static/(.*)", "dest": "https://eu-assets.i.posthog.com/static/$1" },
+        { "src": "/ingest/array/(.*)", "dest": "https://eu-assets.i.posthog.com/array/$1" },
+        { "src": "/ingest/(.*)", "dest": "https://eu.i.posthog.com/$1" },
         { "src": "/sample-report.html", "dest": "/website/sample-report.html" },
         { "src": "/privacy", "dest": "/website/privacy.html" },
         { "src": "/reset-password", "dest": "/website/reset-password.html" },
