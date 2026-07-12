@@ -54,6 +54,8 @@
     .fl-nav{padding-left:20px !important;padding-right:20px !important;}
     .fl-nav-links{gap:14px !important;}
     .fl-nav-links a.fl-link{font-size:13px !important;}
+    .fl-listener-card{padding:32px 22px !important;}
+    .fl-heard-grid{grid-template-columns:1fr !important;gap:28px !important;}
   }
 
   @media (max-width: 480px) {
@@ -98,7 +100,7 @@
     <div style="font-size:15px;color:#7C7163;margin-top:22px;">Free for 7 days. No bot ever joins your meeting. Cancel whenever you like.</div>
 
     <!-- Quiet listener visual -->
-    <div style="margin-top:90px;position:relative;border:1px solid #EDE8E0;border-radius:20px;background:#FFFFFF;padding:54px 40px;box-shadow:0 30px 70px -40px rgba(60,46,32,0.28);text-align:left;overflow:hidden;">
+    <div class="fl-listener-card" style="margin-top:90px;position:relative;border:1px solid #EDE8E0;border-radius:20px;background:#FFFFFF;padding:54px 40px;box-shadow:0 30px 70px -40px rgba(60,46,32,0.28);text-align:left;overflow:hidden;">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(251,249,246,0) 0%,rgba(246,239,230,0.5) 100%);pointer-events:none;"></div>
       <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:18px;">
@@ -115,7 +117,7 @@
       </div>
       <div style="position:relative;display:flex;align-items:center;gap:4px;height:40px;margin-top:30px;" id="fl-wave"></div>
       <div style="position:relative;height:1px;background:#EDE8E0;margin:30px 0;"></div>
-      <div style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+      <div class="fl-heard-grid" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
         <div>
           <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Heard</div>
           <div style="font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.45;color:#33302A;">&ldquo;I think maybe we could sort of try the second option?&rdquo;</div>
