@@ -15,329 +15,477 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fluent — A communication coach for professionals with English as a second language</title>
+<meta name="description" content="Fluent is desktop software that quietly listens to your real work calls and shows you the exact habits blurring your message, with specific fixes you can use on the very next one.">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/fluent-icon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/assets/fluent-icon-16.png">
 <link rel="apple-touch-icon" sizes="120x120" href="/assets/fluent-icon-120.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  ::selection{background:rgba(201,110,71,0.18);}
-  ::-moz-selection{background:rgba(201,110,71,0.18);}
-  @keyframes fl-pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
-  @keyframes fl-ring{0%{transform:scale(1);opacity:0.5;}100%{transform:scale(2.4);opacity:0;}}
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: #d8e2de; }
 
-  body{background:#FBF9F6;color:#211E1A;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;overflow-x:hidden;}
+  body { font-family: Geist, ui-sans-serif, system-ui, sans-serif; background: #faf9f7; color: #1c1b19; -webkit-font-smoothing: antialiased; line-height: 1.5; letter-spacing: -0.006em; font-size: 16px; overflow-x: hidden; }
 
-  a.fl-link{color:#8B8378;text-decoration:none;transition:color 140ms ease;}
-  a.fl-link:hover{color:#211E1A;}
-  a.fl-btn-primary{background:#C96E47;transition:background-color 140ms ease;}
-  a.fl-btn-primary:hover{background:#B85F3A;}
-  a.fl-btn-secondary{transition:border-color 140ms ease,background-color 140ms ease;}
-  a.fl-btn-secondary:hover{border-color:#C0B6A6;background:#F3ECE2;}
+  .navlink { color: #57554f; transition: color 140ms ease; }
+  .navlink:hover { color: #1c1b19; }
+  .btn-primary { background: #3f6d5f; color: #fff; transition: background-color 140ms ease; }
+  .btn-primary:hover { background: #355c50; }
+  .btn-ghost { border: 1px solid #d9d7d0; color: #1c1b19; transition: background-color 140ms ease; }
+  .btn-ghost:hover { background: #f1efea; }
+  .btn-light { background: #f4f3f1; color: #16181c; transition: background-color 140ms ease; }
+  .btn-light:hover { background: #ffffff; }
+  .btn-dark-ghost { border: 1px solid rgba(255,255,255,0.22); color: #f4f3f1; transition: background-color 140ms ease; }
+  .btn-dark-ghost:hover { background: rgba(255,255,255,0.08); }
 
-  .fl-wave-bar{flex:1;border-radius:999px;background:#E3C7B6;}
+  .fl-hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+  .fl-problem-grid, .fl-uses-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .fl-profile-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 56px; align-items: center; }
+  .fl-example-split { display: grid; grid-template-columns: 1fr 1fr; }
+  .fl-compare-wrap { overflow-x: auto; }
+  .fl-compare { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; min-width: 720px; }
 
-  .fl-hero-h1{font-family:'Spectral',Georgia,serif;font-weight:500;font-size:58px;line-height:1.12;letter-spacing:-0.022em;color:#211E1A;margin:0 auto;max-width:35ch;}
-  .fl-showcase{display:grid;grid-template-columns:0.92fr 1.08fr;gap:64px;align-items:center;}
-  .fl-uses-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 64px;}
-  .fl-cta-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;}
+  section[id] { scroll-margin-top: 84px; }
 
-  @media (max-width: 760px) {
-    section{padding-left:24px !important;padding-right:24px !important;}
-    .fl-hero-h1{font-size:40px !important;}
-    .fl-showcase{grid-template-columns:1fr !important;gap:40px !important;}
-    .fl-uses-grid{grid-template-columns:1fr !important;}
-    .fl-empathy-h2{font-size:28px !important;}
-    .fl-nav{padding-left:20px !important;padding-right:20px !important;}
-    .fl-nav-links{gap:14px !important;}
-    .fl-nav-links a.fl-link{font-size:13px !important;}
-    .fl-listener-card{padding:32px 22px !important;}
-    .fl-heard-grid{grid-template-columns:1fr !important;gap:28px !important;}
+  @media (max-width: 960px) {
+    .fl-hero-grid { grid-template-columns: 1fr; gap: 44px; }
+    .fl-profile-grid { grid-template-columns: 1fr; gap: 40px; }
+    .fl-h1 { font-size: 42px !important; }
   }
 
-  @media (max-width: 480px) {
-    .fl-nav-links a.fl-link{font-size:12px !important;}
-    .fl-nav-links{gap:10px !important;}
+  @media (max-width: 760px) {
+    .fl-problem-grid, .fl-uses-grid { grid-template-columns: 1fr; }
+    .fl-example-split { grid-template-columns: 1fr; }
+    .fl-example-split > div:first-child { border-right: none !important; border-bottom: 1px solid #f1efea; }
+    .fl-h1 { font-size: 36px !important; }
+    .fl-h2 { font-size: 30px !important; }
+    .fl-cta-h2 { font-size: 32px !important; }
+    .fl-nav-links { display: none !important; }
+    .fl-section-pad { padding-top: 72px !important; }
   }
 </style>
 </head>
 <body>
 
-  <!-- Nav -->
-  <div style="width:100%;border-bottom:1px solid #EDE8E0;background:rgba(251,249,246,0.85);position:sticky;top:0;z-index:40;backdrop-filter:saturate(180%) blur(8px);">
-    <div class="fl-nav" style="max-width:1080px;margin:0 auto;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:11px;">
-        <img src="/assets/fluent-icon.svg" alt="Fluent" width="32" height="32" style="display:block;border-radius:8px;flex-shrink:0;">
-        <span style="font-size:19px;font-weight:600;letter-spacing:-0.01em;color:#2E2A24;white-space:nowrap;">Fluent</span>
+  <!-- NAV -->
+  <header style="position: sticky; top: 0; z-index: 50; background: rgba(250,249,247,0.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #ecece7;">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 9px;">
+        <img src="/assets/fluent-icon.svg" alt="Fluent" width="22" height="22" style="display: block; flex: none;">
+        <span style="font-weight: 600; font-size: 17px; letter-spacing: -0.02em;">Fluent</span>
       </div>
-      <div class="fl-nav-links" style="display:flex;align-items:center;gap:30px;">
-        <a href="#how" class="fl-link" style="font-size:14.5px;font-weight:500;white-space:nowrap;">How it works</a>
-        <a href="#uses" class="fl-link" style="font-size:14.5px;font-weight:500;white-space:nowrap;">Use cases</a>
-        <a href="#pricing" class="fl-link" style="font-size:14.5px;font-weight:500;white-space:nowrap;">Pricing</a>
+      <nav class="fl-nav-links" style="display: flex; align-items: center; gap: 28px; font-size: 14.5px;">
+        <a href="#how" class="navlink">How it works</a>
+        <a href="#profile" class="navlink">Your profile</a>
+        <a href="#pricing" class="navlink">Pricing</a>
+      </nav>
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="#pricing" class="btn-primary" style="font-size: 14px; font-weight: 500; padding: 8px 15px; border-radius: 8px;">Start free trial</a>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Hero -->
-  <section style="max-width:1080px;margin:0 auto;padding:130px 40px 0;text-align:center;">
-    <div style="font-size:14px;font-weight:600;letter-spacing:0.04em;color:#C96E47;margin-bottom:28px;">A communication coach for professionals with English as a second language</div>
-    <h1 class="fl-hero-h1">Turn your real conversations into practical communication coaching</h1>
-    <p style="font-size:21px;line-height:1.6;color:#5A554C;margin:34px auto 0;max-width:54ch;">Fluent quietly sits in on your real meetings, studies how you actually speak, and coaches you toward the clear, confident communicator your ideas deserve.</p>
+  <!-- HERO -->
+  <section style="background: #faf9f7; color: #1c1b19; border-bottom: 1px solid #ecece7;">
+    <div class="fl-hero-grid" style="max-width: 1120px; margin: 0 auto; padding: 72px 24px 84px;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 10px; border-radius: 999px; background: #ffffff; border: 1px solid #e7e5df; font-size: 13px; color: #6f6d68; font-weight: 500; margin-bottom: 26px;">
+          <span style="width: 6px; height: 6px; border-radius: 999px; background: #3f6d5f; flex: none;"></span>
+          For people who do their best thinking in another language
+        </div>
+        <h1 class="fl-h1" style="font-size: 52px; line-height: 1.04; letter-spacing: -0.035em; font-weight: 600; margin: 0 0 22px;">
+          You got told to<br>“be clearer.”<br>
+          <span style="color: #6f6d68;">Nobody told you what&nbsp;to&nbsp;fix.</span>
+        </h1>
+        <p style="font-size: 18.5px; line-height: 1.55; color: #6f6d68; max-width: 490px; margin: 0 0 32px;">
+          Fluent is desktop software — not a coach, not a course — that quietly listens to your real work calls and shows you the exact habits blurring your message, with specific fixes you can use on the very next one.
+        </p>
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 26px;">
+          <a href="Fluent.dmg" download="Fluent.dmg" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'mac'})" class="btn-primary" style="display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 500; padding: 13px 22px; border-radius: 9px;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="#ffffff"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+            Download for Mac
+          </a>
+          <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'windows'})" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 500; padding: 13px 20px; border-radius: 9px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#57554f"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+            Download for Windows
+          </a>
+        </div>
+        <div style="display: flex; align-items: center; gap: 18px; font-size: 13.5px; color: #6f6d68; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 7px;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> Runs locally on your machine</span>
+          <span style="display: inline-flex; align-items: center; gap: 7px;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> Never joins the call</span>
+          <span style="display: inline-flex; align-items: center; gap: 7px;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> Invisible to everyone else</span>
+        </div>
+      </div>
 
-    <div class="fl-cta-row" style="margin-top:46px;">
-      <a href="Fluent.dmg" download="Fluent.dmg" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'mac'})" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:10px;color:#FBF9F6;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(201,110,71,0.6);">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBF9F6"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
-        Download for Mac
-      </a>
-      <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'windows'})" class="fl-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#33302A;border:1px solid #DDD5C8;font-size:16px;font-weight:600;padding:15px 26px;border-radius:999px;text-decoration:none;">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="#5A554C"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
-        Download for Windows
-      </a>
+      <!-- COACHING CARD MOCK -->
+      <div style="position: relative;">
+        <div style="position: absolute; inset: 18px -14px -18px 14px; background: #ecf0ef; border-radius: 20px; opacity: 0.7;"></div>
+        <div style="position: relative; background: #ffffff; border: 1px solid #e7e5df; border-radius: 18px; box-shadow: 0 24px 60px -28px rgba(30,28,24,0.35); overflow: hidden;">
+          <div style="padding: 18px 20px; border-bottom: 1px solid #f0eee9; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 9px;">
+              <span style="width: 8px; height: 8px; border-radius: 999px; background: #3f6d5f;"></span>
+              <span style="font-weight: 600; font-size: 14.5px; color: #1c1b19;">This week’s coaching</span>
+            </div>
+          </div>
+          <div style="padding: 20px;">
+            <p style="margin: 0 0 16px; font-size: 15.5px; color: #46443f; line-height: 1.5;">Your recommendations are landing with less hedging. Here’s the moment that stood out.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 18px;">
+              <div style="background: #f8f7f4; border: 1px solid #eeece7; border-radius: 10px; padding: 11px 12px;">
+                <div style="font-size: 11px; color: #8f8d86; font-family: 'Geist Mono', monospace; letter-spacing: 0.02em;">HEDGING</div>
+                <div style="font-size: 19px; font-weight: 600; color: #3f6d5f; margin-top: 3px;">−22%</div>
+              </div>
+              <div style="background: #f8f7f4; border: 1px solid #eeece7; border-radius: 10px; padding: 11px 12px;">
+                <div style="font-size: 11px; color: #8f8d86; font-family: 'Geist Mono', monospace; letter-spacing: 0.02em;">FILLERS</div>
+                <div style="font-size: 19px; font-weight: 600; color: #3f6d5f; margin-top: 3px;">−15%</div>
+              </div>
+              <div style="background: #f8f7f4; border: 1px solid #eeece7; border-radius: 10px; padding: 11px 12px;">
+                <div style="font-size: 11px; color: #8f8d86; font-family: 'Geist Mono', monospace; letter-spacing: 0.02em;">CLARITY</div>
+                <div style="font-size: 19px; font-weight: 600; color: #3f6d5f; margin-top: 3px;">↑ up</div>
+              </div>
+            </div>
+            <div style="background: #ecf0ef; border: 1px solid #cdd9d5; border-radius: 12px; padding: 14px 15px;">
+              <div style="font-size: 11px; color: #3f6d5f; font-family: 'Geist Mono', monospace; letter-spacing: 0.04em; margin-bottom: 8px;">WHAT YOU SAID · TUES STANDUP</div>
+              <p style="margin: 0 0 12px; font-size: 14px; color: #46443f; font-style: italic; line-height: 1.5;">“I just wanted to maybe check if possibly we could push the date, if that’s okay?”</p>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #3f6d5f; font-size: 16px;">→</span>
+                <p style="margin: 0; font-size: 14px; color: #1c1b19; font-weight: 500; line-height: 1.4;">“I recommend we push the date. Here’s why.”</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div style="font-size:15px;color:#7C7163;margin-top:22px;">Free for 7 days. No bot ever joins your meeting. Cancel whenever you like.</div>
+    <div style="max-width: 1120px; margin: 0 auto; padding: 0 24px 40px;">
+      <div style="display: flex; align-items: center; gap: 16px; font-size: 13px; color: #6f6d68; flex-wrap: wrap; opacity: 0.9;">
+        <span style="font-family: 'Geist Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase; font-size: 11.5px;">Works alongside</span>
+        <span style="height: 14px; width: 1px; background: #ecece7;"></span>
+        <span style="font-weight: 500;">Zoom</span>
+        <span style="font-weight: 500;">Google Meet</span>
+        <span style="font-weight: 500;">Microsoft Teams</span>
+        <span style="font-weight: 500;">Webex</span>
+      </div>
+    </div>
+  </section>
 
-    <!-- Quiet listener visual -->
-    <div class="fl-listener-card" style="margin-top:90px;position:relative;border:1px solid #EDE8E0;border-radius:20px;background:#FFFFFF;padding:54px 40px;box-shadow:0 30px 70px -40px rgba(60,46,32,0.28);text-align:left;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(251,249,246,0) 0%,rgba(246,239,230,0.5) 100%);pointer-events:none;"></div>
-      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:18px;">
-          <div style="position:relative;width:46px;height:46px;flex:none;">
-            <span style="position:absolute;inset:0;border-radius:50%;background:#C96E47;opacity:0.25;animation:fl-ring 2.6s ease-out infinite;"></span>
-            <span style="position:absolute;inset:0;border-radius:50%;background:#C96E47;display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:#FBF9F6;"></span></span>
+  <!-- PROBLEM -->
+  <section id="problem" class="fl-section-pad" style="max-width: 1120px; margin: 0 auto; padding: 96px 24px 20px;">
+    <div style="max-width: 720px; margin-bottom: 48px;">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">The real gap</div>
+      <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">It’s not your English. It’s that no one can tell you what to fix.</h2>
+      <p style="font-size: 18px; color: #57554f; margin: 0; line-height: 1.55; max-width: 620px;">You’re fluent enough to do the job. The gap is smaller and far more specific than “get better at English” — and it shows up in the same handful of moments, every single week.</p>
+    </div>
+    <div class="fl-problem-grid">
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 24px;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #3f6d5f; letter-spacing: 0.05em; margin-bottom: 14px;">01</div>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.01em;">The hedge pile</h3>
+        <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">“I just wanted to maybe quickly check if possibly we could…” By the time you reach the point, the room has already decided it’s optional.</p>
+      </div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 24px;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #3f6d5f; letter-spacing: 0.05em; margin-bottom: 14px;">02</div>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.01em;">“Be clearer.”</h3>
+        <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">The most common note non-native speakers get in reviews — and the least useful one. Clearer how? Which sentence lost them? Nobody ever says.</p>
+      </div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 24px;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #3f6d5f; letter-spacing: 0.05em; margin-bottom: 14px;">03</div>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.01em;">Lost on the way out</h3>
+        <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">You had the sharp version in your head. In English it came out three clauses deep, and the actual point got buried before anyone heard it.</p>
+      </div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 24px;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #3f6d5f; letter-spacing: 0.05em; margin-bottom: 14px;">04</div>
+        <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.01em;">The filler fog</h3>
+        <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">“Um, so, like, you know…” The filler you stop hearing in yourself is the first thing others use to decide how sure you sound.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="fl-section-pad" style="max-width: 1120px; margin: 0 auto; padding: 96px 24px 20px;">
+    <div style="max-width: 720px; margin-bottom: 48px;">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">How it works</div>
+      <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">It works like this.</h2>
+      <p style="font-size: 18px; color: #57554f; margin: 0; line-height: 1.55; max-width: 640px;">Fluent runs in the background during your real calls. Afterward it shows you specific moments — what you actually said, what it noticed, and what to try next time. No staged exercises. No scripts. Your own words.</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid #f1efea; background: #fcfbf9;">
+          <div style="font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px">WHAT YOU SAID</div>
+          <p style="margin: 0; font-size: 16.5px; color: #33322e; font-style: italic; line-height: 1.5;">“Um, I think maybe we should possibly consider pushing the deadline, if that’s okay with everyone?”</p>
+        </div>
+        <div class="fl-example-split">
+          <div style="padding: 20px 24px; border-right: 1px solid #f1efea;">
+            <div style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px;">WHAT FLUENT NOTICED</div>
+            <p style="margin: 0; font-size: 15px; color: #57554f; line-height: 1.55;">Four hedges stacked in one sentence — “think,” “maybe,” “possibly,” “if that’s okay.” Your recommendation arrived sounding like a request for permission.</p>
+          </div>
+          <div style="padding: 20px 24px; background: #ecf0ef;">
+            <div style="font-size: 11px; letter-spacing: 0.05em; color: #3f6d5f; margin-bottom: 8px">WHAT IT COACHED TOWARD</div>
+            <p style="margin: 0; font-size: 15px; color: #1c1b19; font-weight: 500; line-height: 1.55;">“I recommend we push the deadline. Here’s why.” — state the call, then support it.</p>
+          </div>
+        </div>
+      </div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid #f1efea; background: #fcfbf9;">
+          <div style="font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px">WHAT YOU SAID</div>
+          <p style="margin: 0; font-size: 16.5px; color: #33322e; font-style: italic; line-height: 1.5;">“So yeah, the thing is, like, the data is kind of showing us that, you know, engagement is down a bit.”</p>
+        </div>
+        <div class="fl-example-split">
+          <div style="padding: 20px 24px; border-right: 1px solid #f1efea;">
+            <div style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px;">WHAT FLUENT NOTICED</div>
+            <p style="margin: 0; font-size: 15px; color: #57554f; line-height: 1.55;">Six filler words before the actual point. Listeners had started tuning out before “engagement is down” ever landed.</p>
+          </div>
+          <div style="padding: 20px 24px; background: #ecf0ef;">
+            <div style="font-size: 11px; letter-spacing: 0.05em; color: #3f6d5f; margin-bottom: 8px">WHAT IT COACHED TOWARD</div>
+            <p style="margin: 0; font-size: 15px; color: #1c1b19; font-weight: 500; line-height: 1.55;">Lead with the headline: “Engagement dropped 12% this month.” Put the softeners after, if at all.</p>
+          </div>
+        </div>
+      </div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 16px; overflow: hidden;">
+        <div style="padding: 20px 24px; border-bottom: 1px solid #f1efea; background: #fcfbf9;">
+          <div style="font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px">WHAT YOU SAID</div>
+          <p style="margin: 0; font-size: 16.5px; color: #33322e; font-style: italic; line-height: 1.5;">“I’m not sure if this is right, but I was thinking we could maybe try a different approach?”</p>
+        </div>
+        <div class="fl-example-split">
+          <div style="padding: 20px 24px; border-right: 1px solid #f1efea;">
+            <div style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.05em; color: #9a9891; margin-bottom: 8px;">WHAT FLUENT NOTICED</div>
+            <p style="margin: 0; font-size: 15px; color: #57554f; line-height: 1.55;">You opened by undercutting yourself. The idea was strong — the framing told the room to doubt it before hearing it.</p>
+          </div>
+          <div style="padding: 20px 24px; background: #ecf0ef;">
+            <div style="font-size: 11px; letter-spacing: 0.05em; color: #3f6d5f; margin-bottom: 8px">WHAT IT COACHED TOWARD</div>
+            <p style="margin: 0; font-size: 15px; color: #1c1b19; font-weight: 500; line-height: 1.55;">“Here’s a different approach I’d try —” Let the idea stand on its own before you qualify it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROFILE / PROGRESS -->
+  <section id="profile" style="background: #f4f2ee; border-top: 1px solid #ecece7; border-bottom: 1px solid #ecece7; margin-top: 96px;">
+    <div class="fl-profile-grid" style="max-width: 1120px; margin: 0 auto; padding: 92px 24px;">
+      <div>
+        <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">Your communication profile</div>
+        <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">You can finally see it changing.</h2>
+        <p style="font-size: 18px; color: #57554f; margin: 0 0 24px; line-height: 1.55;">Every session feeds a running picture of your habits and how they’re shifting over time. Not a score to feel bad about — a map of what’s actually improving, and what’s worth working on next.</p>
+        <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+          <li style="display: flex; gap: 11px; font-size: 15.5px; color: #46443f;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> Trends per habit, week over week</li>
+          <li style="display: flex; gap: 11px; font-size: 15.5px; color: #46443f;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> One focus at a time, so it never feels like homework</li>
+          <li style="display: flex; gap: 11px; font-size: 15.5px; color: #46443f;"><span style="color: #3f6d5f; font-weight: 600;">✓</span> Private by default — it’s yours, no one else sees it</li>
+        </ul>
+      </div>
+      <div style="background: #fff; border: 1px solid #e7e5df; border-radius: 18px; box-shadow: 0 24px 60px -34px rgba(30,28,24,0.3); padding: 26px 28px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; gap: 12px; flex-wrap: wrap;">
+          <div>
+            <div style="font-size: 16px; font-weight: 600;">Communication profile</div>
+            <div style="font-size: 13px; color: #8f8d86; margin-top: 2px;">Last 6 weeks · 14 calls</div>
+          </div>
+          <div style="font-size: 12px; font-family: 'Geist Mono', monospace; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; padding: 5px 10px; border-radius: 999px;">TRENDING CLEARER</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 14.5px; color: #33322e; font-weight: 500;">Hedging &amp; softeners</span>
+              <span style="font-size: 13px; color: #8f8d86; font-family: 'Geist Mono', monospace;">↓ down 22%</span>
+            </div>
+            <div style="height: 8px; background: #efede8; border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: 68%; background: #3f6d5f; border-radius: 999px;"></div>
+            </div>
           </div>
           <div>
-            <div style="font-size:17px;font-weight:600;color:#29251F;">Fluent is listening — never in the call</div>
-            <div style="display:flex;align-items:center;gap:11px;font-size:14px;color:#7C7163;margin-top:4px;"><span>Weekly PM Sync</span><span style="width:3px;height:3px;border-radius:50%;background:#C9BFB0;"></span><span>Zoom</span><span style="width:3px;height:3px;border-radius:50%;background:#C9BFB0;"></span><span>34 min</span></div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 14.5px; color: #33322e; font-weight: 500;">Filler words</span>
+              <span style="font-size: 13px; color: #8f8d86; font-family: 'Geist Mono', monospace;">↓ down 15%</span>
+            </div>
+            <div style="height: 8px; background: #efede8; border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: 74%; background: #3f6d5f; border-radius: 999px;"></div>
+            </div>
           </div>
-        </div>
-        <div style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:#6E8C6A;border:1px solid #D6E2D2;background:#EEF4EC;padding:7px 13px;border-radius:999px;">No bot joined the meeting</div>
-      </div>
-      <div style="position:relative;display:flex;align-items:center;gap:4px;height:40px;margin-top:30px;" id="fl-wave"></div>
-      <div style="position:relative;height:1px;background:#EDE8E0;margin:30px 0;"></div>
-      <div class="fl-heard-grid" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Heard</div>
-          <div style="font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.45;color:#33302A;">&ldquo;I think maybe we could sort of try the second option?&rdquo;</div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Noticed</div>
-          <div style="font-size:15.5px;line-height:1.55;color:#5A554C;">Three hedges softened a strong recommendation into a question.</div>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:#C96E47;margin-bottom:10px;">Coached</div>
-          <div style="font-family:'Spectral',Georgia,serif;font-size:18px;line-height:1.45;color:#211E1A;">&ldquo;Let's go with the second option — here's why.&rdquo;</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Empathy strip -->
-  <section style="max-width:1080px;margin:0 auto;padding:140px 40px 0;text-align:center;">
-    <h2 class="fl-empathy-h2" style="font-family:'Spectral',Georgia,serif;font-weight:500;font-style:italic;font-size:40px;line-height:1.32;letter-spacing:-0.01em;color:#211E1A;margin:0 auto;max-width:24ch;">You think faster than you speak. In your second language, that gap shows.</h2>
-    <p style="font-size:19px;line-height:1.65;color:#5A554C;margin:30px auto 0;max-width:52ch;">The smartest thing you said in that meeting got lost in a hedge, a filler word, a sentence that trailed off. Fluent closes the gap between what you mean and how it lands.</p>
-    <div style="margin-top:64px;position:relative;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -44px rgba(60,46,32,0.32);">
-      <picture>
-        <source srcset="/assets/session-review.webp" type="image/webp">
-        <img src="/assets/session-review.png" alt="Fluent's session review showing a candidate interview and the coaching feedback generated from it" width="1600" height="939" style="display:block;width:100%;height:auto;border-radius:20px;">
-      </picture>
-    </div>
-  </section>
-
-  <!-- How it works -->
-  <section id="how" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
-    <div style="text-align:center;margin-bottom:80px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">How it works</div>
-      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0 auto;max-width:18ch;">A coach in the room. Without anyone in the room.</h2>
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">01</div>
-        <div style="max-width:60ch;">
-          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It listens quietly — it never joins the call</h3>
-          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">No awkward bot sliding into the participant list. Fluent runs on your machine, captures your audio when you allow it, and stays completely invisible to everyone else on the call.</p>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">02</div>
-        <div style="max-width:60ch;">
-          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It studies how you actually communicate</h3>
-          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">Hedging, filler, clarity, directness, the moments you take charge and the moments you shrink — analysed in context, across real conversations, not staged exercises.</p>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">03</div>
-        <div style="max-width:60ch;">
-          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It gives you specific, kind feedback</h3>
-          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">Not a grade. The one habit worth changing this week, the exact phrases that worked, and a clearer way to say the thing you struggled to say.</p>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:36px;align-items:start;padding:44px 0;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:34px;color:#C9BFB0;">04</div>
-        <div style="max-width:60ch;">
-          <h3 style="font-size:26px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;">It builds your communication profile</h3>
-          <p style="font-size:18px;line-height:1.6;color:#5A554C;margin:14px 0 0;">A living picture of how you come across — strengthening week over week, so you can watch yourself become the communicator you've always known you are.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Product showcase -->
-  <section style="max-width:1080px;margin:0 auto;padding:150px 40px 0;">
-    <div class="fl-showcase">
-      <div>
-        <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Your communication profile</div>
-        <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:42px;line-height:1.16;letter-spacing:-0.018em;color:#211E1A;margin:0;max-width:14ch;">Watch yourself get clearer, week by week.</h2>
-        <p style="font-size:18px;line-height:1.65;color:#5A554C;margin:26px 0 0;max-width:42ch;">Not a score to feel anxious about — a living picture of your strengths and the one habit worth working on next.</p>
-      </div>
-      <div style="position:relative;border:1px solid #EDE8E0;border-radius:18px;background:#FFFFFF;box-shadow:0 34px 80px -46px rgba(60,46,32,0.4);overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:7px;padding:14px 18px;border-bottom:1px solid #F0EBE3;">
-          <span style="width:10px;height:10px;border-radius:50%;background:#EAD9CC;"></span>
-          <span style="width:10px;height:10px;border-radius:50%;background:#EFE3D6;"></span>
-          <span style="width:10px;height:10px;border-radius:50%;background:#F2EADF;"></span>
-        </div>
-        <div style="padding:30px 30px 34px;">
-          <div style="font-family:'Spectral',Georgia,serif;font-size:21px;color:#211E1A;margin-bottom:6px;">Communication trends</div>
-          <div style="font-size:13px;color:#8A7F70;margin-bottom:18px;">14 meetings analysed</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
-            <span style="font-size:16px;color:#29251F;">Confidence</span>
-            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 14.5px; color: #33322e; font-weight: 500;">Getting to the point</span>
+              <span style="font-size: 13px; color: #8f8d86; font-family: 'Geist Mono', monospace;">↑ improving</span>
+            </div>
+            <div style="height: 8px; background: #efede8; border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: 61%; background: #3f6d5f; border-radius: 999px;"></div>
+            </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
-            <span style="font-size:16px;color:#29251F;">Clarity</span>
-            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;">
-            <span style="font-size:16px;color:#29251F;">Directness</span>
-            <span style="display:inline-flex;align-items:center;gap:7px;color:#9A917F;"><span style="font-size:12px;">→</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Steady</span></span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid #F0EBE3;border-bottom:1px solid #F0EBE3;">
-            <span style="font-size:16px;color:#29251F;">Natural English</span>
-            <span style="display:inline-flex;align-items:center;gap:7px;color:#C96E47;"><span style="font-size:11px;">▲</span><span style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:16px;">Improving</span></span>
+          <div>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 14.5px; color: #33322e; font-weight: 500;">Stating recommendations directly</span>
+              <span style="font-size: 13px; color: #8f8d86; font-family: 'Geist Mono', monospace;">↑ improving</span>
+            </div>
+            <div style="height: 8px; background: #efede8; border-radius: 999px; overflow: hidden;">
+              <div style="height: 100%; width: 54%; background: #3f6d5f; border-radius: 999px;"></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Works with any tool -->
-  <section style="max-width:1080px;margin:0 auto;padding:130px 40px 0;text-align:center;">
-    <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:22px;">Works everywhere you meet</div>
-    <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:36px;line-height:1.2;letter-spacing:-0.015em;color:#211E1A;margin:0 auto;max-width:22ch;">If you can take the call, Fluent can coach it.</h2>
-    <div class="fl-cta-row" style="margin-top:46px;">
-      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Zoom</div>
-      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Google Meet</div>
-      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Microsoft Teams</div>
-      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Webex</div>
-      <div style="display:inline-flex;align-items:center;gap:9px;font-size:16px;font-weight:500;color:#46403A;border:1px solid #E7DFD3;background:#FFFFFF;padding:13px 22px;border-radius:999px;"><span style="width:7px;height:7px;border-radius:50%;background:#C96E47;display:inline-block;"></span>Slack huddles</div>
+  <!-- USE CASES -->
+  <section class="fl-section-pad" style="max-width: 1120px; margin: 0 auto; padding: 96px 24px 20px;">
+    <div style="max-width: 720px; margin-bottom: 48px;">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">Where it matters</div>
+      <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">For the moments that actually count.</h2>
+      <p style="font-size: 18px; color: #57554f; margin: 0; line-height: 1.55; max-width: 600px;">The calls where how you come across changes what happens next.</p>
     </div>
-    <div style="font-size:15px;color:#7C7163;margin-top:24px;">Zoom, Meet, Teams, Webex, or a phone call on speaker — to Fluent, it's all just your voice.</div>
-  </section>
-
-  <!-- Use cases -->
-  <section id="uses" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
-    <div style="margin-bottom:70px;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Where it changes things</div>
-      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0;max-width:20ch;">The conversations your career turns on.</h2>
-    </div>
-
     <div class="fl-uses-grid">
-      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Interviews</div>
-        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Understand why you didn't get the job</h3>
-        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Replay how you came across, find the answers that wandered, and walk into the next one knowing exactly what to tighten.</p>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 26px; display: flex; gap: 18px; align-items: flex-start;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; flex: none;">01</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;">Interviews</h3>
+          <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">Rehearse on real screening calls, then walk into the final round knowing which nervous tics to drop.</p>
+        </div>
       </div>
-      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Team &amp; stakeholders</div>
-        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Hold the room in internal meetings</h3>
-        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Get to the point with stakeholders, defend an idea without over-explaining, and sound like the expert you already are.</p>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 26px; display: flex; gap: 18px; align-items: flex-start;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; flex: none;">02</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;">Stakeholder meetings</h3>
+          <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">Get your recommendation heard the first time, instead of watching it get talked over or reinterpreted.</p>
+        </div>
       </div>
-      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">1:1s</div>
-        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Make your 1:1s clear and direct</h3>
-        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Say what you need, give feedback that lands, and stop softening the message until it disappears.</p>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 26px; display: flex; gap: 18px; align-items: flex-start;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; flex: none;">03</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;">1:1s and reviews</h3>
+          <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">Turn “be clearer” into a specific, fixable habit — and show up to the next review with it already handled.</p>
+        </div>
       </div>
-      <div style="padding:42px 0;border-top:1px solid #EDE8E0;">
-        <div style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:19px;color:#C96E47;margin-bottom:16px;">Growth</div>
-        <h3 style="font-size:24px;font-weight:600;letter-spacing:-0.01em;color:#29251F;margin:0;line-height:1.25;">Earn the promotion you deserve</h3>
-        <p style="font-size:17px;line-height:1.6;color:#5A554C;margin:14px 0 0;max-width:44ch;">Communication is the skill they promote on. Improve it steadily and let the people who decide finally see it.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pricing -->
-  <section id="pricing" style="max-width:1080px;margin:0 auto;padding:140px 40px 0;scroll-margin-top:90px;">
-    <div style="max-width:560px;margin:0 auto;text-align:center;">
-      <div style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#C96E47;margin-bottom:20px;">Pricing</div>
-      <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:46px;line-height:1.14;letter-spacing:-0.018em;color:#211E1A;margin:0;">One plan. Everything in it.</h2>
-      <div style="display:flex;align-items:baseline;justify-content:center;gap:10px;margin-top:44px;">
-        <span style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:72px;line-height:1;letter-spacing:-0.02em;color:#211E1A;">$20</span>
-        <span style="font-size:19px;color:#8B8378;">/ month</span>
-      </div>
-      <div style="font-size:16px;color:#6E6358;margin-top:16px;">Starts with a <span style="color:#C96E47;font-weight:600;">7-day free trial.</span> Cancel whenever you like.</div>
-
-      <div style="display:flex;flex-direction:column;margin:44px auto 0;text-align:left;max-width:420px;">
-        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Unlimited meetings analysed, on any tool</div>
-        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Weekly focus habits and specific coaching</div>
-        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;">Your evolving communication profile</div>
-        <div style="font-size:17px;color:#33302A;padding:16px 0;border-top:1px solid #EDE8E0;border-bottom:1px solid #EDE8E0;">Private by design — nothing ever joins your calls</div>
+      <div style="background: #fff; border: 1px solid #e9e7e1; border-radius: 14px; padding: 26px 26px; display: flex; gap: 18px; align-items: flex-start;">
+        <div style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; flex: none;">04</div>
+        <div>
+          <h3 style="font-size: 18px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em;">The promotion conversation</h3>
+          <p style="font-size: 15px; color: #57554f; margin: 0; line-height: 1.55;">Sound like the person who already has the role: fewer qualifiers, cleaner asks, more conviction.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Closing CTA -->
-  <section style="max-width:1080px;margin:0 auto;padding:150px 40px 0;text-align:center;">
-    <h2 style="font-family:'Spectral',Georgia,serif;font-weight:500;font-size:54px;line-height:1.12;letter-spacing:-0.02em;color:#211E1A;margin:0 auto;max-width:16ch;">The ideas are already yours.</h2>
-    <p style="font-family:'Spectral',Georgia,serif;font-style:italic;font-size:26px;color:#9A7A63;margin:18px 0 0;">Let's make sure everyone hears them.</p>
-    <div class="fl-cta-row" style="margin-top:46px;">
-      <a href="Fluent.dmg" download="Fluent.dmg" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'mac'})" class="fl-btn-primary" style="display:inline-flex;align-items:center;gap:10px;color:#FBF9F6;font-size:16px;font-weight:600;padding:15px 28px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px -10px rgba(201,110,71,0.6);">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="#FBF9F6"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
-        Download for Mac
-      </a>
-      <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'windows'})" class="fl-btn-secondary" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#33302A;border:1px solid #DDD5C8;font-size:16px;font-weight:600;padding:15px 28px;border-radius:999px;text-decoration:none;">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="#5A554C"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
-        Download for Windows
-      </a>
+  <!-- DIFFERENTIATOR -->
+  <section class="fl-section-pad" style="max-width: 1120px; margin: 0 auto; padding: 96px 24px 20px;">
+    <div style="max-width: 760px; margin-bottom: 44px;">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">Why this is different</div>
+      <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">Not an English course. Not a human coach. The part that was missing.</h2>
+      <p style="font-size: 18px; color: #57554f; margin: 0; line-height: 1.55; max-width: 640px;">Apps teach you a language you already speak. Coaches are expensive, scheduled, and never in the room when it counts. Fluent works from your real conversations, in private, right where the problem happens.</p>
     </div>
-    <div style="font-size:15px;color:#7C7163;margin-top:20px;">Free for 7 days, then $20 a month. Built for Mac and Windows.</div>
+    <div style="background: #fff; border: 1px solid #e7e5df; border-radius: 16px; overflow: hidden;">
+      <div class="fl-compare-wrap">
+        <div class="fl-compare">
+          <div style="padding: 18px 22px; border-bottom: 1px solid #eeece7;"></div>
+          <div style="padding: 18px 18px; border-bottom: 1px solid #eeece7; border-left: 1px solid #f1efea; text-align: center; font-weight: 600; font-size: 15px; background: #ecf0ef;">Fluent</div>
+          <div style="padding: 18px 18px; border-bottom: 1px solid #eeece7; border-left: 1px solid #f1efea; text-align: center; font-size: 14px; color: #8f8d86;">Language apps</div>
+          <div style="padding: 18px 18px; border-bottom: 1px solid #eeece7; border-left: 1px solid #f1efea; text-align: center; font-size: 14px; color: #8f8d86;">Human coaching</div>
+
+          <div style="padding: 17px 22px; border-bottom: 1px solid #f1efea; font-size: 14.5px; color: #33322e; display: flex; align-items: center;">Works from your real conversations</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; background: #f6f8f8;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">—</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+
+          <div style="padding: 17px 22px; border-bottom: 1px solid #f1efea; font-size: 14.5px; color: #33322e; display: flex; align-items: center;">In the room when it actually happens</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; background: #f6f8f8;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">—</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">—</div>
+
+          <div style="padding: 17px 22px; border-bottom: 1px solid #f1efea; font-size: 14.5px; color: #33322e; display: flex; align-items: center;">Specific, sentence-level fixes</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; background: #f6f8f8;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">—</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+
+          <div style="padding: 17px 22px; border-bottom: 1px solid #f1efea; font-size: 14.5px; color: #33322e; display: flex; align-items: center;">Private — nothing visible to others</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; background: #f6f8f8;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;"><span style="color: #3f6d5f; font-weight: 600; font-size: 16px;">✓</span></div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">—</div>
+
+          <div style="padding: 17px 22px; border-bottom: 1px solid #f1efea; font-size: 14.5px; color: #33322e; display: flex; align-items: center;">Cost of ongoing use</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; background: #f6f8f8; font-size: 15px; font-weight: 500; color: #33322e;">$20/mo</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">$10–15/mo</div>
+          <div style="padding: 17px 18px; border-bottom: 1px solid #f1efea; border-left: 1px solid #f1efea; text-align: center; color: #b3b1aa; font-size: 15px;">$150+/hr</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 13.5px; color: #8f8d86; margin: 16px 2px 0; text-align: center;">Fluent processes audio locally and never joins your meeting as a participant — there is nothing for others on the call to see.</p>
   </section>
 
-  <!-- Footer -->
-  <footer style="max-width:1080px;margin:0 auto;padding:120px 40px 56px;">
-    <div style="height:1px;background:#EDE8E0;margin-bottom:40px;"></div>
-    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px;">
-      <div style="display:flex;align-items:center;gap:9px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#C96E47;display:inline-block;"></span>
-        <span style="font-size:15px;font-weight:600;color:#2E2A24;">Fluent</span>
+  <!-- PRICING -->
+  <section id="pricing" class="fl-section-pad" style="max-width: 1120px; margin: 0 auto; padding: 96px 24px 20px;">
+    <div style="max-width: 560px; margin: 0 auto 44px; text-align: center;">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #3f6d5f; margin-bottom: 16px;">Pricing</div>
+      <h2 class="fl-h2" style="font-size: 38px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 14px;">One plan. Everything in it.</h2>
+      <p style="font-size: 18px; color: #57554f; margin: 0; line-height: 1.55;">Try it free for 7 days. No card games, no upsell tiers — you either find it useful on your real calls or you don’t.</p>
+    </div>
+    <div style="max-width: 440px; margin: 0 auto;">
+      <div style="background: #fff; border: 1px solid #e0ddd6; border-radius: 18px; box-shadow: 0 24px 60px -36px rgba(30,28,24,0.28); overflow: hidden;">
+        <div style="padding: 30px 30px 26px; border-bottom: 1px solid #f1efea;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px;">
+            <span style="font-size: 16px; font-weight: 600;">Fluent</span>
+            <span style="font-size: 12px; font-family: 'Geist Mono', monospace; color: #3f6d5f; background: #ecf0ef; border: 1px solid #cdd9d5; padding: 5px 10px; border-radius: 999px;">7-DAY FREE TRIAL</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span style="font-size: 46px; font-weight: 600; letter-spacing: -0.03em;">$20</span>
+            <span style="font-size: 16px; color: #8f8d86;">/ month</span>
+          </div>
+          <a href="Fluent.dmg" download="Fluent.dmg" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'mac'})" class="btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 22px; font-size: 15px; font-weight: 500; padding: 13px; border-radius: 10px;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="#ffffff"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+            Download for Mac
+          </a>
+          <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'windows'})" class="btn-ghost" style="display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px; font-size: 15px; font-weight: 500; padding: 12px; border-radius: 10px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#57554f"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+            Download for Windows
+          </a>
+          <p style="text-align: center; font-size: 13px; color: #8f8d86; margin: 12px 0 0;">Cancel anytime, in two clicks.</p>
+        </div>
+        <div style="padding: 26px 30px;">
+          <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 13px;">
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> Runs quietly during Zoom, Meet, Teams, Webex, and phone calls on speaker</li>
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> Weekly coaching built from your real calls — no staged exercises</li>
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> Specific, sentence-level fixes you can use on the next call</li>
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> A communication profile that tracks every habit over time</li>
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> Fully local audio processing — never joins the call, never visible</li>
+            <li style="display: flex; gap: 11px; font-size: 15px; color: #33322e; line-height: 1.45;"><span style="color: #3f6d5f; font-weight: 600; flex: none;">✓</span> Cancel in two clicks, keep your profile export</li>
+          </ul>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:26px;font-size:14px;color:#8B8378;">
-        <a href="#how" class="fl-link">How it works</a>
-        <a href="#uses" class="fl-link">Use cases</a>
-        <a href="#pricing" class="fl-link">Pricing</a>
-        <a href="/privacy" class="fl-link">Privacy</a>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section style="max-width: 1120px; margin: 96px auto 0; padding: 0 24px 96px;">
+    <div style="background: #16181c; color: #f4f3f1; border-radius: 24px; padding: 72px 40px; text-align: center; position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -40%; left: 50%; transform: translateX(-50%); width: 520px; height: 520px; background: radial-gradient(circle, #3f6d5f 0%, transparent 62%); opacity: 0.16;"></div>
+      <div style="position: relative;">
+        <h2 class="fl-cta-h2" style="font-size: 42px; line-height: 1.08; letter-spacing: -0.03em; font-weight: 600; margin: 0 0 18px;">The next call is coming.<br>Walk in knowing what to fix.</h2>
+        <p style="font-size: 18px; color: #a8a7a1; max-width: 480px; margin: 0 auto 32px; line-height: 1.55;">Install it before your next meeting. By next week you’ll know exactly which habit to drop — and what to say instead.</p>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap;">
+          <a href="Fluent.dmg" download="Fluent.dmg" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'mac'})" class="btn-light" style="display: inline-flex; align-items: center; gap: 9px; font-size: 15.5px; font-weight: 500; padding: 14px 26px; border-radius: 10px;">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="#16181c"><path d="M11.05 8.46c-.02-1.7 1.39-2.52 1.45-2.56-.79-1.16-2.02-1.31-2.46-1.33-1.05-.11-2.04.61-2.57.61-.53 0-1.35-.6-2.22-.58-1.14.02-2.19.66-2.78 1.68-1.18 2.06-.3 5.1.85 6.77.56.82 1.23 1.73 2.11 1.7.85-.04 1.17-.55 2.2-.55 1.02 0 1.31.55 2.21.53.91-.02 1.49-.83 2.05-1.65.64-.95.9-1.86.92-1.91-.02-.01-1.76-.68-1.79-2.69zM9.5 3.5c.47-.57.79-1.36.7-2.15-.68.03-1.5.45-1.98 1.02-.43.5-.81 1.31-.71 2.08.76.06 1.53-.39 1.99-.95z"/></svg>
+            Download for Mac
+          </a>
+          <a href="Fluent-Setup.exe" download="Fluent-Setup.exe" onclick="if(window.posthog)posthog.capture('app_downloaded', {platform: 'windows'})" class="btn-dark-ghost" style="display: inline-flex; align-items: center; gap: 9px; font-size: 15.5px; font-weight: 500; padding: 14px 24px; border-radius: 10px;">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="#f4f3f1"><path d="M0 2.27L6.53 1.4v6.3H0V2.27zM7.31 1.28L16 0v7.62H7.31V1.28zM0 8.49h6.53v6.3L0 13.9V8.49zM7.31 8.49H16V16l-8.69-1.2V8.49z"/></svg>
+            Download for Windows
+          </a>
+        </div>
+        <p style="font-size: 13.5px; color: #7c7b76; margin: 22px 0 0;">Free for 7 days, then $20 a month. Built for Mac and Windows.</p>
       </div>
-      <div style="font-size:13px;color:#8A7F70;">A communication coach for professionals with English as a second language.</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top: 1px solid #ecece7;">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 36px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+      <div style="display: flex; align-items: center; gap: 9px; flex-wrap: wrap;">
+        <img src="/assets/fluent-icon.svg" alt="Fluent" width="20" height="20" style="display: block; flex: none;">
+        <span style="font-weight: 600; font-size: 15px;">Fluent</span>
+        <span style="font-size: 13px; color: #9a9891; margin-left: 6px;">Coaching from your real conversations.</span>
+      </div>
+      <div style="display: flex; gap: 24px; font-size: 14px;">
+        <a href="#how" class="navlink">How it works</a>
+        <a href="#pricing" class="navlink">Pricing</a>
+        <a href="/privacy" class="navlink">Privacy</a>
+      </div>
     </div>
   </footer>
-
-<script>
-  (function () {
-    var wave = document.getElementById('fl-wave');
-    if (!wave) return;
-    var bars = 56;
-    var html = '';
-    for (var i = 0; i < bars; i++) {
-      var env = Math.sin((i / (bars - 1)) * Math.PI);
-      var v = (0.18 + Math.abs(Math.sin(i * 1.7) * 0.55 + Math.sin(i * 0.6) * 0.3)) * env;
-      var h = Math.max(8, Math.min(100, Math.round(v * 100)));
-      html += '<span class="fl-wave-bar" style="height:' + h + '%;"></span>';
-    }
-    wave.innerHTML = html;
-  })();
-</script>
 
 </body>
 </html>

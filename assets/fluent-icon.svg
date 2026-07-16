@@ -5,7 +5,7 @@
     </clipPath>
   </defs>
   <g clip-path="url(#squircle)">
-    <rect width="1024" height="1024" fill="#C96442"></rect>
+    <rect width="1024" height="1024" fill="#3f6d5f"></rect>
     <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="78">
       <path d="M 188 360 Q 332 140, 512 360 T 836 360" opacity="1"></path>
       <path d="M 188 532 Q 332 312, 512 532 T 836 532" opacity="0.72"></path>
