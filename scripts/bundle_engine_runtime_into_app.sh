@@ -37,6 +37,7 @@ rm -f  "$ENGINE_DST/setup_engine.sh" "$ENGINE_DST/install_agent.py" \
        "$ENGINE_DST/requirements-dev.txt" "$ENGINE_DST/requirements-win.txt"
 find "$ENGINE_DST" -type d -name __pycache__ -prune -exec rm -rf {} +
 find "$ENGINE_DST" -name '*.pyc' -delete
+find "$ENGINE_DST" "$RUNTIME_DST" -name .DS_Store -delete
 
 echo "==> Signing runtime binaries ($IDENTITY)..."
 SIGN_ARGS=(--force --options runtime --sign "$IDENTITY")

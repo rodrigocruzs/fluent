@@ -128,7 +128,7 @@ fi
 # ── 7. Prune ──────────────────────────────────────────────────────────────────
 "$PY" -m pip uninstall --quiet -y pip setuptools wheel 2>/dev/null || true
 rm -f "$OUT"/bin/pip* "$OUT"/bin/wheel* "$OUT"/bin/idle* "$OUT"/bin/pydoc*
-find "$OUT/lib" -type d \( -name tests -o -name test -o -name __pycache__ \) \
+find "$OUT/lib" -type d \( -name tests -o -name test -o -name __pycache__ -o -name PyObjCTest \) \
     -prune -exec rm -rf {} +
 
 # ── 8. Precompile (the bundle is read-only at runtime) ───────────────────────
