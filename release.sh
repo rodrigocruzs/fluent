@@ -48,6 +48,10 @@ if ! "$SPARKLE_CLI/sign_update" --help >/dev/null 2>&1; then
   echo "ERROR: sign_update failed to run — check the Sparkle signing key is in Keychain (docs/mac-sparkle-keysetup.md)" >&2
   exit 1
 fi
+if ! gh auth status >/dev/null 2>&1; then
+  echo "ERROR: gh CLI not authenticated (run: gh auth login) — needed to upload release assets" >&2
+  exit 1
+fi
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 XCODE_PROJECT="$REPO_ROOT/fluent/Fluent.xcodeproj"
@@ -57,9 +61,9 @@ BUILD_ROOT="$REPO_ROOT/fluent/build/Release"
 APP_PATH="$BUILD_ROOT/Release/Fluent.app"
 ENTITLEMENTS="$REPO_ROOT/fluent/Fluent/Fluent.entitlements"
 WEBSITE_DIR="$REPO_ROOT/website"
-DMG_PATH="$WEBSITE_DIR/Fluent.dmg"
+DMG_PATH="$BUILD_ROOT/Fluent.dmg"
 UPDATES_DIR="$WEBSITE_DIR/mac/updates"
-UPDATE_ZIP_PATH="$UPDATES_DIR/Fluent-$VERSION.zip"
+UPDATE_ZIP_PATH="$BUILD_ROOT/Fluent-$VERSION.zip"
 APPCAST_PATH="$UPDATES_DIR/appcast.xml"
 INFO_PLIST="$REPO_ROOT/fluent/Fluent/Info.plist"
 
@@ -122,7 +126,7 @@ spctl --assess --type execute --verbose "$APP_PATH"
 
 # ── 4. Package DMG ─────────────────────────────────────────────────────────--
 echo "==> Building DMG..."
-mkdir -p "$WEBSITE_DIR"
+mkdir -p "$(dirname "$DMG_PATH")"
 rm -f "$DMG_PATH"
 STAGING=$(mktemp -d)
 ditto "$APP_PATH" "$STAGING/Fluent.app"
@@ -161,7 +165,7 @@ killall Dock 2>/dev/null || true
 
 # ── 7. Zip the notarized app for Sparkle ────────────────────────────────────
 echo "==> Zipping notarized app for Sparkle update feed..."
-mkdir -p "$UPDATES_DIR"
+mkdir -p "$(dirname "$UPDATE_ZIP_PATH")"
 rm -f "$UPDATE_ZIP_PATH"
 ditto -c -k --keepParent "$APP_PATH" "$UPDATE_ZIP_PATH"
 ZIP_LENGTH=$(stat -f%z "$UPDATE_ZIP_PATH")
@@ -183,15 +187,24 @@ echo "==> Signature: $UPDATE_SIGNATURE"
 echo "==> Generating appcast.xml..."
 NOTES_FILE=$(mktemp /tmp/fluent_release_notes_XXXXXX.txt)
 printf '%s' "$TAG_MSG" > "$NOTES_FILE"
-DOWNLOAD_URL="https://www.tryfluent.co/mac/updates/Fluent-$VERSION.zip"
+DOWNLOAD_URL="https://github.com/rodrigocruzs/fluent/releases/download/$TAG/Fluent-$VERSION.zip"
 node "$REPO_ROOT/scripts/generate-appcast.mjs" \
   "$VERSION" "$NEW_BUILD" "$NOTES_FILE" "$UPDATE_SIGNATURE" "$ZIP_LENGTH" "$DOWNLOAD_URL" "$APPCAST_PATH"
+
+# ── 9b. Upload artifacts to the GitHub release ──────────────────────────────
+# `gh release create` fails if the release already exists — correct for a
+# fresh release. If re-running after a partial failure (release already
+# created but this step didn't finish), use `gh release upload --clobber`
+# instead to replace the assets.
+echo "==> Creating GitHub release $TAG with artifacts..."
+gh release create "$TAG" --verify-tag --notes-file "$NOTES_FILE" \
+    "$UPDATE_ZIP_PATH" "$DMG_PATH"
 rm -f "$NOTES_FILE"
 
 # ── 10. Publish to the website ───────────────────────────────────────────────
 echo "==> Publishing update artifacts..."
 cd "$REPO_ROOT"
-git add "$UPDATE_ZIP_PATH" "$APPCAST_PATH" "$INFO_PLIST"
+git add "$APPCAST_PATH" "$INFO_PLIST"
 git commit -m "release(mac): publish v$VERSION"
 git push origin HEAD:main
 
@@ -201,4 +214,5 @@ echo "    App:      /Applications/Fluent.app"
 echo "    DMG:      $DMG_PATH ($(du -sh "$DMG_PATH" | cut -f1))"
 echo "    Update:   $UPDATE_ZIP_PATH ($(du -sh "$UPDATE_ZIP_PATH" | cut -f1))"
 echo "    Appcast:  $APPCAST_PATH"
+echo "    GitHub release: https://github.com/rodrigocruzs/fluent/releases/tag/$TAG"
 echo "    Published to main — Vercel will deploy the update feed shortly."
