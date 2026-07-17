@@ -212,6 +212,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         // Inherit the Swift app's TCC permissions (including microphone)
         process.currentDirectoryURL = URL(fileURLWithPath: mainPy).deletingLastPathComponent()
         var env = ProcessInfo.processInfo.environment
+        // Strip ambient Python env pollution (e.g. __PYVENV_LAUNCHER__ left behind by
+        // IDEs/venv tooling) so the bundled interpreter can't be redirected into some
+        // other Python install. CPython honors these from the environment.
+        for key in env.keys where key == "__PYVENV_LAUNCHER__" || key.hasPrefix("PYTHON") {
+            env.removeValue(forKey: key)
+        }
         env["PYTHONNOUSERSITE"] = "1"        // don't leak ~/.local site-packages
         env["PYTHONDONTWRITEBYTECODE"] = "1" // bundle is read-only + codesigned
         process.environment = env
