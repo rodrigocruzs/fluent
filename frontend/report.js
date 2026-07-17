@@ -1115,11 +1115,11 @@
     const list = document.getElementById('upnext-list');
     if (!list) return;
     if (opts && opts.loading) {
-      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">Loading…</span></div>';
+      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b3b1aa">Loading…</span></div>';
       return;
     }
     if (!events || !events.length) {
-      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b5b5b5">No upcoming meetings</span></div>';
+      list.innerHTML = '<div class="session upnext-empty"><span class="session-name" style="color:#b3b1aa">No upcoming meetings</span></div>';
       return;
     }
     list.innerHTML = events.map(ev => {
