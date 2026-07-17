@@ -100,8 +100,16 @@ TOOLS="$WORK/tools"
 "$PY" -m pip install --quiet --target "$TOOLS" delocate pytest
 WHEELS="$WORK/wheels"
 echo "[runtime] building PyAudio wheel ..."
+# --no-cache-dir: this wheel is compiled from source against $PA_PREFIX, a
+# path inside this run's throwaway $WORK dir. pip's global build cache
+# (~/Library/Caches/pip) is keyed on the source, not the build env, so a
+# cached wheel from an earlier run can be reused with its _portaudio.so
+# still linked against that earlier run's now-deleted $WORK/portaudio-prefix
+# — a stale absolute path that fails delocate-wheel below with a confusing
+# "could not find all dependencies" error. The other pip installs in this
+# script resolve prebuilt wheels from PyPI, where the cache is content-safe.
 CFLAGS="-I$PA_PREFIX/include" LDFLAGS="-L$PA_PREFIX/lib" ARCHFLAGS="-arch arm64" \
-    "$PY" -m pip wheel --quiet "pyaudio==$PYAUDIO_VERSION" \
+    "$PY" -m pip wheel --quiet --no-cache-dir "pyaudio==$PYAUDIO_VERSION" \
     --no-deps --no-binary :all: -w "$WHEELS"
 PYTHONPATH="$TOOLS" "$TOOLS/bin/delocate-wheel" -w "$WHEELS/repaired" "$WHEELS"/[Pp]y[Aa]udio*.whl
 "$PY" -m pip install --quiet "$WHEELS/repaired"/[Pp]y[Aa]udio*.whl
