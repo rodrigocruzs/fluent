@@ -94,6 +94,13 @@ xcodebuild \
 [ -d "$APP_PATH" ] || { echo "ERROR: $APP_PATH not found"; exit 1; }
 echo "==> Built: $APP_PATH"
 
+# ── 1b. Bundle the Python engine runtime ─────────────────────────────────────
+# Nested binaries are signed here, BEFORE the --deep app pass below seals
+# Resources; reversing the order breaks the app's resource seal.
+echo "==> Bundling engine runtime..."
+bash "$REPO_ROOT/scripts/build_engine_runtime.sh"
+bash "$REPO_ROOT/scripts/bundle_engine_runtime_into_app.sh" "$APP_PATH" "$SIGN_IDENTITY"
+
 # ── 2. Sign the app ─────────────────────────────────────────────────────────--
 echo "==> Signing app (Developer ID, hardened runtime)..."
 codesign --deep --force --options runtime --timestamp \
