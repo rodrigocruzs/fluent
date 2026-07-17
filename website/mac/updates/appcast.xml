@@ -6,17 +6,17 @@
     <description>Most recent changes for Fluent on macOS.</description>
     <language>en</language>
     <item>
-      <title>Version 1.4</title>
-      <description><![CDATA[Test release: verify Sparkle end-to-end update path.]]></description>
-      <pubDate>Tue, 07 Jul 2026 20:35:30 GMT</pubDate>
-      <sparkle:version>5</sparkle:version>
-      <sparkle:shortVersionString>1.4</sparkle:shortVersionString>
+      <title>Version 1.5</title>
+      <description><![CDATA[New look: refreshed Fluent brand with a new green icon, updated colors, and new typography.]]></description>
+      <pubDate>Fri, 17 Jul 2026 15:36:15 GMT</pubDate>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://www.tryfluent.co/mac/updates/Fluent-1.4.zip"
-        length="1396592"
+        url="https://www.tryfluent.co/mac/updates/Fluent-1.5.zip"
+        length="1483941"
         type="application/octet-stream"
-        sparkle:edSignature="ldvK7HqBFN5PGGfW027trVExDIuWXQfpxtO4riQNuFGUX/BxYBjbwa+qNojkmS0MSfGe5GNUp9OliDqJyl+WCg=="
+        sparkle:edSignature="jqcuLMMAtrsOXmmcb2Q3dRxW9JGY6461Sl2zg0YIk2cPuQBQR66Zgy365GCQY2cEk0mzyUHm6bWVCQhaDiU8AA=="
       />
     </item>
   </channel>
