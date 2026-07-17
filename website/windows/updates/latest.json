@@ -1,10 +1,10 @@
 {
-  "version": "0.1.6",
-  "notes": "release(windows): bump version to 0.1.6",
-  "pub_date": "2026-07-08T14:54:24.939Z",
+  "version": "0.1.7",
+  "notes": "release(mac): commit v1.5 DMG\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+  "pub_date": "2026-07-17T16:04:59.433Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUJ6SDVDQmxhUmYydlNlODFOMmswNThuemRYamxtTDErM0FHdDYxQUdDUkhKQmpOZktFMnhneStuN05XYXFPUytKc2dNbWYvMDZseVlXajVPWWVRbHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTIyNDY0CWZpbGU6Rmx1ZW50XzAuMS42X3g2NC1zZXR1cC5leGUKaFhhbVluS3BMVjFwNjNmWnNtcjBrUW93cjhnb09ZQlBQcHVYYmRORWFIamFNZWVUSEJ3L2JHMlJoQnVtVlRDenhWd242RVYwZmF6MTdFc1ozakJNQ3c9PQo=",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSbnZiblF0em5LNUMyQ0hVOFdzWlNlaEIwWTlYWTFYOXF4UHJnbWV4Y3hSOXJkM2FibzRmYk1yaFE0ZnpteUNFV0g5SlZRZHJFK2pkUlJGSDVzaGU2ZHlCY21WSGgydlFFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MzA0Mjk5CWZpbGU6Rmx1ZW50XzAuMS43X3g2NC1zZXR1cC5leGUKakJhVVZNdG1OUVNYVmQ4NkY2c1Ayc0prVnN5YmxGMWlWa2FXOEJUcjBDMFFXazg2d0pQVlFvUFVETHRxRkswK0QzM3ludFVxZkFEN1YxYUNUMFVmQXc9PQo=",
       "url": "https://www.tryfluent.co/Fluent-Setup.exe"
     }
   }
