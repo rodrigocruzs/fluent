@@ -120,6 +120,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             "EnvironmentVariables": [
                 "PYTHONNOUSERSITE": "1",
                 "PYTHONDONTWRITEBYTECODE": "1",
+                // launchd may inherit a stale __PYVENV_LAUNCHER__ from the login session; a
+                // plist can only set values, not unset them, but CPython treats an empty
+                // value as absent, so this neutralizes it without an explicit override.
+                "__PYVENV_LAUNCHER__": "",
             ],
         ]
         return try? PropertyListSerialization.data(
