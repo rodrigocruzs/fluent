@@ -7,8 +7,8 @@
   --gray-4:     #d8d8d6;
   --rule:       #e8e8e6;
   --row-hover:  #fafaf9;
-  --accent:     #C96442;
-  --accent-tint:#fbe9e1;
+  --accent:     #3f6d5f;
+  --accent-tint:#ecf0ef;
   --bg:         #ffffff;
 }
 
@@ -167,7 +167,7 @@ body {
   letter-spacing: -0.005em;
   transition: background-color 140ms ease, transform 140ms ease;
 }
-.auth-primary:hover  { background: #b85737; }
+.auth-primary:hover  { background: #355c50; }
 .auth-primary:active { transform: translateY(1px); }
 .auth-primary:disabled { opacity: 0.55; cursor: default; pointer-events: none; }
 
@@ -503,7 +503,7 @@ body {
   transition: background-color 140ms ease, transform 140ms ease;
 }
 
-.start-button:hover { background: #b85737; }
+.start-button:hover { background: #355c50; }
 .start-button:active { transform: translateY(1px); }
 
 .start-button .dot {
@@ -623,7 +623,7 @@ body {
   color: var(--gray-1);
   transition: background-color 120ms ease, color 120ms ease;
 }
-.rec-stop:hover { background: #f6efec; color: var(--accent); }
+.rec-stop:hover { background: #f6f8f8; color: var(--accent); }
 .rec-stop .stop-square {
   width: 10px;
   height: 10px;
@@ -665,7 +665,7 @@ body {
   white-space: nowrap;
   transition: background-color 120ms ease, transform 80ms ease;
 }
-.upnext-record-btn:hover  { background: #b85737; }
+.upnext-record-btn:hover  { background: #355c50; }
 .upnext-record-btn:active { transform: translateY(1px); }
 .upnext-record-btn .dot {
   width: 7px;
@@ -1504,7 +1504,7 @@ mark.flag {
   border-color: var(--accent);
   color: #fff;
 }
-.settings-btn.primary:hover { background: #b85737; border-color: #b85737; }
+.settings-btn.primary:hover { background: #355c50; border-color: #355c50; }
 .settings-btn.danger {
   color: #b94a3a;
   border-color: transparent;
