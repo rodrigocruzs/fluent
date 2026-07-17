@@ -30,6 +30,10 @@ echo "==> Using build: $APP_PATH ($(date -r "$APP_PATH" '+%Y-%m-%d %H:%M:%S'))"
 echo "==> Checking AppIcon safe-area padding (full-bleed artwork renders oversized in the Dock)..."
 python3 /Users/rodrigocruzsouza/fluent/scripts/check-appicon-padding.py
 
+echo "==> Bundling engine runtime..."
+bash /Users/rodrigocruzsouza/fluent/scripts/build_engine_runtime.sh
+bash /Users/rodrigocruzsouza/fluent/scripts/bundle_engine_runtime_into_app.sh "$APP_PATH" "$SIGN_IDENTITY"
+
 echo "==> Signing..."
 codesign --deep --force --options runtime --timestamp \
   --entitlements "$ENTITLEMENTS" \
