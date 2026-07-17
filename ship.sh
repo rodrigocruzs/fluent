@@ -27,6 +27,9 @@ fi
 
 echo "==> Using build: $APP_PATH ($(date -r "$APP_PATH" '+%Y-%m-%d %H:%M:%S'))"
 
+echo "==> Checking AppIcon safe-area padding (full-bleed artwork renders oversized in the Dock)..."
+python3 /Users/rodrigocruzsouza/fluent/scripts/check-appicon-padding.py
+
 echo "==> Signing..."
 codesign --deep --force --options runtime --timestamp \
   --entitlements "$ENTITLEMENTS" \

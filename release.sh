@@ -79,6 +79,9 @@ plutil -replace CFBundleVersion -string "$NEW_BUILD" "$INFO_PLIST"
 echo "==> CFBundleShortVersionString=$VERSION CFBundleVersion=$NEW_BUILD"
 
 # ── 1. Build ──────────────────────────────────────────────────────────────────
+echo "==> Checking AppIcon safe-area padding (full-bleed artwork renders oversized in the Dock)..."
+python3 "$REPO_ROOT/scripts/check-appicon-padding.py"
+
 echo "==> Building $SCHEME ($CONFIGURATION)..."
 rm -rf "$APP_PATH"
 xcodebuild \
