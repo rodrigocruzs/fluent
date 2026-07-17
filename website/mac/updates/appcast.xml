@@ -13,7 +13,7 @@
       <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://www.tryfluent.co/mac/updates/Fluent-1.5.zip"
+        url="https://github.com/rodrigocruzs/fluent/releases/download/v1.5/Fluent-1.5.zip"
         length="1483941"
         type="application/octet-stream"
         sparkle:edSignature="jqcuLMMAtrsOXmmcb2Q3dRxW9JGY6461Sl2zg0YIk2cPuQBQR66Zgy365GCQY2cEk0mzyUHm6bWVCQhaDiU8AA=="
