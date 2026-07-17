@@ -97,7 +97,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             .appendingPathComponent(".fluent/engine")
         guard FileManager.default.fileExists(atPath: legacyDir.path) else { return }
         runLaunchctl(["bootout", "gui/\(getuid())/\(Self.engineAgentLabel)"])
-        try? FileManager.default.removeItem(at: legacyDir)
+        do {
+            try FileManager.default.removeItem(at: legacyDir)
+        } catch {
+            print("[Fluent] migration: failed to remove legacy engine: \(error)")
+            return
+        }
         print("[Fluent] migrated: removed legacy engine install at ~/.fluent/engine")
     }
 
@@ -120,10 +125,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             "EnvironmentVariables": [
                 "PYTHONNOUSERSITE": "1",
                 "PYTHONDONTWRITEBYTECODE": "1",
-                // launchd may inherit a stale __PYVENV_LAUNCHER__ from the login session; a
-                // plist can only set values, not unset them, but CPython treats an empty
-                // value as absent, so this neutralizes it without an explicit override.
+                // launchd may inherit stale __PYVENV_LAUNCHER__/PYTHONPATH/PYTHONHOME from the
+                // login session; a plist can only set values, not unset them, but CPython treats
+                // an empty value as absent, so this neutralizes them without an explicit override.
                 "__PYVENV_LAUNCHER__": "",
+                "PYTHONPATH": "",
+                "PYTHONHOME": "",
             ],
         ]
         return try? PropertyListSerialization.data(
@@ -139,13 +146,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
         }
         let dir = engineAgentPlistURL.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        runLaunchctl(["bootout", "gui/\(getuid())/\(Self.engineAgentLabel)"])
         do {
             try desired.write(to: engineAgentPlistURL)
         } catch {
             print("[Fluent] failed to write launch agent plist: \(error)")
             return
         }
-        runLaunchctl(["bootout", "gui/\(getuid())/\(Self.engineAgentLabel)"])
         runLaunchctl(["bootstrap", "gui/\(getuid())", engineAgentPlistURL.path])
         print("[Fluent] launch agent installed: \(engineAgentPlistURL.path)")
     }
