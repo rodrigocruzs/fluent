@@ -36,7 +36,7 @@
 **Interfaces:**
 - Produces: `requirements-common.txt` + `requirements-mac.txt` = exactly what Task 2 installs into the runtime; `requirements-dev.txt` = extra deps for running the test suite.
 
-- [ ] **Step 1: Edit `fluent-engine/requirements-common.txt`** — remove the `pytest>=8.0` line so the file reads:
+- [x] **Step 1: Edit `fluent-engine/requirements-common.txt`** — remove the `pytest>=8.0` line so the file reads:
 
 ```
 # Cross-platform engine dependencies (macOS + Windows).
@@ -48,7 +48,7 @@ pyaudio>=0.2.14
 httpx>=0.27.0
 ```
 
-- [ ] **Step 2: Create `fluent-engine/requirements-dev.txt`:**
+- [x] **Step 2: Create `fluent-engine/requirements-dev.txt`:**
 
 ```
 # Dev/test-only dependencies — never shipped in the app bundle.
@@ -56,12 +56,12 @@ httpx>=0.27.0
 pytest>=8.0
 ```
 
-- [ ] **Step 3: Verify the dev venv still runs tests** (the existing `~/.fluent/engine/venv` already has pytest installed; this just confirms nothing else referenced the moved line):
+- [x] **Step 3: Verify the dev venv still runs tests** (the existing `~/.fluent/engine/venv` already has pytest installed; this just confirms nothing else referenced the moved line):
 
 Run: `grep -rn "pytest" fluent-engine/requirements*.txt`
 Expected: only `requirements-dev.txt` mentions pytest.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add fluent-engine/requirements-common.txt fluent-engine/requirements-dev.txt
@@ -79,7 +79,7 @@ git commit -m "build(engine): move pytest to requirements-dev.txt so it isn't sh
 - Produces: `build/engine-runtime/` — a relocatable CPython whose `bin/python3` can run `fluent-engine/main.py` with zero external deps. Contains `MANIFEST.txt` (versions) and `.stamp` (cache key). Task 3's `bundle_engine_runtime_into_app.sh` copies this directory verbatim.
 - Env flags: `FORCE=1` rebuilds despite cache; `SKIP_ENGINE_TESTS=1` skips the pytest gate.
 
-- [ ] **Step 1: Write `scripts/build_engine_runtime.sh`** with this exact content, then `chmod +x` it:
+- [x] **Step 1: Write `scripts/build_engine_runtime.sh`** with this exact content, then `chmod +x` it:
 
 ```bash
 #!/usr/bin/env bash
@@ -250,22 +250,22 @@ stamp_value > "$STAMP"
 echo "[runtime] done: $OUT ($(du -sh "$OUT" | cut -f1))"
 ```
 
-- [ ] **Step 2: Make it executable and run it**
+- [x] **Step 2: Make it executable and run it**
 
 Run: `chmod +x scripts/build_engine_runtime.sh && bash scripts/build_engine_runtime.sh`
 Expected: downloads both tarballs, builds portaudio and the PyAudio wheel, engine tests pass, both gates pass, ends with `[runtime] done: .../build/engine-runtime (~110M)`. If the pytest gate fails for a reason unrelated to this work (pre-existing test breakage), verify the same failure exists under the dev venv before deciding anything — do not silently `SKIP_ENGINE_TESTS=1`.
 
-- [ ] **Step 3: Verify the cache short-circuit**
+- [x] **Step 3: Verify the cache short-circuit**
 
 Run: `bash scripts/build_engine_runtime.sh`
 Expected: single line `[runtime] up to date (...) — FORCE=1 to rebuild`, exits 0 instantly.
 
-- [ ] **Step 4: Spot-check the vendored portaudio**
+- [x] **Step 4: Spot-check the vendored portaudio**
 
 Run: `otool -L build/engine-runtime/lib/python3.12/site-packages/pyaudio/_portaudio*.so`
 Expected: a `@loader_path/…/.dylibs/libportaudio…` reference (delocate vendors libs into a `.dylibs` dir inside the package); **no** `/opt/homebrew` or absolute build paths.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/build_engine_runtime.sh
@@ -284,7 +284,7 @@ git commit -m "build(engine): script to assemble the self-contained Python runti
 - Consumes: `build/engine-runtime/` from Task 2.
 - Produces: `Fluent.app/Contents/Resources/engine-runtime/bin/python3` — the path Task 4's `enginePython()` resolves; a pruned `Contents/Resources/fluent-engine`.
 
-- [ ] **Step 1: Write `scripts/bundle_engine_runtime_into_app.sh`**, then `chmod +x`:
+- [x] **Step 1: Write `scripts/bundle_engine_runtime_into_app.sh`**, then `chmod +x`:
 
 ```bash
 #!/usr/bin/env bash
@@ -338,7 +338,7 @@ done < <(find "$RUNTIME_DST" -type f \
 echo "==> Engine runtime bundled ($(du -sh "$RUNTIME_DST" | cut -f1))."
 ```
 
-- [ ] **Step 2: Wire it into `release.sh`** — insert between the build step and `# ── 2. Sign the app`:
+- [x] **Step 2: Wire it into `release.sh`** — insert between the build step and `# ── 2. Sign the app`:
 
 ```bash
 # ── 1b. Bundle the Python engine runtime ─────────────────────────────────────
@@ -349,7 +349,7 @@ bash "$REPO_ROOT/scripts/build_engine_runtime.sh"
 bash "$REPO_ROOT/scripts/bundle_engine_runtime_into_app.sh" "$APP_PATH" "$SIGN_IDENTITY"
 ```
 
-- [ ] **Step 3: Test against a real build without releasing.** Build Release locally, inject with the real Developer ID (signing locally is free; no notarization here):
+- [x] **Step 3: Test against a real build without releasing.** Build Release locally, inject with the real Developer ID (signing locally is free; no notarization here):
 
 ```bash
 xcodebuild -project fluent/Fluent.xcodeproj -scheme Fluent -configuration Release \
@@ -365,12 +365,12 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 
 Expected: `bundle_engine_runtime_into_app.sh` prints the pruning and signing lines; the final verify prints `valid on disk` / `satisfies its Designated Requirement`. If the verify fails with a resource-seal error, the signing order is wrong — nested signing must precede the app pass.
 
-- [ ] **Step 4: Spot-check one runtime binary's signature**
+- [x] **Step 4: Spot-check one runtime binary's signature**
 
 Run: `codesign -dv "$APP/Contents/Resources/engine-runtime/bin/python3" 2>&1 | grep -E "Authority|flags"`
 Expected: `Authority=Developer ID Application: Rodrigo Cruz de Souza (H28RYPBSMQ)` and `flags=0x10000(runtime)`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/bundle_engine_runtime_into_app.sh release.sh
@@ -390,13 +390,13 @@ Replace the entire first-launch setup flow in `fluent/Fluent/AppDelegate.swift`.
 - Consumes: `Contents/Resources/engine-runtime/bin/python3` (Task 3), `Contents/Resources/fluent-engine/main.py` (existing).
 - Produces: `enginePython() -> String?`, `migrateLegacyEngineIfNeeded()`, `installEngineLaunchAgentIfNeeded()`. Engine spawns carry `PYTHONNOUSERSITE=1`, `PYTHONDONTWRITEBYTECODE=1`. Optional env override `FLUENT_ENGINE_PYTHON` for dev.
 
-- [ ] **Step 1: Delete the setup machinery.** Remove from `AppDelegate.swift`:
+- [x] **Step 1: Delete the setup machinery.** Remove from `AppDelegate.swift`:
   - Properties `engineSetupProcess` and `setupWindowController` (lines 9, 11).
   - The `engineReadySentinel` computed property (lines 20–26) and its doc comment.
   - The `EngineSetupError` enum (lines 28–34) and its comment.
   - Functions: `setupEngineIfNeeded()`, `runEngineSetup()`, `findSystemPython()`, `isPython310Plus(_:)`, `showSetupProgress()`, `dismissSetupWindow()`, `showPythonMissing()`, `showSetupFailed(_:)` (lines 73–222 region — everything between `// MARK: - Engine setup & launch` and `private func startEngine()` except what Step 2 adds back).
 
-- [ ] **Step 2: Add the new engine-lifecycle code** in place of the deleted block:
+- [x] **Step 2: Add the new engine-lifecycle code** in place of the deleted block:
 
 ```swift
     // MARK: - Engine runtime
@@ -506,7 +506,7 @@ Replace the entire first-launch setup flow in `fluent/Fluent/AppDelegate.swift`.
     }
 ```
 
-- [ ] **Step 3: Rewrite `startEngine()`'s interpreter guard and environment.** Replace the venv-guard block (the comment starting `// Only the venv python has the installed deps` through the `guard … else { … runEngineSetup(); return }`) with:
+- [x] **Step 3: Rewrite `startEngine()`'s interpreter guard and environment.** Replace the venv-guard block (the comment starting `// Only the venv python has the installed deps` through the `guard … else { … runEngineSetup(); return }`) with:
 
 ```swift
         guard let python = enginePython() else {
@@ -524,7 +524,7 @@ Replace the entire first-launch setup flow in `fluent/Fluent/AppDelegate.swift`.
         process.environment = env
 ```
 
-- [ ] **Step 4: Update `applicationDidFinishLaunching`.** Replace the `setupEngineIfNeeded()` call with:
+- [x] **Step 4: Update `applicationDidFinishLaunching`.** Replace the `setupEngineIfNeeded()` call with:
 
 ```swift
         migrateLegacyEngineIfNeeded()
@@ -532,12 +532,12 @@ Replace the entire first-launch setup flow in `fluent/Fluent/AppDelegate.swift`.
         startEngine()
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 Run: `xcodebuild -project fluent/Fluent.xcodeproj -scheme Fluent -configuration Debug build 2>&1 | tail -3`
 Expected: `BUILD SUCCEEDED`. Also `grep -c "runEngineSetup\|findSystemPython\|EngineSetupError\|engineReadySentinel" fluent/Fluent/AppDelegate.swift` → `0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fluent/Fluent/AppDelegate.swift
@@ -559,12 +559,12 @@ venv-based installs."
 **Interfaces:**
 - Consumes: Task 4 (nothing references `EngineSetupWindowController` after it).
 
-- [ ] **Step 1: Confirm nothing still references the deleted files**
+- [x] **Step 1: Confirm nothing still references the deleted files**
 
 Run: `grep -rn "EngineSetupWindowController\|setup_engine\|install_agent" fluent/Fluent/*.swift fluent-engine --include="*.py" --include="*.sh"`
 Expected: only self-references from the files being deleted (and `EngineSetupWindowController.swift`'s own class definition). If anything else shows up, fix it first.
 
-- [ ] **Step 2: Delete the files**
+- [x] **Step 2: Delete the files**
 
 ```bash
 git rm fluent/Fluent/EngineSetupWindowController.swift \
@@ -572,7 +572,7 @@ git rm fluent/Fluent/EngineSetupWindowController.swift \
        fluent-engine/install_agent.py
 ```
 
-- [ ] **Step 3: Remove the four pbxproj references.** In `fluent/Fluent.xcodeproj/project.pbxproj`, delete these exact lines (do NOT run `xcodegen generate`):
+- [x] **Step 3: Remove the four pbxproj references.** In `fluent/Fluent.xcodeproj/project.pbxproj`, delete these exact lines (do NOT run `xcodegen generate`):
 
 ```
 		E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6B2C3D4E5F6071829304A5C /* EngineSetupWindowController.swift */; };
@@ -581,12 +581,12 @@ git rm fluent/Fluent/EngineSetupWindowController.swift \
 				E5A1B2C3D4E5F60718293A4B /* EngineSetupWindowController.swift in Sources */,
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 Run: `xcodebuild -project fluent/Fluent.xcodeproj -scheme Fluent -configuration Debug build 2>&1 | tail -3`
 Expected: `BUILD SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fluent/Fluent.xcodeproj/project.pbxproj
@@ -601,7 +601,7 @@ No new code — proves the whole chain before the next real release.
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Full local assembly of a release-style app** (repeat of Task 3 Step 3 against the code as of Task 5, including the Task 4/5 app changes):
+- [x] **Step 1: Full local assembly of a release-style app** (repeat of Task 3 Step 3 against the code as of Task 5, including the Task 4/5 app changes):
 
 ```bash
 bash scripts/build_engine_runtime.sh
@@ -616,7 +616,7 @@ codesign --deep --force --options runtime --timestamp \
 codesign --verify --deep --strict --verbose=2 "$APP"
 ```
 
-- [ ] **Step 2: Boot the engine exactly as a fresh consumer Mac would** — stripped env, empty HOME, no Homebrew paths. Stop anything holding port 2788 first:
+- [x] **Step 2: Boot the engine exactly as a fresh consumer Mac would** — stripped env, empty HOME, no Homebrew paths. Stop anything holding port 2788 first:
 
 ```bash
 launchctl bootout "gui/$(id -u)/com.fluent.engine" 2>/dev/null || true
@@ -633,15 +633,15 @@ kill %1
 
 Expected: `curl` returns the engine's `/status` JSON (any well-formed JSON body means the runtime, deps, and HTTP server all work with zero machine dependencies). If Python fails to start or imports fail, the runtime is not actually self-contained — go back to the Task 2 gates.
 
-- [ ] **Step 3: Launch the real app once** (`open "$APP"` — or rebuild into /Applications via ship.sh) and check:
+- [x] **Step 3: Launch the real app once** (`open "$APP"` — or rebuild into /Applications via ship.sh) and check:
   - No "Python is required" or setup dialog appears.
   - `/tmp/fluent-engine.log` shows the engine starting under `…/Resources/engine-runtime/bin/python3`.
   - `~/Library/LaunchAgents/com.fluent.engine.plist` now points at the bundle paths.
   - `~/.fluent/engine/` is gone (migration ran), while `~/.fluent/config.json`, `reports/`, `recordings/` are intact.
 
-- [ ] **Step 4: Record sizes** for the release notes: `du -sh "$APP"` and `ditto -c -k --keepParent "$APP" /tmp/fluent-size-test.zip && ls -lh /tmp/fluent-size-test.zip` (this approximates the Sparkle update zip). Note the numbers in the final report; expected roughly 110 MB unpacked / 35–45 MB zipped.
+- [x] **Step 4: Record sizes** for the release notes: `du -sh "$APP"` and `ditto -c -k --keepParent "$APP" /tmp/fluent-size-test.zip && ls -lh /tmp/fluent-size-test.zip` (this approximates the Sparkle update zip). Note the numbers in the final report; expected roughly 110 MB unpacked / 35–45 MB zipped.
 
-- [ ] **Step 5: Commit the plan checkboxes and report.** The first real `release.sh` run (with notarization) after merging is the final gate — notarization now covers ~2,000 extra signed Mach-O files. If notarytool rejects, inspect `xcrun notarytool log <id>`; the expected failure mode would be an unsigned binary the find-loop missed (fix the loop's predicate), not the signing order.
+- [x] **Step 5: Commit the plan checkboxes and report.** The first real `release.sh` run (with notarization) after merging is the final gate — notarization now covers ~2,000 extra signed Mach-O files. If notarytool rejects, inspect `xcrun notarytool log <id>`; the expected failure mode would be an unsigned binary the find-loop missed (fix the loop's predicate), not the signing order.
 
 ---
 

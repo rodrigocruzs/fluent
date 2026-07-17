@@ -1,4 +1,4 @@
-# macOS install entrypoint (referenced by setup_engine.sh).
+# macOS install entrypoint, used by scripts/build_engine_runtime.sh.
 # Pulls in the cross-platform deps plus the macOS-only ones.
 # Windows uses: pip install -r requirements-common.txt -r requirements-win.txt
 -r requirements-common.txt

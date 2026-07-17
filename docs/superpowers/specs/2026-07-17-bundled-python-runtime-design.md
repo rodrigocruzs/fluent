@@ -88,12 +88,13 @@ Build-time script, run by `release.sh` (cached output under `build/engine-runtim
    is arm64-only) and verify its SHA-256. Cache the tarball.
 2. Install deps directly into the runtime's `site-packages` (no venv — the
    runtime is private): `requirements-common.txt` + `requirements-mac.txt`.
-3. **PyAudio:** `pip wheel pyaudio` on the build machine (Homebrew portaudio
-   present), then repair with `delocate-wheel` so `libportaudio.2.dylib` is
+3. **PyAudio:** portaudio is always built from source with
+   `MACOSX_DEPLOYMENT_TARGET=14.0` (Homebrew's bottle has minos 15.0, above the
+   app's deployment target), then `pip wheel pyaudio` links against it and the
+   wheel is repaired with `delocate-wheel` so `libportaudio.2.dylib` is
    vendored into the wheel and the extension links it via `@loader_path`.
-   Install the repaired wheel. Fail the build if the vendored dylib's minimum
-   OS version exceeds the app's deployment target (14.0); if that ever happens,
-   compile portaudio from source with `MACOSX_DEPLOYMENT_TARGET=14.0`.
+   Install the repaired wheel. The min-OS gate (below) still fails the build if
+   any vendored dylib's minimum OS version exceeds 14.0.
 4. Prune: strip `pip`/`setuptools`/`wheel`, `tests`/`test` dirs, `__pycache__`;
    then `python -m compileall` the tree once (read-only bundle can't write
    `.pyc` later).
@@ -139,6 +140,13 @@ the runtime is injected post-build by `release.sh`.
   2. legacy `~/.fluent/engine/venv/bin/python3` as a dev-only fallback
      (Xcode Debug builds don't carry the runtime), with a log line;
   3. neither → log error, no dialog.
+
+  **Debug builds:** once migration has removed the legacy venv (`~/.fluent/engine`),
+  fallback 2 above has nothing to resolve to. Point Xcode Debug runs at the
+  repo's own assembled runtime instead by setting the `FLUENT_ENGINE_PYTHON`
+  dev override (highest-priority resolution path, checked before both of the
+  above) in the scheme's environment variables:
+  `FLUENT_ENGINE_PYTHON=<repo>/build/engine-runtime/bin/python3`.
 - Delete: `findSystemPython()`, `isPython310Plus()`, `showPythonMissing()`,
   `runEngineSetup()`, `showSetupFailed()`, the sentinel check, and
   `EngineSetupWindowController` (setup is now instant; there is no progress to
@@ -167,9 +175,12 @@ the runtime is injected post-build by `release.sh`.
 
 ## Size
 
-Estimates to be confirmed during implementation: stripped CPython ≈ 30 MB +
-deps ≈ 80 MB unpacked (pyobjc dominates); roughly +35–45 MB compressed in the
-DMG and Sparkle zip. Acceptable for a desktop app on a daily update cadence.
+Measured (pruned of PyObjCTest, tests, __pycache__): `build/engine-runtime`
+is 117 MB unpacked (pyobjc dominates). The full built app
+(`Fluent.app`, runtime + engine source + Sparkle framework) is 124 MB
+unpacked, 42 MB as a `ditto -c -k --keepParent` zip (the same packaging
+Sparkle/notarization use). Acceptable for a desktop app on a daily update
+cadence.
 
 ## Testing
 
@@ -178,7 +189,7 @@ DMG and Sparkle zip. Acceptable for a desktop app on a daily update cadence.
 - Manual: fresh-user-account run with `PATH` stripped; ideally one true
   clean-machine (VM or friend's Mac) validation of the first release.
 - Engine pytest suite runs under the assembled runtime
-  (`build/engine-runtime/python/bin/python3 -m pytest`) to prove dep parity.
+  (`build/engine-runtime/bin/python3 -m pytest`) to prove dep parity.
 
 ## Out of scope / future
 
