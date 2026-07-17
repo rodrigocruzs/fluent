@@ -1,0 +1,3 @@
+# Dev/test-only dependencies — never shipped in the app bundle.
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+pytest>=8.0
