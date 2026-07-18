@@ -2,21 +2,23 @@
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>Fluent Changelog</title>
+    <!-- Fixed by the app's SUFeedURL in Info.plist — not derived from downloadUrl, -->
+    <!-- which now points at GitHub Releases and has no appcast.xml alongside it. -->
     <link>https://www.tryfluent.co/mac/updates/appcast.xml</link>
     <description>Most recent changes for Fluent on macOS.</description>
     <language>en</language>
     <item>
-      <title>Version 1.5</title>
-      <description><![CDATA[New look: refreshed Fluent brand with a new green icon, updated colors, and new typography.]]></description>
-      <pubDate>Fri, 17 Jul 2026 15:36:15 GMT</pubDate>
-      <sparkle:version>6</sparkle:version>
-      <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+      <title>Version 1.6</title>
+      <description><![CDATA[Fluent is now fully self-contained — no Python installation or developer tools needed. First launch works out of the box on any Mac, instantly and offline. Existing installs migrate automatically.]]></description>
+      <pubDate>Sat, 18 Jul 2026 06:02:32 GMT</pubDate>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://github.com/rodrigocruzs/fluent/releases/download/v1.5/Fluent-1.5.zip"
-        length="1483941"
+        url="https://github.com/rodrigocruzs/fluent/releases/download/v1.6/Fluent-1.6.zip"
+        length="43707801"
         type="application/octet-stream"
-        sparkle:edSignature="jqcuLMMAtrsOXmmcb2Q3dRxW9JGY6461Sl2zg0YIk2cPuQBQR66Zgy365GCQY2cEk0mzyUHm6bWVCQhaDiU8AA=="
+        sparkle:edSignature="rzgpFRq2Ssvj1TVSPN40Q0Kwfq94mRn8Oo0uNL3uBPJyiXMOWSNxcq9/krVaQ36KwLo5IOpZ39JS6TVzgTtsCQ=="
       />
     </item>
   </channel>
