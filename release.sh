@@ -28,6 +28,13 @@ if [ -z "$TAG_MSG" ]; then
   exit 1
 fi
 
+# Check that the tag has been pushed to origin (needed for GitHub release creation)
+if [ -z "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+  echo "ERROR: tag '$TAG' not pushed to origin (needed for the GitHub release). Push it first:" >&2
+  echo "  git push origin $TAG" >&2
+  exit 1
+fi
+
 # This script ends by pushing straight to origin/main (no PR, no review) —
 # correct for a real release cut from main, but if run from any other branch
 # it publishes that branch's entire unreviewed history as a side effect.
