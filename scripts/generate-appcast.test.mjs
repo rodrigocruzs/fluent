@@ -38,6 +38,25 @@ test("generateAppcast rejects a version with a leading v", () => {
   );
 });
 
+test("generateAppcast pins the channel link to the tryfluent.co feed URL even with a GitHub download URL", () => {
+  // Release artifacts are hosted on GitHub Releases, so downloadUrl looks like
+  // https://github.com/rodrigocruzs/fluent/releases/download/v1.3/Fluent-1.3.zip.
+  // The channel <link> must NOT be derived from that URL (it would produce a
+  // nonexistent .../releases/download/v1.3/appcast.xml) — it must always point
+  // at the real published feed.
+  const xml = generateAppcast({
+    version: "1.3",
+    buildNumber: 4,
+    notes: "x",
+    pubDate: "Tue, 07 Jul 2026 12:00:00 +0000",
+    signature: "sig",
+    length: 1,
+    downloadUrl: "https://github.com/rodrigocruzs/fluent/releases/download/v1.3/Fluent-1.3.zip",
+  });
+
+  assert.match(xml, /<link>https:\/\/www\.tryfluent\.co\/mac\/updates\/appcast\.xml<\/link>/);
+});
+
 test("generateAppcast puts the build number in sparkle:version, not the marketing version", () => {
   // Sparkle compares an installed app's CFBundleVersion (build number)
   // against <sparkle:version> to decide if an update is newer — not against

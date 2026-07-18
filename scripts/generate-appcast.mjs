@@ -35,7 +35,9 @@ export function generateAppcast({ version, buildNumber, notes, pubDate, signatur
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>Fluent Changelog</title>
-    <link>${downloadUrl.replace(/\/[^/]*$/, "/appcast.xml")}</link>
+    <!-- Fixed by the app's SUFeedURL in Info.plist — not derived from downloadUrl, -->
+    <!-- which now points at GitHub Releases and has no appcast.xml alongside it. -->
+    <link>https://www.tryfluent.co/mac/updates/appcast.xml</link>
     <description>Most recent changes for Fluent on macOS.</description>
     <language>en</language>
     <item>
