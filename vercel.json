@@ -22,13 +22,6 @@
                 { "key": "Content-Type", "value": "application/octet-stream" },
                 { "key": "Content-Disposition", "value": "attachment; filename=\"Fluent-Setup.exe\"" }
             ]
-        },
-        {
-            "source": "/Fluent.dmg",
-            "headers": [
-                { "key": "Content-Type", "value": "application/octet-stream" },
-                { "key": "Content-Disposition", "value": "attachment; filename=\"Fluent.dmg\"" }
-            ]
         }
     ],
     "routes": [
@@ -40,6 +33,11 @@
         { "src": "/sample-report.html", "dest": "/website/sample-report.html" },
         { "src": "/privacy", "dest": "/website/privacy.html" },
         { "src": "/reset-password", "dest": "/website/reset-password.html" },
+        {
+            "src": "/Fluent.dmg",
+            "status": 302,
+            "headers": { "Location": "https://github.com/rodrigocruzs/fluent/releases/latest/download/Fluent.dmg" }
+        },
         { "src": "/(.*)", "dest": "/website/$1" }
     ]
 }
